@@ -30,9 +30,16 @@
 |               22. vollock2_TS!        [3D]                                               |
 +==========================================================================================#
 
-export resetgridstatus_TS!, resetmpstatus_TS!, P2G_TS!, solvegrid_TS!, 
-    doublemapping1_TS!, doublemapping2_TS!, doublemapping3_TS!, G2P_TS!, 
-    vollock1_TS!, vollock2_TS!
+export resetgridstatus_TS! 
+export resetmpstatus_TS!
+export P2G_TS!
+export solvegrid_TS! 
+export doublemapping1_TS!
+export doublemapping2_TS!
+export doublemapping3_TS!
+export G2P_TS! 
+export vollock1_TS!
+export vollock2_TS!
 
 """
     resetgridstatus_TS!(grid::DeviceGrid2D{T1, T2})
@@ -210,20 +217,31 @@ Description:
         mp.p2c[ix] = unsafe_trunc(T1,
             cld(mp.ξ[ix, 2] - grid.y1, grid.dy) +
             fld(mp.ξ[ix, 1] - grid.x1, grid.dx) * grid.ncy)
+        # reset Nij, ∂Nx, ∂Ny
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
+            mp.Nij[ix, iy] = T2(0.0)
+            mp.∂Nx[ix, iy] = T2(0.0)
+            mp.∂Ny[ix, iy] = T2(0.0)
+        end
+        viy = T1(1)
+        @KAunroll for iy in Int32(1):Int32(16)
             # p2n index
             p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
-            mp.p2n[ix, iy] = p2n
             # compute distance between particle and related nodes
-            p2n = mp.p2n[ix, iy]
             Δdx = mp.ξ[ix, 1] - grid.ξ[p2n, 1]
             Δdy = mp.ξ[ix, 2] - grid.ξ[p2n, 2]
             # compute basis function
-            Nx, dNx = uGIMPbasis(Δdx, grid.dx, mp.dx)
-            Ny, dNy = uGIMPbasis(Δdy, grid.dy, mp.dy)
-            mp.Nij[ix, iy]  =  Nx * Ny
-            mp.∂Nx[ix, iy] = dNx * Ny # x-gradient shape function
-            mp.∂Ny[ix, iy] = dNy * Nx # y-gradient shape function
+            if abs(Δdx) < (grid.dx + T2(0.5) * mp.dx) &&
+               abs(Δdy) < (grid.dy + T2(0.5) * mp.dy)
+                Nx, dNx = uGIMPbasis(Δdx, grid.dx, mp.dx)
+                Ny, dNy = uGIMPbasis(Δdy, grid.dy, mp.dy)
+                mp.Nij[ix, viy] =  Nx * Ny
+                mp.∂Nx[ix, viy] = dNx * Ny # x-gradient shape function
+                mp.∂Ny[ix, viy] = dNy * Nx # y-gradient shape function
+                mp.p2n[ix, viy] = p2n
+                viy += T1(1)
+            end
+            viy > mp.NIC && break
         end
     end
 end
@@ -245,41 +263,55 @@ Description:
 ) where {T1, T2}
     ix = @index(Global)   
     if ix ≤ mp.np
+        mpξ1 = mp.ξ[ix, 1]
+        mpξ2 = mp.ξ[ix, 2]
+        mpξ3 = mp.ξ[ix, 3]
+        mpms = mp.Ω[ix] * mp.ρs[ix]
+        mpmw = mp.Ω[ix] * mp.ρw[ix]
         # update particle mass and momentum
-        mp.ms[ix] = mp.Ω[ix] * mp.ρs[ix]
-        mp.mw[ix] = mp.Ω[ix] * mp.ρw[ix]
+        mp.ms[ix] = mpms
+        mp.mw[ix] = mpmw
         mp.mi[ix] = mp.Ω[ix] * ((T2(1.0) - mp.n[ix]) * mp.ρs[ix] + mp.n[ix] * mp.ρw[ix])
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1] * (T2(1.0) - mp.n[ix])
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2] * (T2(1.0) - mp.n[ix])
-        mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3] * (T2(1.0) - mp.n[ix])
-        mp.pw[ix, 1] = mp.mw[ix] * mp.vw[ix, 1] *            mp.n[ix]
-        mp.pw[ix, 2] = mp.mw[ix] * mp.vw[ix, 2] *            mp.n[ix]
-        mp.pw[ix, 3] = mp.mw[ix] * mp.vw[ix, 3] *            mp.n[ix]
-        # get temp variables
-        mp_ξ_1 = mp.ξ[ix, 1]
-        mp_ξ_2 = mp.ξ[ix, 2]
-        mp_ξ_3 = mp.ξ[ix, 3]
+        mp.ps[ix, 1] = mpms * mp.vs[ix, 1] * (T2(1.0) - mp.n[ix])
+        mp.ps[ix, 2] = mpms * mp.vs[ix, 2] * (T2(1.0) - mp.n[ix])
+        mp.ps[ix, 3] = mpms * mp.vs[ix, 3] * (T2(1.0) - mp.n[ix])
+        mp.pw[ix, 1] = mpmw * mp.vw[ix, 1] *            mp.n[ix]
+        mp.pw[ix, 2] = mpmw * mp.vw[ix, 2] *            mp.n[ix]
+        mp.pw[ix, 3] = mpmw * mp.vw[ix, 3] *            mp.n[ix]
         # p2c index
         mp.p2c[ix] = unsafe_trunc(T1,
-            cld(mp_ξ_2 - grid.y1, grid.dy) +
-            fld(mp_ξ_3 - grid.z1, grid.dz) * grid.ncy * grid.ncx +
-            fld(mp_ξ_1 - grid.x1, grid.dx) * grid.ncy)
+            cld(mpξ2 - grid.y1, grid.dy) +
+            fld(mpξ3 - grid.z1, grid.dz) * grid.ncy * grid.ncx +
+            fld(mpξ1 - grid.x1, grid.dx) * grid.ncy)
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
+            mp.Nij[ix, iy] = T2(0.0)
+            mp.∂Nx[ix, iy] = T2(0.0)
+            mp.∂Ny[ix, iy] = T2(0.0)
+            mp.∂Nz[ix, iy] = T2(0.0)
+        end
+        viy = T1(1)
+        @KAunroll for iy in Int32(1):Int32(64)
             # p2n index
             p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
-            mp.p2n[ix, iy] = p2n
             # compute distance betwe en particle and related nodes
-            Δdx = mp_ξ_1 - grid.ξ[p2n, 1]
-            Δdy = mp_ξ_2 - grid.ξ[p2n, 2]
-            Δdz = mp_ξ_3 - grid.ξ[p2n, 3]
+            Δdx = mpξ1 - grid.ξ[p2n, 1]
+            Δdy = mpξ2 - grid.ξ[p2n, 2]
+            Δdz = mpξ3 - grid.ξ[p2n, 3]
             # compute basis function
-            Nx, dNx = uGIMPbasis(Δdx, grid.dx, mp.dx)
-            Ny, dNy = uGIMPbasis(Δdy, grid.dy, mp.dy)
-            Nz, dNz = uGIMPbasis(Δdz, grid.dz, mp.dz)
-            mp.Nij[ix, iy] =  Nx * Ny * Nz
-            mp.∂Nx[ix, iy] = dNx * Ny * Nz # x-gradient basis function
-            mp.∂Ny[ix, iy] = dNy * Nx * Nz # y-gradient basis function
-            mp.∂Nz[ix, iy] = dNz * Nx * Ny # z-gradient basis function
+            if abs(Δdx) < (grid.dx + T2(0.5) * mp.dx) &&
+               abs(Δdy) < (grid.dy + T2(0.5) * mp.dy) &&
+               abs(Δdz) < (grid.dz + T2(0.5) * mp.dz)
+                Nx, dNx = uGIMPbasis(Δdx, grid.dx, mp.dx)
+                Ny, dNy = uGIMPbasis(Δdy, grid.dy, mp.dy)
+                Nz, dNz = uGIMPbasis(Δdz, grid.dz, mp.dz)
+                mp.Nij[ix, viy] =  Nx * Ny * Nz
+                mp.∂Nx[ix, viy] = dNx * Ny * Nz # x-gradient basis function
+                mp.∂Ny[ix, viy] = dNy * Nx * Nz # y-gradient basis function
+                mp.∂Nz[ix, viy] = dNz * Nx * Ny # z-gradient basis function
+                mp.p2n[ix, viy] = p2n
+                viy += T1(1)
+            end
+            viy > mp.NIC && break
         end
     end
 end
@@ -394,7 +426,8 @@ end
 
 
 """
-    solvegrid_TS!(grid::DeviceGrid2D{T1, T2}, bc::DeviceVBoundary2D{T1, T2}, ΔT::T2, ζ::T2)
+    solvegrid_TS!(grid::DeviceGrid2D{T1, T2}, bc::DeviceVBoundary2D{T1, T2}, ΔT::T2, ζs::T2,
+        ζw::T2)
 
 Description:
 ---
@@ -410,37 +443,33 @@ Description:
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        iszero(grid.ms[ix]) ? ms_denom = T2(0.0) : ms_denom = T2(1.0) / grid.ms[ix]
-        iszero(grid.mi[ix]) ? mi_denom = T2(0.0) : mi_denom = T2(1.0) / grid.mi[ix]
-        iszero(grid.mw[ix]) ? mw_denom = T2(0.0) : mw_denom = T2(1.0) / grid.mw[ix]
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        mi_denom = grid.mi[ix] < eps(T2) ? T2(0.0) : inv(grid.mi[ix])
+        mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix])
         # compute nodal velocity
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
         grid.vw[ix, 1] = grid.pw[ix, 1] * mw_denom
         grid.vw[ix, 2] = grid.pw[ix, 2] * mw_denom
         # compute damping force
-        tmp_damp = -ζw * sqrt(grid.fw[ix, 1] * grid.fw[ix, 1] + 
-                              grid.fw[ix, 2] * grid.fw[ix, 2])
-        damp_w_x = tmp_damp * sign(grid.vw[ix, 1])
-        damp_w_y = tmp_damp * sign(grid.vw[ix, 2])
-        tmp_damp = -ζs * sqrt((grid.fs[ix, 1] - grid.fw[ix, 1]) * 
-                              (grid.fs[ix, 1] - grid.fw[ix, 1]) +
-                              (grid.fs[ix, 2] - grid.fw[ix, 2]) * 
-                              (grid.fs[ix, 2] - grid.fw[ix, 2]))
-        damp_s_x = tmp_damp * sign(grid.vs[ix, 1])
-        damp_s_y = tmp_damp * sign(grid.vs[ix, 2])
+        dampvw = -ζw * sqrt( grid.fw[ix, 1] * grid.fw[ix, 1]  + 
+                             grid.fw[ix, 2] * grid.fw[ix, 2] )
+        dampvs = -ζs * sqrt((grid.fs[ix, 1] - grid.fw[ix, 1]) * 
+                            (grid.fs[ix, 1] - grid.fw[ix, 1]) +
+                            (grid.fs[ix, 2] - grid.fw[ix, 2]) * 
+                            (grid.fs[ix, 2] - grid.fw[ix, 2]))
         # compute node acceleration
-        grid.aw[ix, 1] = mw_denom * (grid.fw[ix, 1] + damp_w_x + grid.fd[ix, 1])
-        grid.aw[ix, 2] = mw_denom * (grid.fw[ix, 2] + damp_w_y + grid.fd[ix, 2])
-        grid.as[ix, 1] = ms_denom * (-grid.mi[ix] * grid.aw[ix, 1] + grid.fs[ix, 1] + 
-                                      damp_w_x + damp_s_x)
-        grid.as[ix, 2] = ms_denom * (-grid.mi[ix] * grid.aw[ix, 2] + grid.fs[ix, 2] + 
-                                      damp_w_y + damp_s_y)
+        awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) + grid.fd[ix, 1])
+        awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) + grid.fd[ix, 2])
+        asx = ms_denom * (-grid.mi[ix] * grid.aw[ix, 1] + grid.fs[ix, 1] + 
+            dampvw * sign(grid.vw[ix, 1]) + dampvs * sign(grid.vs[ix, 1]))
+        asy = ms_denom * (-grid.mi[ix] * grid.aw[ix, 2] + grid.fs[ix, 2] + 
+            dampvw * sign(grid.vw[ix, 2]) + dampvs * sign(grid.vs[ix, 2]))
         # update nodal temp velocity
-        grid.vsT[ix, 1] = grid.vs[ix, 1] + grid.as[ix, 1] * ΔT
-        grid.vsT[ix, 2] = grid.vs[ix, 2] + grid.as[ix, 2] * ΔT
-        grid.vwT[ix, 1] = grid.vw[ix, 1] + grid.aw[ix, 1] * ΔT
-        grid.vwT[ix, 2] = grid.vw[ix, 2] + grid.aw[ix, 2] * ΔT
+        grid.vsT[ix, 1] = grid.vs[ix, 1] + asx * ΔT
+        grid.vsT[ix, 2] = grid.vs[ix, 2] + asy * ΔT
+        grid.vwT[ix, 1] = grid.vw[ix, 1] + awx * ΔT
+        grid.vwT[ix, 2] = grid.vw[ix, 2] + awy * ΔT
         # apply boundary condition
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 2] = bc.vy_s_val[ix] : nothing
@@ -455,7 +484,8 @@ Description:
 end
 
 """
-    solvegrid_TS!(grid::DeviceGrid3D{T1, T2}, bc::DeviceVBoundary3D{T1, T2}, ΔT::T2, ζ::T2)
+    solvegrid_TS!(grid::DeviceGrid3D{T1, T2}, bc::DeviceVBoundary3D{T1, T2}, ΔT::T2, ζs::T2,
+        ζw::T2)
 
 Description:
 ---
@@ -471,9 +501,9 @@ Description:
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        iszero(grid.ms[ix]) ? ms_denom = T2(0.0) : ms_denom = T2(1.0) / grid.ms[ix]
-        iszero(grid.mi[ix]) ? mi_denom = T2(0.0) : mi_denom = T2(1.0) / grid.mi[ix]
-        iszero(grid.mw[ix]) ? mw_denom = T2(0.0) : mw_denom = T2(1.0) / grid.mw[ix]
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        mi_denom = grid.mi[ix] < eps(T2) ? T2(0.0) : inv(grid.mi[ix])
+        mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix])
         # compute nodal velocity
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
@@ -482,38 +512,32 @@ Description:
         grid.vw[ix, 2] = grid.pw[ix, 2] * mw_denom
         grid.vw[ix, 3] = grid.pw[ix, 3] * mw_denom
         # compute damping force
-        tmp_damp = -ζw * sqrt(grid.fw[ix, 1] * grid.fw[ix, 1] +
-                              grid.fw[ix, 2] * grid.fw[ix, 2] +
-                              grid.fw[ix, 3] * grid.fw[ix, 3])
-        damp_w_x = tmp_damp * sign(grid.vw[ix, 1])
-        damp_w_y = tmp_damp * sign(grid.vw[ix, 2])
-        damp_w_z = tmp_damp * sign(grid.vw[ix, 3])
-        tmp_damp = -ζs * sqrt((grid.fs[ix, 1] - grid.fw[ix, 1]) * 
-                              (grid.fs[ix, 1] - grid.fw[ix, 1]) +
-                              (grid.fs[ix, 2] - grid.fw[ix, 2]) *
-                              (grid.fs[ix, 2] - grid.fw[ix, 2]) +
-                              (grid.fs[ix, 3] - grid.fw[ix, 3]) *
-                              (grid.fs[ix, 3] - grid.fw[ix, 3]))
-        damp_s_x = tmp_damp * sign(grid.vs[ix, 1])
-        damp_s_y = tmp_damp * sign(grid.vs[ix, 2])
-        damp_s_z = tmp_damp * sign(grid.vs[ix, 3])
+        dampvw = -ζw * sqrt( grid.fw[ix, 1] * grid.fw[ix, 1]  + 
+                             grid.fw[ix, 2] * grid.fw[ix, 2]  +
+                             grid.fw[ix, 3] * grid.fw[ix, 3] )
+        dampvs = -ζs * sqrt((grid.fs[ix, 1] - grid.fw[ix, 1]) * 
+                            (grid.fs[ix, 1] - grid.fw[ix, 1]) +
+                            (grid.fs[ix, 2] - grid.fw[ix, 2]) *
+                            (grid.fs[ix, 2] - grid.fw[ix, 2]) +
+                            (grid.fs[ix, 3] - grid.fw[ix, 3]) *
+                            (grid.fs[ix, 3] - grid.fw[ix, 3]))
         # compute node acceleration
-        grid.aw[ix, 1] = mw_denom * (grid.fw[ix, 1] + damp_w_x + grid.fd[ix, 1])
-        grid.aw[ix, 2] = mw_denom * (grid.fw[ix, 2] + damp_w_y + grid.fd[ix, 2])
-        grid.aw[ix, 3] = mw_denom * (grid.fw[ix, 3] + damp_w_z + grid.fd[ix, 3])
-        grid.as[ix, 1] = ms_denom * (-grid.mi[ix] * grid.aw[ix, 1] + grid.fs[ix, 1] + 
-                                      damp_w_x + damp_s_x)
-        grid.as[ix, 2] = ms_denom * (-grid.mi[ix] * grid.aw[ix, 2] + grid.fs[ix, 2] + 
-                                      damp_w_y + damp_s_y)
-        grid.as[ix, 3] = ms_denom * (-grid.mi[ix] * grid.aw[ix, 3] + grid.fs[ix, 3] + 
-                                      damp_w_z + damp_s_z)
+        awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) + grid.fd[ix, 1])
+        awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) + grid.fd[ix, 2])
+        awz = mw_denom * (grid.fw[ix, 3] + dampvw * sign(grid.vw[ix, 3]) + grid.fd[ix, 3])
+        asx = ms_denom * (-grid.mi[ix] * grid.aw[ix, 1] + grid.fs[ix, 1] + 
+            dampvw * sign(grid.vw[ix, 1]) + dampvs * sign(grid.vs[ix, 1]))
+        asy = ms_denom * (-grid.mi[ix] * grid.aw[ix, 2] + grid.fs[ix, 2] +
+            dampvw * sign(grid.vw[ix, 2]) + dampvs * sign(grid.vs[ix, 2]))
+        asz = ms_denom * (-grid.mi[ix] * grid.aw[ix, 3] + grid.fs[ix, 3] +
+            dampvw * sign(grid.vw[ix, 3]) + dampvs * sign(grid.vs[ix, 3]))
         # update nodal temp velocity
-        grid.vsT[ix, 1] = grid.vs[ix, 1] + grid.as[ix, 1] * ΔT
-        grid.vsT[ix, 2] = grid.vs[ix, 2] + grid.as[ix, 2] * ΔT
-        grid.vsT[ix, 3] = grid.vs[ix, 3] + grid.as[ix, 3] * ΔT
-        grid.vwT[ix, 1] = grid.vw[ix, 1] + grid.aw[ix, 1] * ΔT
-        grid.vwT[ix, 2] = grid.vw[ix, 2] + grid.aw[ix, 2] * ΔT
-        grid.vwT[ix, 3] = grid.vw[ix, 3] + grid.aw[ix, 3] * ΔT
+        grid.vsT[ix, 1] = grid.vs[ix, 1] + asx * ΔT
+        grid.vsT[ix, 2] = grid.vs[ix, 2] + asy * ΔT
+        grid.vsT[ix, 3] = grid.vs[ix, 3] + asz * ΔT
+        grid.vwT[ix, 1] = grid.vw[ix, 1] + awx * ΔT
+        grid.vwT[ix, 2] = grid.vw[ix, 2] + awy * ΔT
+        grid.vwT[ix, 3] = grid.vw[ix, 3] + awz * ΔT
         # apply boundary condition
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 2] = bc.vy_s_val[ix] : nothing
@@ -549,33 +573,29 @@ Description:
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        tmp_vx_s1 = tmp_vx_s2 = tmp_vy_s1 = tmp_vy_s2 = T2(0.0)
-        tmp_vx_w1 = tmp_vx_w2 = tmp_vy_w1 = tmp_vy_w2 = T2(0.0)
-        tmp_ξ_x = tmp_ξ_y = T2(0.0)
+        ξsx = ξsy = ξwx = ξwy = vsx = vsy = vwx = vwy = T2(0.0)
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Ni = mp.Nij[ix, iy]
             if Ni ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                tmp_ξ_x += Ni *  grid.vsT[p2n, 1]
-                tmp_ξ_y += Ni *  grid.vsT[p2n, 2]
-                tmp_vx_s1 += Ni * (grid.vsT[p2n, 1] - grid.vs[p2n, 1])
-                tmp_vx_s2 += Ni *  grid.vsT[p2n, 1]
-                tmp_vy_s1 += Ni * (grid.vsT[p2n, 2] - grid.vs[p2n, 2])
-                tmp_vy_s2 += Ni *  grid.vsT[p2n, 2]
-                tmp_vx_w1 += Ni * (grid.vwT[p2n, 1] - grid.vw[p2n, 1])
-                tmp_vx_w2 += Ni *  grid.vwT[p2n, 1]
-                tmp_vy_w1 += Ni * (grid.vwT[p2n, 2] - grid.vw[p2n, 2])
-                tmp_vy_w2 += Ni *  grid.vwT[p2n, 2]
+                ξsx += Ni *  grid.vsT[p2n, 1]
+                ξsy += Ni *  grid.vsT[p2n, 2]
+                ξwx += Ni *  grid.vwT[p2n, 1]
+                ξwy += Ni *  grid.vwT[p2n, 2]
+                vsx += Ni * (grid.vsT[p2n, 1] - grid.vs[p2n, 1])
+                vsy += Ni * (grid.vsT[p2n, 2] - grid.vs[p2n, 2])
+                vwx += Ni * (grid.vwT[p2n, 1] - grid.vw[p2n, 1])
+                vwy += Ni * (grid.vwT[p2n, 2] - grid.vw[p2n, 2])
             end
         end
         # update particle ξition
-        mp.ξ[ix, 1] += ΔT * tmp_ξ_x
-        mp.ξ[ix, 2] += ΔT * tmp_ξ_y
+        mp.ξ[ix, 1] += ΔT * ξsx
+        mp.ξ[ix, 2] += ΔT * ξsy
         # update particle velocity
-        mp.vs[ix, 1] = FLIP * (mp.vs[ix, 1] + tmp_vx_s1) + PIC * tmp_vx_s2
-        mp.vs[ix, 2] = FLIP * (mp.vs[ix, 2] + tmp_vy_s1) + PIC * tmp_vy_s2
-        mp.vw[ix, 1] = FLIP * (mp.vw[ix, 1] + tmp_vx_w1) + PIC * tmp_vx_w2
-        mp.vw[ix, 2] = FLIP * (mp.vw[ix, 2] + tmp_vy_w1) + PIC * tmp_vy_w2
+        mp.vs[ix, 1] = FLIP * (mp.vs[ix, 1] + vsx) + PIC * ξsx
+        mp.vs[ix, 2] = FLIP * (mp.vs[ix, 2] + vsy) + PIC * ξsy
+        mp.vw[ix, 1] = FLIP * (mp.vw[ix, 1] + vwx) + PIC * ξwx
+        mp.vw[ix, 2] = FLIP * (mp.vw[ix, 2] + vwy) + PIC * ξwy
         # update particle momentum
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1] * (T2(1.0) - mp.n[ix])
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2] * (T2(1.0) - mp.n[ix])
@@ -602,41 +622,37 @@ Description:
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        tmp_vx_s1 = tmp_vx_s2 = tmp_vy_s1 = tmp_vy_s2 = tmp_vz_s1 = tmp_vz_s2 = T2(0.0)
-        tmp_vx_w1 = tmp_vx_w2 = tmp_vy_w1 = tmp_vy_w2 = tmp_vz_w1 = tmp_vz_w2 = T2(0.0)
-        tmp_ξ_x = tmp_ξ_y = tmp_ξ_z = T2(0.0)
+        ξsx = ξsy = ξsz = vsx = vsy = vsz = T2(0.0)
+        ξwx = ξwy = ξwz = vwx = vwy = vwz = T2(0.0)
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Ni = mp.Nij[ix, iy]
             if Ni ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                tmp_ξ_x += Ni *  grid.vsT[p2n, 1]
-                tmp_ξ_y += Ni *  grid.vsT[p2n, 2]
-                tmp_ξ_z += Ni *  grid.vsT[p2n, 3]
-                tmp_vx_s1 += Ni * (grid.vsT[p2n, 1] - grid.vs[p2n, 1])
-                tmp_vx_s2 += Ni *  grid.vsT[p2n, 1]
-                tmp_vy_s1 += Ni * (grid.vsT[p2n, 2] - grid.vs[p2n, 2])
-                tmp_vy_s2 += Ni *  grid.vsT[p2n, 2]
-                tmp_vz_s1 += Ni * (grid.vsT[p2n, 3] - grid.vs[p2n, 3])
-                tmp_vz_s2 += Ni *  grid.vsT[p2n, 3]
-                tmp_vx_w1 += Ni * (grid.vwT[p2n, 1] - grid.vw[p2n, 1])
-                tmp_vx_w2 += Ni *  grid.vwT[p2n, 1]
-                tmp_vy_w1 += Ni * (grid.vwT[p2n, 2] - grid.vw[p2n, 2])
-                tmp_vy_w2 += Ni *  grid.vwT[p2n, 2]
-                tmp_vz_w1 += Ni * (grid.vwT[p2n, 3] - grid.vw[p2n, 3])
-                tmp_vz_w2 += Ni *  grid.vwT[p2n, 3]
+                ξsx += Ni *  grid.vsT[p2n, 1]
+                ξsy += Ni *  grid.vsT[p2n, 2]
+                ξsz += Ni *  grid.vsT[p2n, 3]
+                ξwx += Ni *  grid.vwT[p2n, 1]
+                ξwy += Ni *  grid.vwT[p2n, 2]
+                ξwz += Ni *  grid.vwT[p2n, 3]
+                vsx += Ni * (grid.vsT[p2n, 1] - grid.vs[p2n, 1])
+                vsy += Ni * (grid.vsT[p2n, 2] - grid.vs[p2n, 2])
+                vsz += Ni * (grid.vsT[p2n, 3] - grid.vs[p2n, 3])
+                vwx += Ni * (grid.vwT[p2n, 1] - grid.vw[p2n, 1])
+                vwy += Ni * (grid.vwT[p2n, 2] - grid.vw[p2n, 2])
+                vwz += Ni * (grid.vwT[p2n, 3] - grid.vw[p2n, 3])
             end
         end
         # update particle ξition
-        mp.ξ[ix, 1] += ΔT * tmp_ξ_x
-        mp.ξ[ix, 2] += ΔT * tmp_ξ_y
-        mp.ξ[ix, 3] += ΔT * tmp_ξ_z
+        mp.ξ[ix, 1] += ΔT * ξsx
+        mp.ξ[ix, 2] += ΔT * ξsy
+        mp.ξ[ix, 3] += ΔT * ξsz
         # update particle velocity
-        mp.vs[ix, 1] = FLIP * (mp.vs[ix, 1] + tmp_vx_s1) + PIC * tmp_vx_s2
-        mp.vs[ix, 2] = FLIP * (mp.vs[ix, 2] + tmp_vy_s1) + PIC * tmp_vy_s2
-        mp.vs[ix, 3] = FLIP * (mp.vs[ix, 3] + tmp_vz_s1) + PIC * tmp_vz_s2
-        mp.vw[ix, 1] = FLIP * (mp.vw[ix, 1] + tmp_vx_w1) + PIC * tmp_vx_w2
-        mp.vw[ix, 2] = FLIP * (mp.vw[ix, 2] + tmp_vy_w1) + PIC * tmp_vy_w2
-        mp.vw[ix, 3] = FLIP * (mp.vw[ix, 3] + tmp_vz_w1) + PIC * tmp_vz_w2
+        mp.vs[ix, 1] = FLIP * (mp.vs[ix, 1] + vsx) + PIC * ξsx
+        mp.vs[ix, 2] = FLIP * (mp.vs[ix, 2] + vsy) + PIC * ξsy
+        mp.vs[ix, 3] = FLIP * (mp.vs[ix, 3] + vsz) + PIC * ξsz
+        mp.vw[ix, 1] = FLIP * (mp.vw[ix, 1] + vwx) + PIC * ξwx
+        mp.vw[ix, 2] = FLIP * (mp.vw[ix, 2] + vwy) + PIC * ξwy
+        mp.vw[ix, 3] = FLIP * (mp.vw[ix, 3] + vwz) + PIC * ξwz
         # update particle momentum
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1] * (T2(1.0) - mp.n[ix])
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2] * (T2(1.0) - mp.n[ix])
@@ -717,9 +733,9 @@ Solve equations on grid.
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni 
-        iszero(grid.ms[ix]) ? ms_denom = T2(0.0) : ms_denom = T2(1.0) / grid.ms[ix]
-        iszero(grid.mi[ix]) ? mi_denom = T2(0.0) : mi_denom = T2(1.0) / grid.mi[ix]
-        iszero(grid.mw[ix]) ? mw_denom = T2(0.0) : mw_denom = T2(1.0) / grid.mw[ix]
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        mi_denom = grid.mi[ix] < eps(T2) ? T2(0.0) : inv(grid.mi[ix])
+        mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix])
         # compute nodal velocities
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
@@ -752,9 +768,9 @@ Solve equations on grid.
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        iszero(grid.ms[ix]) ? ms_denom = T2(0.0) : ms_denom = T2(1.0) / grid.ms[ix]
-        iszero(grid.mi[ix]) ? mi_denom = T2(0.0) : mi_denom = T2(1.0) / grid.mi[ix]
-        iszero(grid.mw[ix]) ? mw_denom = T2(0.0) : mw_denom = T2(1.0) / grid.mw[ix]
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        mi_denom = grid.mi[ix] < eps(T2) ? T2(0.0) : inv(grid.mi[ix])
+        mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix])
         # compute nodal velocities
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
@@ -852,7 +868,7 @@ Update particle information.
         mp.σw[ix] += (attr.Kw[attr.nid[ix]] / mp.n[ix]) * (
             (T2(1.0) - mp.n[ix]) * (dfs1 + dfs4) + 
                        mp.n[ix]  * (dfw1 + dfw4))
-        mp.n[ix] = T2(1.0) - (T2(1.0) - mp.n[ix]) / ΔJ
+        mp.n[ix] = clamp(T2(1.0) - (T2(1.0) - mp.n[ix]) / ΔJ, T2(0.0), T2(1.0))
     end
 end
 
@@ -956,7 +972,7 @@ Update particle information.
         mp.σw[ix] += (attr.Kw[attr.nid[ix]] / mp.n[ix]) * (
             (T2(1.0) - mp.n[ix]) * (dfs1 + dfs5 + dfs9) + 
                        mp.n[ix]  * (dfw1 + dfw5 + dfw9))
-        mp.n[ix] = T2(1.0) - (T2(1.0) - mp.n[ix]) / ΔJ
+        mp.n[ix] = clamp(T2(1.0) - (T2(1.0) - mp.n[ix]) / ΔJ, T2(0.0), T2(1.0))
     end
 end
 

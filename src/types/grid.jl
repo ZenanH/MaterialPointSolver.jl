@@ -67,8 +67,6 @@ struct Grid2D{T1, T2,
     fs    :: T5
     fw    :: T5
     fd    :: T5
-    as    :: T5
-    aw    :: T5
     Δus   :: T5
     Δuw   :: T5
     ext   :: T6
@@ -118,8 +116,6 @@ function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0)
     vw  = zeros(T2, ni_new, DoF_new)
     vsT = zeros(T2, ni    , DoF    )
     vwT = zeros(T2, ni_new, DoF_new)
-    as  = zeros(T2, ni    , DoF    )
-    aw  = zeros(T2, ni_new, DoF_new)
     fs  = zeros(T2, ni    , DoF    )
     fw  = zeros(T2, ni_new, DoF_new)
     fd  = zeros(T2, ni_new, DoF_new)
@@ -139,8 +135,7 @@ function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0)
 
     tmp = Grid2D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, AbstractArray{T2, 2}, 
         UserGridExtra}(phase, x1, x2, y1, y2, dx, dy, nnx, nny, ni, NIC, ξ, ncx, ncy, nc, 
-        p2nD, σm, σw, Ω, ms, mw, mi, ps, pw, vs, vw, vsT, vwT, fs, fw, fd, as, aw, Δus, Δuw,
-        ext)
+        p2nD, σm, σw, Ω, ms, mw, mi, ps, pw, vs, vw, vsT, vwT, fs, fw, fd, Δus, Δuw, ext)
     return user_adapt(Array, tmp)
 end
 
@@ -209,8 +204,6 @@ struct Grid3D{T1, T2,
     fs    :: T5
     fw    :: T5
     fd    :: T5
-    as    :: T5
-    aw    :: T5
     Δus   :: T5
     Δuw   :: T5
     ext   :: T6
@@ -272,8 +265,6 @@ function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NI
     vw  = zeros(T2, ni_new, DoF_new)
     vsT = zeros(T2, ni    , DoF    )
     vwT = zeros(T2, ni_new, DoF_new)
-    as  = zeros(T2, ni    , DoF    )
-    aw  = zeros(T2, ni_new, DoF_new)
     fs  = zeros(T2, ni    , DoF    )
     fw  = zeros(T2, ni_new, DoF_new)
     fd  = zeros(T2, ni_new, DoF_new)
@@ -304,7 +295,7 @@ function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NI
     tmp = Grid3D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, AbstractArray{T2, 2}, 
         UserGridExtra}(phase, x1, x2, y1, y2, z1, z2, dx, dy, dz, nnx, nny, nnz, ni, NIC, ξ, 
         ncx, ncy, ncz, nc, p2nD, σm, σw, Ω, ms, mw, mi, ps, pw, vs, vw, vsT, vwT, fs, fw, 
-        fd, as, aw, Δus, Δuw, ext)
+        fd, Δus, Δuw, ext)
     return user_adapt(Array, tmp)
 end
 

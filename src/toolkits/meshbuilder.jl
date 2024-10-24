@@ -6,12 +6,14 @@
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
-|  Functions  : meshbuilder()                                                              |
-|               getparticle()                                                              |
+|  Functions  : 01. meshbuilder()                                                          |
+|               02. getparticle()                                                          |
+|               03. is_point_in_polygon()                                                  |
 +==========================================================================================#
 
 export meshbuilder
 export getparticle
+export is_point_in_polygon
 
 function meshbuilder(x::AbstractRange, y::AbstractRange)
     x_tmp = repeat(x', length(y), 1) |> vec

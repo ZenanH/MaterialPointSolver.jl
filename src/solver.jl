@@ -16,6 +16,8 @@ include(joinpath(@__DIR__, "solvers/OS_MUSL.jl" ))
 include(joinpath(@__DIR__, "solvers/OS_USL.jl"  ))
 include(joinpath(@__DIR__, "solvers/OS_USF.jl"  ))
 include(joinpath(@__DIR__, "solvers/TS_MUSL.jl" ))
+include(joinpath(@__DIR__, "solvers/TS_USL.jl"  ))
+include(joinpath(@__DIR__, "solvers/TS_USF.jl"  ))
 
 include(joinpath(@__DIR__, "materials/linearelastic.jl"))
 include(joinpath(@__DIR__, "materials/druckerprager.jl"))
@@ -40,8 +42,8 @@ This function will start to run the MPM solver.
     mp      :: DeviceParticle{T1, T2}, 
     attr    :: DeviceProperty{T1, T2},
     bc      ::DeviceVBoundary{T1, T2},
-    workflow::Function
-) where {T1, T2}
+    workflow::F
+) where {T1, T2, F<:Function}
     initmpstatus!(CPU())(ndrange=mp.np, grid, mp, Val(args.basis))
     # variables setup for the simulation 
     Ti = T2(0.0)
@@ -82,8 +84,7 @@ This function will start to run the MPM solver.
                     hdf5_switch = T1(0); hdf5_id += T1(1)
                 end
                 workflow(args, dev_grid, dev_mp, dev_attr, dev_bc, ΔT, Ti, 
-                    Val(args.coupling), Val(args.scheme), Val(args.va))
-                #args.time_step==:auto ? ΔT=args.αT*reduce(min, dev_mp.cfl) : nothing
+                    Val(args.coupling), Val(args.scheme))
                 Ti += ΔT
                 hdf5_switch += 1
                 args.iter_num += 1
@@ -117,8 +118,7 @@ This function will start to run the MPM solver.
         args.start_time = time()
         while Ti < args.Ttol
             workflow(args, dev_grid, dev_mp, dev_attr, dev_bc, ΔT, Ti, 
-                Val(args.coupling), Val(args.scheme), Val(args.va))
-            #args.time_step==:auto ? ΔT=args.αT*reduce(min, dev_mp.cfl) : nothing
+                Val(args.coupling), Val(args.scheme))
             Ti += ΔT
             args.iter_num += 1
             updatepb!(pc, Ti, args.Ttol, pb)

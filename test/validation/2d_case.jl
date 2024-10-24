@@ -49,7 +49,6 @@ args = UserArgs2D(
     device       = :CUDA,
     coupling     = :OS,
     scheme       = :MUSL,
-    va           = :a,
     progressbar  = true,
     gravity      = -9.8,
     ζs           = 0,
