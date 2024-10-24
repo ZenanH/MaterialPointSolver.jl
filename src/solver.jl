@@ -40,8 +40,8 @@ This function will start to run the MPM solver.
     mp      :: DeviceParticle{T1, T2}, 
     attr    :: DeviceProperty{T1, T2},
     bc      ::DeviceVBoundary{T1, T2},
-    workflow::Function
-) where {T1, T2}
+    workflow::F
+) where {T1, T2, F<:Function}
     initmpstatus!(CPU())(ndrange=mp.np, grid, mp, Val(args.basis))
     # variables setup for the simulation 
     Ti = T2(0.0)
