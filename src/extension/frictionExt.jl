@@ -51,8 +51,6 @@ struct SolidBasal2D{T1, T2,
     fs    :: T5
     fw    :: T5
     fd    :: T5
-    as    :: T5
-    aw    :: T5
     Δus   :: T5
     Δuw   :: T5
     ∂m    :: T5
@@ -63,10 +61,10 @@ end
 function UserSolidBasal2D(grid::DeviceGrid2D{T1, T2}) where {T1, T2}
     tmp = SolidBasal2D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, 
         AbstractArray{T2, 2}}(grid.phase, grid.x1, grid.x2, grid.y1, grid.y2, grid.dx,
-        grid.dy, grid.nnx, grid.nny, grid.ni, grid.NIC, grid.ξ, grid.ncx, grid.ncy,
-        grid.nc, grid.p2nD, grid.σm, grid.σw, grid.Ω, grid.ms, grid.mw, grid.mi,
-        grid.ps, grid.pw, grid.vs, grid.vw, grid.vsT, grid.vwT, grid.fs, grid.fw,
-        grid.fd, grid.as, grid.aw, grid.Δus, grid.Δuw, zeros(T2, grid.ni, 2))
+        grid.dy, grid.nnx, grid.nny, grid.ni, grid.NIC, grid.ξ, grid.ncx, grid.ncy, grid.nc, 
+        grid.p2nD, grid.σm, grid.σw, grid.Ω, grid.ms, grid.mw, grid.mi, grid.ps, grid.pw, 
+        grid.vs, grid.vw, grid.vsT, grid.vwT, grid.fs, grid.fw, grid.fd, grid.Δus, grid.Δuw, 
+        zeros(T2, grid.ni, 2))
     return user_adapt(Array, tmp)
 end
 
@@ -111,8 +109,6 @@ struct SolidBasal3D{T1, T2,
     fs    :: T5
     fw    :: T5
     fd    :: T5
-    as    :: T5
-    aw    :: T5
     Δus   :: T5
     Δuw   :: T5
     ∂m    :: T5
@@ -126,8 +122,7 @@ function UserSolidBasal3D(grid::DeviceGrid3D{T1, T2}) where {T1, T2}
         grid.z2, grid.dx, grid.dy, grid.dz, grid.nnx, grid.nny, grid.nnz, grid.ni, grid.NIC, 
         grid.ξ, grid.ncx, grid.ncy, grid.ncz, grid.nc, grid.p2nD, grid.σm, grid.σw, grid.Ω, 
         grid.ms, grid.mw, grid.mi, grid.ps, grid.pw, grid.vs, grid.vw, grid.vsT, grid.vwT, 
-        grid.fs, grid.fw, grid.fd, grid.as, grid.aw, grid.Δus, grid.Δuw, 
-        zeros(T2, grid.ni, 3))
+        grid.fs, grid.fw, grid.fd, grid.Δus, grid.Δuw, zeros(T2, grid.ni, 3))
     return user_adapt(Array, tmp)
 end
 

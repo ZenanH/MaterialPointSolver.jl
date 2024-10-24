@@ -44,7 +44,6 @@ mutable struct Args2D{T1, T2, T3<:UserArgsExtra} <: DeviceArgs2D{T1, T2}
     const device      ::Symbol
     const coupling    ::Symbol
     const scheme      ::Symbol
-    const va          ::Symbol
     const progressbar ::Bool
     const gravity     ::T2
     const ζs          ::T2
@@ -60,7 +59,7 @@ end
 
 function UserArgs2D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitutive, 
     basis=:uGIMP, animation=false, hdf5=false, hdf5_step=1, MVL=false, device=:CPU, 
-    coupling=:OS, scheme=:MUSL, va=:a, progressbar=true, gravity=-9.8, ζs=0, ζw=0, αT=0.5, 
+    coupling=:OS, scheme=:MUSL, progressbar=true, gravity=-9.8, ζs=0, ζw=0, αT=0.5, 
     iter_num=0, end_time=0, start_time=0, project_name, project_path, ext=0, ϵ="FP64")
     T1 = ϵ=="FP32" ? Int32   : Int64
     T2 = ϵ=="FP32" ? Float32 : Float64
@@ -71,7 +70,6 @@ function UserArgs2D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     bas_set = [:uGIMP, :linear, :gslinear]
     dev_set = [:CPU, :CUDA, :ROCm, :oneAPI, :Metal]
     tis_set = [:fixed, :auto]
-    v_a_set = [:v, :a]
     # parameter check
     0<Ttol                || error("Simulation time cannot be ≤0 s."         )
     ΔT≤Ttol               || error("Time step cannot be >$(Ttol)s."          )
@@ -85,14 +83,13 @@ function UserArgs2D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     coupling in cop_set   || error("Coupling mode is wrong."                 )
     device in dev_set     || error("Cannot find $(device) device."           )
     time_step in tis_set  || error("$(time_step) time step is not allowed."  )
-    va in v_a_set         || error("Cannot find $(va) velocity update mode." )
     (animation==true)&&(hdf5==false) ? 
         (hdf5=true; @warn "HDF5 forced ON due to the animation") : nothing 
     (hdf5==true)&&(hdf5_step≤0) ? error("HDF5 step cannot be ≤0.") : nothing
     tmp = ext == 0 ? TempArgsExtra(0) : ext
 
     return Args2D{T1, T2, UserArgsExtra}(Ttol, Te, ΔT, time_step, FLIP, PIC, constitutive, 
-        basis, animation, hdf5, hdf5_step, MVL, device, coupling, scheme, va, progressbar, 
+        basis, animation, hdf5, hdf5_step, MVL, device, coupling, scheme, progressbar, 
         gravity, ζs, ζw, αT, iter_num, end_time, start_time, project_name, project_path, 
         tmp)
 end
@@ -135,7 +132,6 @@ mutable struct Args3D{T1, T2, T3<:UserArgsExtra} <: DeviceArgs3D{T1, T2}
     const device      ::Symbol
     const coupling    ::Symbol
     const scheme      ::Symbol
-    const va          ::Symbol
     const progressbar ::Bool
     const gravity     ::T2
     const ζs          ::T2
@@ -151,7 +147,7 @@ end
 
 function UserArgs3D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitutive, 
     basis=:uGIMP, animation=false, hdf5=false, hdf5_step=1, MVL=false, device=:CPU, 
-    coupling=:OS, scheme=:MUSL, va=:a, progressbar=true, gravity=-9.8, ζs=0, ζw=0, αT=0.5, 
+    coupling=:OS, scheme=:MUSL, progressbar=true, gravity=-9.8, ζs=0, ζw=0, αT=0.5, 
     iter_num=0, end_time=0, start_time=0, project_name, project_path, ext=0, ϵ="FP64")
     T1 = ϵ=="FP32" ? Int32   : Int64
     T2 = ϵ=="FP32" ? Float32 : Float64
@@ -162,7 +158,6 @@ function UserArgs3D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     bas_set = [:uGIMP, :linear, :gslinear]
     dev_set = [:CPU, :CUDA, :ROCm, :oneAPI, :Metal]
     tis_set = [:fixed, :auto]
-    v_a_set = [:v, :a]
     # parameter check
     0<Ttol                || error("Simulation time cannot be ≤0 s."         )
     ΔT≤Ttol               || error("Time step cannot be >$(Ttol)s."          )
@@ -175,15 +170,14 @@ function UserArgs3D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     project_name≠""       || error("Empty project name."                     )
     coupling in cop_set   || error("Coupling mode is wrong."                 )
     device in dev_set     || error("Cannot find $(device) device."           )
-    time_step in tis_set  || error("$(time_step) time step is not allowed."  )
-    va in v_a_set         || error("Cannot find $(va) velocity update mode." )
+    time_step in tis_set  || error("$(time_step) time step is not allowed."  ) 
     (animation==true)&&(hdf5==false) ? 
         (hdf5=true; @warn "HDF5 forced ON due to the animation") : nothing 
     (hdf5==true)&&(hdf5_step≤0) ? error("HDF5 step cannot be ≤0.") : nothing
     tmp = ext == 0 ? TempArgsExtra(0) : ext
 
     return Args3D{T1, T2, UserArgsExtra}(Ttol, Te, ΔT, time_step, FLIP, PIC, constitutive, 
-        basis, animation, hdf5, hdf5_step, MVL, device, coupling, scheme, va, progressbar, 
+        basis, animation, hdf5, hdf5_step, MVL, device, coupling, scheme, progressbar, 
         gravity, ζs, ζw, αT, iter_num, end_time, start_time, project_name, project_path, 
         tmp)
 end
