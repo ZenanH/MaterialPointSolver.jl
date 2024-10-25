@@ -585,8 +585,8 @@ Description:
 end
 
 """
-    doublemapping1_OS!(grid::DeviceGrid2D{T1, T2}, mp::DeviceParticle2D{T1, T2}, ΔT::T2, 
-        FLIP::T2, PIC::T2)
+    doublemapping1_OS!(grid::DeviceGrid2D{T1, T2}, mp::DeviceParticle2D{T1, T2},
+        attr::DeviceProperty{T1, T2}, ΔT::T2, FLIP::T2, PIC::T2)
 
 Description:
 ---
@@ -595,6 +595,7 @@ Mapping results from grid to particles.
 @kernel inbounds = true function doublemapping1_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
+    attr::  DeviceProperty{T1, T2},
     ΔT  ::T2,
     FLIP::T2,
     PIC ::T2
@@ -621,12 +622,19 @@ Mapping results from grid to particles.
         # update particle momentum
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
+        # update CFL conditions
+        nid = attr.nid[ix]
+        Ks  = attr.Ks[nid]
+        Gs  = attr.Gs[nid]
+        cdil = sqrt((Ks + T2(1.333333) * Gs) / mp.ρs[ix]) # 4/3 ≈ 1.333333
+        mp.cfl[ix] = min(grid.dx / (cdil + abs(mp.vs[ix, 1])), 
+                         grid.dy / (cdil + abs(mp.vs[ix, 2]))) 
     end
 end
 
 """
-    doublemapping1_OS!(grid::DeviceGrid3D{T1, T2}, mp::DeviceParticle3D{T1, T2}, ΔT::T2, 
-        FLIP::T2, PIC::T2)
+    doublemapping1_OS!(grid::DeviceGrid3D{T1, T2}, mp::DeviceParticle3D{T1, T2}, 
+        attr::DeviceProperty{T1, T2}, ΔT::T2, FLIP::T2, PIC::T2)
 
 Description:
 ---
@@ -635,6 +643,7 @@ Mapping results from grid to particles.
 @kernel inbounds = true function doublemapping1_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
+    attr::  DeviceProperty{T1, T2},
     ΔT  ::T2,
     FLIP::T2,
     PIC ::T2
@@ -666,6 +675,14 @@ Mapping results from grid to particles.
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
+        # update CFL conditions
+        nid = attr.nid[ix]
+        Ks  = attr.Ks[nid]
+        Gs  = attr.Gs[nid]
+        cdil = sqrt((Ks + T2(1.333333) * Gs) / mp.ρs[ix]) # 4/3 ≈ 1.333333
+        mp.cfl[ix] = min(grid.dx / (cdil + abs(mp.vs[ix, 1])), 
+                         grid.dy / (cdil + abs(mp.vs[ix, 2])),
+                         grid.dz / (cdil + abs(mp.vs[ix, 3]))) 
     end
 end
 

@@ -29,6 +29,9 @@ Description:
     ix = @index(Global)
     if ix ≤ grid.ni
         ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        # boundary condition
+        bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
+        bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
         # compute nodal velocity
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
@@ -68,13 +71,14 @@ Description:
     ix = @index(Global)
     if ix ≤ grid.ni
         ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        # boundary condition
+        bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
+        bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
+        bc.vz_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 3] = bc.vz_s_val[ix] : nothing
         # compute nodal velocity
-        ps_1 = grid.ps[ix, 1]
-        ps_2 = grid.ps[ix, 2]
-        ps_3 = grid.ps[ix, 3]
-        grid.vs[ix, 1] = ps_1 * ms_denom
-        grid.vs[ix, 2] = ps_2 * ms_denom
-        grid.vs[ix, 3] = ps_3 * ms_denom
+        grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
+        grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
+        grid.vs[ix, 3] = grid.ps[ix, 3] * ms_denom
         # damping force for solid
         dampvs = -ζs * sqrt(grid.fs[ix, 1] * grid.fs[ix, 1] +
                             grid.fs[ix, 2] * grid.fs[ix, 2] +
@@ -84,9 +88,9 @@ Description:
         Fs_y = grid.fs[ix, 2] + dampvs * sign(grid.vs[ix, 2])
         Fs_z = grid.fs[ix, 3] + dampvs * sign(grid.vs[ix, 3])
         # update nodal velocity
-        grid.vsT[ix, 1] = (ps_1 + Fs_x * ΔT) * ms_denom
-        grid.vsT[ix, 2] = (ps_2 + Fs_y * ΔT) * ms_denom
-        grid.vsT[ix, 3] = (ps_3 + Fs_z * ΔT) * ms_denom
+        grid.vsT[ix, 1] = grid.vs[ix, 1] + Fs_x * ΔT * ms_denom
+        grid.vsT[ix, 2] = grid.vs[ix, 2] + Fs_y * ΔT * ms_denom
+        grid.vsT[ix, 3] = grid.vs[ix, 3] + Fs_z * ΔT * ms_denom
         # boundary condition
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 2] = bc.vy_s_val[ix] : nothing
@@ -117,7 +121,7 @@ function procedure!(
         resetmpstatus_OS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
     P2G_OS!(dev)(ndrange=mp.np, grid, mp, G)
     solvegrid_USL_OS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs)
-    doublemapping1_OS!(dev)(ndrange=mp.np, grid, mp, ΔT, args.FLIP, args.PIC)
+    doublemapping1_OS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
     G2P_OS!(dev)(ndrange=mp.np, grid, mp, ΔT)
     if args.constitutive == :hyperelastic
         hyE!(dev)(ndrange=mp.np, mp, attr)

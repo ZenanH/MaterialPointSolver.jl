@@ -446,6 +446,11 @@ Description:
         ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
         mi_denom = grid.mi[ix] < eps(T2) ? T2(0.0) : inv(grid.mi[ix])
         mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix])
+        # boundary condition
+        bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
+        bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
+        bc.vx_w_idx[ix] ≠ T1(0) ? grid.pw[ix, 1] = bc.vx_w_val[ix] : nothing
+        bc.vy_w_idx[ix] ≠ T1(0) ? grid.pw[ix, 2] = bc.vy_w_val[ix] : nothing
         # compute nodal velocity
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
@@ -504,6 +509,13 @@ Description:
         ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
         mi_denom = grid.mi[ix] < eps(T2) ? T2(0.0) : inv(grid.mi[ix])
         mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix])
+        # boundary condition
+        bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
+        bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
+        bc.vz_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 3] = bc.vz_s_val[ix] : nothing
+        bc.vx_w_idx[ix] ≠ T1(0) ? grid.pw[ix, 1] = bc.vx_w_val[ix] : nothing
+        bc.vy_w_idx[ix] ≠ T1(0) ? grid.pw[ix, 2] = bc.vy_w_val[ix] : nothing
+        bc.vz_w_idx[ix] ≠ T1(0) ? grid.pw[ix, 3] = bc.vz_w_val[ix] : nothing
         # compute nodal velocity
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
@@ -601,6 +613,18 @@ Description:
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2] * (T2(1.0) - mp.n[ix])
         mp.pw[ix, 1] = mp.mw[ix] * mp.vw[ix, 1] *            mp.n[ix]
         mp.pw[ix, 2] = mp.mw[ix] * mp.vw[ix, 2] *            mp.n[ix]
+        # update CFL conditions
+        nid = attr.nid[ix]
+        Kw  = attr.Kw[nid]
+        Ks  = attr.Ks[nid]
+        Gs  = attr.Gs[nid]
+        nd  = mp.n[ix] < eps(T2) ? T2(0.0) : inv(mp.n[ix])
+        Ec  = Ks + T2(1.333333) * Gs # 4/3 ≈ 1.333333
+        Eu  = Ec + Kw * nd
+        βs  = sqrt((mp.n[ix] * Ec / Kw) / (T2(1.0) - mp.n[ix] + mp.n[ix] * Ec / Kw))
+        c1  = sqrt(Eu / ((T2(1.0) - mp.n[ix]) * mp.ρs[ix] + mp.n[ix] * mp.ρw[ix]))
+        c2  = βs * sqrt(Kw / mp.ρw[ix])
+        mp.cfl[ix] = min(grid.dx / c1, grid.dx / c2, grid.dy / c1, grid.dy / c2)
     end
 end
 
@@ -660,6 +684,20 @@ Description:
         mp.pw[ix, 1] = mp.mw[ix] * mp.vw[ix, 1] *            mp.n[ix]
         mp.pw[ix, 2] = mp.mw[ix] * mp.vw[ix, 2] *            mp.n[ix]
         mp.pw[ix, 3] = mp.mw[ix] * mp.vw[ix, 3] *            mp.n[ix]
+        # update CFL conditions
+        nid = attr.nid[ix]
+        Kw  = attr.Kw[nid]
+        Ks  = attr.Ks[nid]
+        Gs  = attr.Gs[nid]
+        nd  = mp.n[ix] < eps(T2) ? T2(0.0) : inv(mp.n[ix])
+        Ec  = Ks + T2(1.333333) * Gs # 4/3 ≈ 1.333333
+        Eu  = Ec + Kw * nd
+        βs  = sqrt((mp.n[ix] * Ec / Kw) / (T2(1.0) - mp.n[ix] + mp.n[ix] * Ec / Kw))
+        c1  = sqrt(Eu / ((T2(1.0) - mp.n[ix]) * mp.ρs[ix] + mp.n[ix] * mp.ρw[ix]))
+        c2  = βs * sqrt(Kw / mp.ρw[ix])
+        mp.cfl[ix] = min(grid.dx / c1, grid.dx / c2, 
+                         grid.dy / c1, grid.dy / c2,
+                         grid.dz / c1, grid.dz / c2)
     end
 end
 

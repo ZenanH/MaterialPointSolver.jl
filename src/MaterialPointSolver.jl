@@ -42,8 +42,8 @@ export @suppress
 export user_adapt, @user_struct
 
 include(joinpath(@__DIR__, "type.jl"   ))
-include(joinpath(@__DIR__, "toolkit.jl" ))
-include(joinpath(@__DIR__, "solver.jl"  ))
+include(joinpath(@__DIR__, "toolkit.jl"))
+include(joinpath(@__DIR__, "solver.jl" ))
 
 include(joinpath(@__DIR__, "extension/frictionExt.jl"))
 
@@ -64,8 +64,8 @@ function materialpointsolver!(
     mp      :: DeviceParticle{T1, T2}, 
     attr    :: DeviceProperty{T1, T2},
     bc      ::DeviceVBoundary{T1, T2}; 
-    workflow::Function=procedure!
-) where {T1, T2}
+    workflow::F=procedure!
+) where {T1, T2, F<:Function}
     info_print(args, grid, mp) # terminal info
     submit_work!(args, grid, mp, attr, bc, workflow) # MPM solver
     perf(args) # performance summary
