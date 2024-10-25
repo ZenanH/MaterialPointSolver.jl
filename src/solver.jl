@@ -6,7 +6,7 @@
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
-|  Functions  : 1. solver!() [2D & 3D]                                                     |
+|  Functions  : 1. submit_work!                                                            |
 +==========================================================================================#
 
 include(joinpath(@__DIR__, "solvers/extras.jl"  ))
