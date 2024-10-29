@@ -245,7 +245,7 @@ end
 
 function getparticle(geo_path::String, size_min, size_max, lp, ::Val{:CPU})
     local node, tet
-    @suppress node, tet = gmsh_mesh3D(geo_path, size_min, size_max)
+    @MPSsuppress node, tet = gmsh_mesh3D(geo_path, size_min, size_max)
     # terminal info
     @info """Gmsh results
     number of nodes     : $(size(node, 1))

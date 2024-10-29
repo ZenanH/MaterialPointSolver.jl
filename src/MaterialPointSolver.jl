@@ -15,7 +15,7 @@ using Adapt, BenchmarkTools, Dates, DelimitedFiles, Gmsh, HDF5, KernelAbstractio
 
 import KernelAbstractions.synchronize as KAsync
 import KernelAbstractions.Extras: @unroll as @KAunroll
-import Suppressor: @suppress
+import Suppressor.@suppress as @MPSsuppress
 import Adapt.adapt as user_adapt
 import Adapt.@adapt_structure as @user_struct
 
@@ -38,7 +38,7 @@ end
 # export functions
 export materialpointsolver!
 export @KAatomic, @KAunroll, KAsync
-export @suppress
+export @MPSsuppress
 export user_adapt, @user_struct
 
 include(joinpath(@__DIR__, "type.jl"   ))
