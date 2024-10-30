@@ -9,6 +9,7 @@
 +==========================================================================================#
 
 using MaterialPointSolver
+using MaterialPointGenerator
 using CairoMakie
 using CUDA
 
