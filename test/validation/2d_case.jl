@@ -9,6 +9,7 @@
 +==========================================================================================#
 
 using MaterialPointSolver
+using MaterialPointGenerator
 using CairoMakie
 using CUDA
 
@@ -46,7 +47,7 @@ args = UserArgs2D(
     hdf5         = false,
     hdf5_step    = init_step,
     MVL          = false,
-    device       = :CUDA,
+    device       = :CPU,
     coupling     = :OS,
     scheme       = :MUSL,
     progressbar  = true,
@@ -73,17 +74,16 @@ grid = UserGrid2D(
 # material point setup
 dx = grid.dx / init_mp_in_space
 dy = grid.dy / init_mp_in_space
-pts = meshbuilder(0 + dx / 2 : dx : 0.2 - dx / 2,
-                  0 + dy / 2 : dy : 0.1 - dy / 2)
-mpρs = ones(size(pts, 1)) * init_ρs
+ξ0 = meshbuilder(0 + dx / 2 : dx : 0.2 - dx / 2,
+                 0 + dy / 2 : dy : 0.1 - dy / 2)
 mp = UserParticle2D(
     ϵ     = init_ϵ,
     phase = 1,
     NIC   = init_NIC,
     dx    = dx,
     dy    = dy,
-    ξ     = pts,
-    ρs    = mpρs
+    ξ     = ξ0,
+    ρs    = ones(size(ξ0, 1)) .* init_ρs
 )
 
 # property setup
@@ -111,7 +111,7 @@ tmp_idx = findall(i -> grid.ξ[i, 1] ≤ 0.0 || grid.ξ[i, 1] ≥ 0.8 ||
                        grid.ξ[i, 2] ≤ 0, 1:grid.ni)
 tmp_idy = findall(i -> grid.ξ[i, 2] ≤ 0, 1:grid.ni)
 vx_idx[tmp_idx] .= 1
-vy_idx[tmp_idy] .= 1
+vy_idx[tmp_idy] .= 1 
 bc = UserVBoundary2D(
     ϵ        = init_ϵ,
     vx_s_idx = vx_idx,

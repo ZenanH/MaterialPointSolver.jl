@@ -22,7 +22,7 @@ function warmup(::Val{:ROCm}; ID::Int=0)
         vy_s_idx=ones(grid.ni), vy_s_val=zeros(grid.ni), smlength=0, tmp1=0, tmp2=0, ext=0)
     # MPM solver
     @info "warming up on :ROCm [$(ID)] 🔥"
-    @suppress begin
+    @MPSsuppress begin
         materialpointsolver!(args, grid, mp, attr, bc)
     end
     rm(rtsdir, recursive=true, force=true)

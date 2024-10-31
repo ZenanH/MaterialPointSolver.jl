@@ -6,7 +6,7 @@
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
-|  Functions  : 1. solver!() [2D & 3D]                                                     |
+|  Functions  : 1. submit_work!                                                            |
 +==========================================================================================#
 
 include(joinpath(@__DIR__, "solvers/extras.jl"  ))
@@ -53,7 +53,7 @@ This function will start to run the MPM solver.
     #ΔT = args.time_step==:auto ? cfl(args, grid, mp, attr, Val(args.coupling)) : args.ΔT
     dev_grid, dev_mp, dev_attr, dev_bc = host2device(grid, mp, attr, bc, Val(args.device))
     # main part: HDF5 ON / OFF
-    if args.hdf5==true
+    if args.hdf5 == true
         hdf5_id     = T1(1) # HDF5 group index
         hdf5_switch = T1(0) # HDF5 step
         proj_path   = joinpath(args.project_path, args.project_name)
@@ -85,6 +85,7 @@ This function will start to run the MPM solver.
                 end
                 workflow(args, dev_grid, dev_mp, dev_attr, dev_bc, ΔT, Ti, 
                     Val(args.coupling), Val(args.scheme))
+                ΔT = args.time_step == :auto ? args.αT * reduce(min, dev_mp.cfl) : args.ΔT
                 Ti += ΔT
                 hdf5_switch += 1
                 args.iter_num += 1
@@ -114,11 +115,12 @@ This function will start to run the MPM solver.
                 end
             end
         end
-    elseif args.hdf5==false
+    elseif args.hdf5 == false
         args.start_time = time()
         while Ti < args.Ttol
             workflow(args, dev_grid, dev_mp, dev_attr, dev_bc, ΔT, Ti, 
                 Val(args.coupling), Val(args.scheme))
+            ΔT = args.time_step == :auto ? args.αT * reduce(min, dev_mp.cfl) : args.ΔT
             Ti += ΔT
             args.iter_num += 1
             updatepb!(pc, Ti, args.Ttol, pb)

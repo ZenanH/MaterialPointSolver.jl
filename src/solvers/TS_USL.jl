@@ -23,6 +23,11 @@ export solvegrid_USL_TS!
         ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
         mi_denom = grid.mi[ix] < eps(T2) ? T2(0.0) : inv(grid.mi[ix])
         mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix])
+        # boundary condition
+        bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
+        bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
+        bc.vx_w_idx[ix] ≠ T1(0) ? grid.pw[ix, 1] = bc.vx_w_val[ix] : nothing
+        bc.vy_w_idx[ix] ≠ T1(0) ? grid.pw[ix, 2] = bc.vy_w_val[ix] : nothing
         # compute nodal velocity
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
@@ -72,6 +77,13 @@ end
         ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
         mi_denom = grid.mi[ix] < eps(T2) ? T2(0.0) : inv(grid.mi[ix])
         mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix])
+        # boundary condition
+        bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
+        bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
+        bc.vz_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 3] = bc.vz_s_val[ix] : nothing
+        bc.vx_w_idx[ix] ≠ T1(0) ? grid.pw[ix, 1] = bc.vx_w_val[ix] : nothing
+        bc.vy_w_idx[ix] ≠ T1(0) ? grid.pw[ix, 2] = bc.vy_w_val[ix] : nothing
+        bc.vz_w_idx[ix] ≠ T1(0) ? grid.pw[ix, 3] = bc.vz_w_val[ix] : nothing
         # compute nodal velocity
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom

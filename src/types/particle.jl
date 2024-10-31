@@ -61,6 +61,7 @@ struct Particle2D{T1, T2,
     ρw    :: T5
     ρw0   :: T5
     σw    :: T5
+    cfl   :: T5
     σij   :: T6
     ϵijs  :: T6
     ϵijw  :: T6
@@ -113,6 +114,7 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
     ϵv    = zeros(T2, np             )
     σw    = zeros(T2, np_new         )
     σm    = zeros(T2, np             )
+    cfl   = zeros(T2, np             )
     ϵijs  = zeros(T2, np    , 4      )
     ϵijw  = zeros(T2, np_new, 4      )
     σij   = zeros(T2, np    , 4      )
@@ -133,7 +135,8 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
     tmp = Particle2D{T1, T2, AbstractArray{T1, 1}, AbstractArray{T1, 2}, 
         AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, 
         dy, p2c, p2n, ξ, ξ0, σm, ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw, 
-        σij, ϵijs, ϵijw, Δϵijs, Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ΔFs, ΔFw, F, ext)
+        cfl, σij, ϵijs, ϵijw, Δϵijs, Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ΔFs, ΔFw, F, 
+        ext)
     return user_adapt(Array, tmp)
 end
 
@@ -189,6 +192,7 @@ struct Particle3D{T1, T2,
     ρw    :: T5
     ρw0   :: T5
     σw    :: T5
+    cfl   :: T5
     σij   :: T6
     ϵijs  :: T6
     ϵijw  :: T6
@@ -244,6 +248,7 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs
     ϵv    = zeros(T2, np             )
     σw    = zeros(T2, np_new         )
     σm    = zeros(T2, np             )
+    cfl   = zeros(T2, np             )
     ϵijs  = zeros(T2, np    , 6      )
     ϵijw  = zeros(T2, np_new, 6      )
     σij   = zeros(T2, np    , 6      )
@@ -264,9 +269,9 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs
 
     tmp = Particle3D{T1, T2, AbstractArray{T1, 1}, AbstractArray{T1, 2}, 
         AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, 
-        dy, dz, p2c, p2n, ξ, ξ0, σm, ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw, 
-        σij, ϵijs, ϵijw, Δϵijs, Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ∂Nz, ΔFs, ΔFw, F, 
-        ext)
+        dy, dz, p2c, p2n, ξ, ξ0, σm, ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw,
+        cfl, σij, ϵijs, ϵijw, Δϵijs, Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ∂Nz, ΔFs, 
+        ΔFw, F, ext)
     return user_adapt(Array, tmp)
 end
 

@@ -9,6 +9,7 @@
 +==========================================================================================#
 
 using MaterialPointSolver
+using MaterialPointGenerator
 using CairoMakie
 using CUDA
 
@@ -45,7 +46,7 @@ args = UserArgs3D(
     Ttol         = init_T,
     Te           = 0,
     ΔT           = init_ΔT,
-    time_step    = :fixed,
+    time_step    = :auto,
     FLIP         = 1,
     PIC          = 0,
     constitutive = :druckerprager,
