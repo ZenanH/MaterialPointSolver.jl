@@ -466,9 +466,9 @@ Description:
         # compute node acceleration
         awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) + grid.fd[ix, 1])
         awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) + grid.fd[ix, 2])
-        asx = ms_denom * (-grid.mi[ix] * grid.aw[ix, 1] + grid.fs[ix, 1] + 
+        asx = ms_denom * (-grid.mi[ix] * awx + grid.fs[ix, 1] + 
             dampvw * sign(grid.vw[ix, 1]) + dampvs * sign(grid.vs[ix, 1]))
-        asy = ms_denom * (-grid.mi[ix] * grid.aw[ix, 2] + grid.fs[ix, 2] + 
+        asy = ms_denom * (-grid.mi[ix] * awy + grid.fs[ix, 2] + 
             dampvw * sign(grid.vw[ix, 2]) + dampvs * sign(grid.vs[ix, 2]))
         # update nodal temp velocity
         grid.vsT[ix, 1] = grid.vs[ix, 1] + asx * ΔT
@@ -537,11 +537,11 @@ Description:
         awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) + grid.fd[ix, 1])
         awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) + grid.fd[ix, 2])
         awz = mw_denom * (grid.fw[ix, 3] + dampvw * sign(grid.vw[ix, 3]) + grid.fd[ix, 3])
-        asx = ms_denom * (-grid.mi[ix] * grid.aw[ix, 1] + grid.fs[ix, 1] + 
+        asx = ms_denom * (-grid.mi[ix] * awx + grid.fs[ix, 1] + 
             dampvw * sign(grid.vw[ix, 1]) + dampvs * sign(grid.vs[ix, 1]))
-        asy = ms_denom * (-grid.mi[ix] * grid.aw[ix, 2] + grid.fs[ix, 2] +
+        asy = ms_denom * (-grid.mi[ix] * awy + grid.fs[ix, 2] +
             dampvw * sign(grid.vw[ix, 2]) + dampvs * sign(grid.vs[ix, 2]))
-        asz = ms_denom * (-grid.mi[ix] * grid.aw[ix, 3] + grid.fs[ix, 3] +
+        asz = ms_denom * (-grid.mi[ix] * awz + grid.fs[ix, 3] +
             dampvw * sign(grid.vw[ix, 3]) + dampvs * sign(grid.vs[ix, 3]))
         # update nodal temp velocity
         grid.vsT[ix, 1] = grid.vs[ix, 1] + asx * ΔT
@@ -568,8 +568,8 @@ Description:
 end
 
 """
-    doublemapping1_TS!(grid::DeviceGrid2D{T1, T2}, mp::DeviceParticle2D{T1, T2}, ΔT::T2, 
-        FLIP::T2, PIC::T2)
+    doublemapping1_TS!(grid::DeviceGrid2D{T1, T2}, mp::DeviceParticle2D{T1, T2}, 
+        attr::DeviceProperty{T1, T2}, ΔT::T2, FLIP::T2, PIC::T2)
 
 Description:
 ---
@@ -579,6 +579,7 @@ Description:
 @kernel inbounds=true function doublemapping1_TS!(
     grid    ::    DeviceGrid2D{T1, T2},
     mp      ::DeviceParticle2D{T1, T2},
+    attr    ::  DeviceProperty{T1, T2},
     ΔT      ::T2,
     FLIP    ::T2,
     PIC     ::T2
@@ -629,8 +630,8 @@ Description:
 end
 
 """
-    doublemapping1_TS!(grid::DeviceGrid3D{T1, T2}, mp::DeviceParticle3D{T1, T2}, ΔT::T2, 
-        FLIP::T2, PIC::T2)
+    doublemapping1_TS!(grid::DeviceGrid3D{T1, T2}, mp::DeviceParticle3D{T1, T2}, 
+        attr::DeviceProperty{T1, T2}, ΔT::T2, FLIP::T2, PIC::T2)
 
 Description:
 ---
@@ -640,6 +641,7 @@ Description:
 @kernel inbounds=true function doublemapping1_TS!(
     grid    ::    DeviceGrid3D{T1, T2},
     mp      ::DeviceParticle3D{T1, T2},
+    attr    ::  DeviceProperty{T1, T2},
     ΔT      ::T2,
     FLIP    ::T2,
     PIC     ::T2
@@ -900,8 +902,8 @@ Update particle information.
         J         = mp.F[ix, 1] * mp.F[ix, 4] - mp.F[ix, 2] * mp.F[ix, 3]
         ΔJ        = J * mp.Ω0[ix] / mp.Ω[ix]
         mp.Ω[ix]  = J * mp.Ω0[ix]
-        mp.ρs[ix] = mp.ρs_init[ix] / J
-        mp.ρw[ix] = mp.ρw_init[ix] / J
+        mp.ρs[ix] = mp.ρs0[ix] / J
+        mp.ρw[ix] = mp.ρw0[ix] / J
         # update pore pressure and n
         mp.σw[ix] += (attr.Kw[attr.nid[ix]] / mp.n[ix]) * (
             (T2(1.0) - mp.n[ix]) * (dfs1 + dfs4) + 
@@ -1004,8 +1006,8 @@ Update particle information.
             mp.F[ix, 9] * mp.F[ix, 4] * mp.F[ix, 2]
         ΔJ        = J * mp.Ω0[ix] / mp.Ω[ix]
         mp.Ω[ix]  = J * mp.Ω0[ix]
-        mp.ρs[ix] = mp.ρs_init[ix] / J
-        mp.ρw[ix] = mp.ρw_init[ix] / J
+        mp.ρs[ix] = mp.ρs0[ix] / J
+        mp.ρw[ix] = mp.ρw0[ix] / J
         # update pore pressure and n
         mp.σw[ix] += (attr.Kw[attr.nid[ix]] / mp.n[ix]) * (
             (T2(1.0) - mp.n[ix]) * (dfs1 + dfs5 + dfs9) + 
