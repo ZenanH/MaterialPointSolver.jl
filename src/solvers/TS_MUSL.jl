@@ -27,7 +27,7 @@ function procedure!(
     resetmpstatus_TS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
     P2G_TS!(dev)(ndrange=mp.np, grid, mp, attr, G)
     solvegrid_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs, args.ζw)
-    doublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, ΔT, args.FLIP, args.PIC)
+    doublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
     doublemapping2_TS!(dev)(ndrange=mp.np, grid, mp)
     doublemapping3_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT)
     G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
