@@ -6,41 +6,40 @@
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
-|  Functions  : 1. fastvtu()                                                               |
-|               2. savevtu()   [2D & 3D]                                                   |
+|  Functions  : 1. fastvtp()                                                               |
+|               2. savevtp()   [2D & 3D]                                                   |
 |               3. animation() [2D & 3D]                                                   |
 +==========================================================================================#
 
-export fastvtu, savevtu, animation
+export fastvtp, savevtp, animation
 
 """
-    fastvtu(coords; vtupath="output", data::T=NamedTuple())
+    fastvtp(coords; vtppath="output", data::T=NamedTuple())
 
 Description:
 ---
-Generates a `.vtu` file by passing custom fields.
+Generates a `.vtp` file by passing custom fields.
 """
-function fastvtu(coords; vtupath="output", data::T=NamedTuple()) where T <: NamedTuple
+function fastvtp(coords; vtppath="output", data::T=NamedTuple()) where T <: NamedTuple
     pts_num = size(coords, 1)
-    vtu_cls = [MeshCell(VTKCellTypes.VTK_VERTEX, [i]) for i in 1:pts_num]
-    vtu_pts = Array{Float64}(coords')
-    vtk_grid(vtupath, vtu_pts, vtu_cls) do vtk
-        keys(data) ≠ () && for vtu_key in keys(data)
-            vtk[string(vtu_key)] = getfield(data, vtu_key)
+    vtp_cls = [MeshCell(PolyData.Verts(), [i]) for i in 1:pts_num]
+    vtk_grid(vtppath, coords', vtp_cls, ascii=false) do vtk
+        keys(data) ≠ () && for vtp_key in keys(data)
+            vtk[string(vtp_key)] = getfield(data, vtp_key)
         end
     end
     return nothing
 end
 
 """
-    savevtu(args::DeviceArgs2D{T1, T2}, grid::DeviceGrid2D{T1, T2}, 
+    savevtp(args::DeviceArgs2D{T1, T2}, grid::DeviceGrid2D{T1, T2}, 
         mp::DeviceParticle2D{T1, T2}, attr::DeviceProperty{T1, T2})
 
 Description:
 ---
-Generates the final geometry and properties in `.vtu` format (2D).
+Generates the final geometry and properties in `.vtp` format (2D).
 """
-@views function savevtu(
+@views function savevtp(
     args::    DeviceArgs2D{T1, T2}, 
     grid::    DeviceGrid2D{T1, T2}, 
     mp  ::DeviceParticle2D{T1, T2}, 
@@ -49,10 +48,9 @@ Generates the final geometry and properties in `.vtu` format (2D).
     prj_path = joinpath(args.project_path, args.project_name)
     mps_path = joinpath(prj_path, args.project_name)
     nds_path = joinpath(prj_path, "grid")
-    # generate vtu files for particles
-    VTU_cls = [MeshCell(VTKCellTypes.VTK_VERTEX, [i]) for i in 1:mp.np]
-    VTU_pts = Array{Float64}(mp.ξ')
-    vtk_grid(mps_path, VTU_pts, VTU_cls) do vtk
+    # generate vtp files for particles
+    vtp_cls = [MeshCell(PolyData.Verts(), [i]) for i in 1:mp.np]
+    vtk_grid(mps_path, mp.ξ', vtp_cls) do vtk
         vtk["stress"      ] = mp.σij[:, [1, 2, 4]]'
         vtk["strain_s"    ] = mp.ϵijs[:, [1, 2, 4]]'
         vtk["eqstrain"    ] = mp.ϵq
@@ -70,23 +68,22 @@ Generates the final geometry and properties in `.vtu` format (2D).
             vtk["porosity"  ] = mp.n                  ;
         ) : nothing
     end
-    # generate vtu files for nodes
-    VTU_cls = [MeshCell(VTKCellTypes.VTK_VERTEX, [i]) for i in 1:grid.ni]
-    VTU_pts = Array{Float64}(grid.ξ')
-    vtk_grid(nds_path, VTU_pts, VTU_cls) do vtk end
-    @info "final vtu file is saved in project path"
+    # generate vtp files for nodes
+    vtp_cls = [MeshCell(PolyData.Verts(), [i]) for i in 1:grid.ni]
+    vtk_grid(nds_path, grid.ξ', vtp_cls) do vtk end
+    @info "final vtp file is saved in project path"
     return nothing
 end
 
 """
-    savevtu(args::DeviceArgs3D{T1, T2}, grid::DeviceGrid3D{T1, T2}, 
+    savevtp(args::DeviceArgs3D{T1, T2}, grid::DeviceGrid3D{T1, T2}, 
         mp::DeviceParticle3D{T1, T2}, attr::DeviceProperty{T1, T2})
 
 Description:
 ---
-Generates the final geometry and properties in `.vtu` format (3D).
+Generates the final geometry and properties in `.vtp` format (3D).
 """
-@views function savevtu(
+@views function savevtp(
     args::    DeviceArgs3D{T1, T2}, 
     grid::    DeviceGrid3D{T1, T2}, 
     mp  ::DeviceParticle3D{T1, T2}, 
@@ -95,10 +92,9 @@ Generates the final geometry and properties in `.vtu` format (3D).
     prj_path = joinpath(args.project_path, args.project_name)
     mps_path = joinpath(prj_path, args.project_name)
     nds_path = joinpath(prj_path, "grid")
-    # generate vtu files for particles
-    VTU_cls = [MeshCell(VTKCellTypes.VTK_VERTEX, [i]) for i in 1:mp.np]
-    VTU_pts = Array{Float64}(mp.ξ')
-    vtk_grid(mps_path, VTU_pts, VTU_cls) do vtk
+    # generate vtp files for particles
+    vtp_cls = [MeshCell(PolyData.Verts(), [i]) for i in 1:mp.np]
+    vtk_grid(mps_path, mp.ξ', vtp_cls) do vtk
         vtk["stress"      ] = mp.σij'
         vtk["strain_s"    ] = mp.ϵijs'
         vtk["eqstrain"    ] = mp.ϵq
@@ -116,11 +112,10 @@ Generates the final geometry and properties in `.vtu` format (3D).
             vtk["porosity"  ] = mp.n    ;
         ) : nothing
     end
-    # generate vtu files for nodes
-    VTU_cls = [MeshCell(VTKCellTypes.VTK_VERTEX, [i]) for i in 1:grid.ni]
-    VTU_pts = Array{Float64}(grid.ξ')
-    vtk_grid(nds_path, VTU_pts, VTU_cls) do vtk end
-    @info "final vtu file is saved in project path"
+    # generate vtp files for nodes
+    vtp_cls = [MeshCell(PolyData.Verts(), [i]) for i in 1:grid.ni]
+    vtk_grid(nds_path, grid.ξ', vtp_cls) do vtk end
+    @info "final vtp file is saved in project path"
     return nothing
 end
 
@@ -144,7 +139,7 @@ Generates animation by using the data from HDF5 file (2D).
     grid_ξ    = fid["grid_coords"] |> read
     ni        = size(grid_ξ, 1)
     p         = Progress(length(1:1:itr) - 1; 
-        desc      = "\e[1;36m[ Info:\e[0m $(lpad("ani_vtu", 7))",
+        desc      = "\e[1;36m[ Info:\e[0m $(lpad("ani_vtp", 7))",
         color     = :white,
         barlen    = 12,
         barglyphs = BarGlyphs(" ■■  ")
@@ -170,9 +165,8 @@ Generates animation by using the data from HDF5 file (2D).
                 n    = fid["group$(i)/porosity"  ] |> read;
             ) : nothing
             # write data
-            VTU_cls = [MeshCell(VTKCellTypes.VTK_VERTEX, [i]) for i in 1:size(ξ0, 1)]
-            VTU_pts = Array{Float64}(ξ')
-            let vtk = vtk_grid(joinpath(anim_path, "iteration_$(i)"), VTU_pts, VTU_cls)
+            vtp_cls = [MeshCell(PolyData.Verts(), [i]) for i in 1:size(ξ0, 1)]
+            let vtk = vtk_grid(joinpath(anim_path, "iteration_$(i)"), ξ', vtp_cls)
                 vtk["stress"      ] = σij[:, [1, 2, 4]]'
                 vtk["strain_s"    ] = ϵijs[:, [1, 2, 4]]'
                 vtk["eqstrain"    ] = ϵq
@@ -194,10 +188,9 @@ Generates animation by using the data from HDF5 file (2D).
             next!(p)
         end
     end
-    # generate vtu files for nodes
-    VTU_cls = [MeshCell(VTKCellTypes.VTK_VERTEX, [i]) for i in 1:ni]
-    VTU_pts = Array{Float64}(grid_ξ')
-    vtk_grid(nds_path, VTU_pts, VTU_cls) do vtk end
+    # generate vtp files for nodes
+    vtp_cls = [MeshCell(PolyData.Verts(), [i]) for i in 1:ni]
+    vtk_grid(nds_path, grid_ξ', vtp_cls) do vtk end
     close(fid)
 end
 
@@ -221,7 +214,7 @@ Generates animation by using the data from HDF5 file (3D).
     grid_ξ    = fid["grid_coords"] |> read
     ni        = size(grid_ξ, 1)
     p         = Progress(length(1:1:itr) - 1; 
-        desc      = "\e[1;36m[ Info:\e[0m $(lpad("ani_vtu", 7))",
+        desc      = "\e[1;36m[ Info:\e[0m $(lpad("ani_vtp", 7))",
         color     = :white,
         barlen    = 12,
         barglyphs = BarGlyphs(" ■■  ")
@@ -247,9 +240,8 @@ Generates animation by using the data from HDF5 file (3D).
                 n    = fid["group$(i)/porosity"  ] |> read;
             ) : nothing            
             # write data
-            VTU_cls = [MeshCell(VTKCellTypes.VTK_VERTEX, [i]) for i in 1:size(ξ0, 1)]
-            VTU_pts = Array{Float64}(ξ')
-            let vtk = vtk_grid(joinpath(anim_path, "iteration_$(i)"), VTU_pts, VTU_cls)
+            vtp_cls = [MeshCell(PolyData.Verts(), [i]) for i in 1:size(ξ0, 1)]
+            let vtk = vtk_grid(joinpath(anim_path, "iteration_$(i)"), ξ', vtp_cls)
                 vtk["stress"      ] = σij'
                 vtk["strain_s"    ] = ϵijs'
                 vtk["eqstrain"    ] = ϵq
@@ -271,9 +263,8 @@ Generates animation by using the data from HDF5 file (3D).
             next!(p)
         end
     end
-    # generate vtu files for nodes
-    VTU_cls = [MeshCell(VTKCellTypes.VTK_VERTEX, [i]) for i in 1:ni]
-    VTU_pts = Array{Float64}(grid_ξ')
-    vtk_grid(nds_path, VTU_pts, VTU_cls) do vtk end
+    # generate vtp files for nodes
+    vtp_cls = [MeshCell(PolyData.Verts(), [i]) for i in 1:ni]
+    vtk_grid(nds_path, grid_ξ', vtp_cls) do vtk end
     close(fid)
 end
