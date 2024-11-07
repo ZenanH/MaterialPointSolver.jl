@@ -22,7 +22,7 @@ export solvegrid_USL_TS!
     if ix ≤ grid.ni
         ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
         mi_denom = grid.mi[ix] < eps(T2) ? T2(0.0) : inv(grid.mi[ix])
-        mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix])
+        mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix]).
         # boundary condition
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
@@ -43,9 +43,9 @@ export solvegrid_USL_TS!
         # compute node acceleration
         awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) + grid.fd[ix, 1])
         awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) + grid.fd[ix, 2])
-        asx = ms_denom * (-grid.mi[ix] * grid.aw[ix, 1] + grid.fs[ix, 1] + 
+        asx = ms_denom * (-grid.mi[ix] * awx + grid.fs[ix, 1] + 
             dampvw * sign(grid.vw[ix, 1]) + dampvs * sign(grid.vs[ix, 1]))
-        asy = ms_denom * (-grid.mi[ix] * grid.aw[ix, 2] + grid.fs[ix, 2] + 
+        asy = ms_denom * (-grid.mi[ix] * awy + grid.fs[ix, 2] + 
             dampvw * sign(grid.vw[ix, 2]) + dampvs * sign(grid.vs[ix, 2]))
         # update nodal temp velocity
         grid.vsT[ix, 1] = grid.vs[ix, 1] + asx * ΔT
@@ -105,11 +105,11 @@ end
         awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) + grid.fd[ix, 1])
         awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) + grid.fd[ix, 2])
         awz = mw_denom * (grid.fw[ix, 3] + dampvw * sign(grid.vw[ix, 3]) + grid.fd[ix, 3])
-        asx = ms_denom * (-grid.mi[ix] * grid.aw[ix, 1] + grid.fs[ix, 1] + 
+        asx = ms_denom * (-grid.mi[ix] * awx + grid.fs[ix, 1] + 
             dampvw * sign(grid.vw[ix, 1]) + dampvs * sign(grid.vs[ix, 1]))
-        asy = ms_denom * (-grid.mi[ix] * grid.aw[ix, 2] + grid.fs[ix, 2] +
+        asy = ms_denom * (-grid.mi[ix] * awy + grid.fs[ix, 2] +
             dampvw * sign(grid.vw[ix, 2]) + dampvs * sign(grid.vs[ix, 2]))
-        asz = ms_denom * (-grid.mi[ix] * grid.aw[ix, 3] + grid.fs[ix, 3] +
+        asz = ms_denom * (-grid.mi[ix] * awz + grid.fs[ix, 3] +
             dampvw * sign(grid.vw[ix, 3]) + dampvs * sign(grid.vs[ix, 3]))
         # update nodal temp velocity
         grid.vsT[ix, 1] = grid.vs[ix, 1] + asx * ΔT
@@ -150,10 +150,10 @@ function procedure!(
     dev = getBackend(Val(args.device))
     resetgridstatus_TS!(dev)(ndrange=grid.ni, grid)
     resetmpstatus_TS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
-    P2G_TS!(dev)(ndrange=mp.np, grid, mp, G)
-    solvegrid_USL_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs)
-    doublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, ΔT, args.FLIP, args.PIC)
-    G2P_TS!(dev)(ndrange=mp.np, grid, mp, ΔT)
+    P2G_TS!(dev)(ndrange=mp.np, grid, mp, attr, G)
+    solvegrid_USL_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs, args.ζw)
+    doublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
+    G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
     if args.constitutive == :hyperelastic
         hyE!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :linearelastic

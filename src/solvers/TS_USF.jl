@@ -23,7 +23,7 @@ function procedure!(
 ) where {T1, T2}
     G = Ti < args.Te ? args.gravity / args.Te * Ti : args.gravity
     dev = getBackend(Val(args.device))
-    G2P_TS!(dev)(ndrange=mp.np, grid, mp, ΔT)
+    G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
     if args.constitutive == :hyperelastic
         hyE!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :linearelastic
@@ -41,9 +41,9 @@ function procedure!(
     end
     resetgridstatus_TS!(dev)(ndrange=grid.ni, grid)
     resetmpstatus_TS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
-    P2G_TS!(dev)(ndrange=mp.np, grid, mp, G)
-    solvegrid_USL_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs)
-    doublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, ΔT, args.FLIP, args.PIC)
+    P2G_TS!(dev)(ndrange=mp.np, grid, mp, attr, G)
+    solvegrid_USL_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs, args.ζw)
+    doublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
     if args.MVL == true
         vollock1_TS!(dev)(ndrange=mp.np, grid, mp)
         vollock2_TS!(dev)(ndrange=mp.np, grid, mp)

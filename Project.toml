@@ -1,14 +1,13 @@
 name = "MaterialPointSolver"
 uuid = "dc4aa359-7d89-437d-91bb-f4b330c522c1"
 authors = ["Zenan Huo <zenan.huo@outlook.com>"]
-version = "0.3.2"
+version = "0.3.3"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
-Gmsh = "705231aa-382f-11e9-3f0c-b7cb4346fdeb"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
 KernelAbstractions = "63c18a36-062a-441e-b654-da1e3ab1ce7c"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
@@ -21,7 +20,6 @@ WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
 Adapt = "4.0"
 BenchmarkTools = "1.5"
 DelimitedFiles = "1.9"
-Gmsh = "0.3"
 HDF5 = "0.17"
 KernelAbstractions = "0.9"
 ProgressMeter = "1.10"
@@ -48,7 +46,8 @@ CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
 Metal = "dde4c033-4e86-420c-a63e-0dd931031962"
 oneAPI = "8f75cd03-7ff8-4ecb-9b8f-daf728133b1b"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 
 [targets]
-test = ["Test", "BenchmarkTools"]
+test = ["Test", "BenchmarkTools", "DelimitedFiles"]
