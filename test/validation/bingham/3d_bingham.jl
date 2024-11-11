@@ -1,7 +1,7 @@
 #==========================================================================================+
 |           MaterialPointSolver.jl: High-performance MPM Solver for Geomechanics           |
 +------------------------------------------------------------------------------------------+
-|  File Name  : 3d_case.jl                                                                 |
+|  File Name  : 3d_bingham.jl                                                              |
 |  Description: Case used to vaildate the functions                                        |
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
@@ -37,6 +37,9 @@ init_Gs           = init_Es / (2 * (1 +     init_ν))
 init_ΔT           = 0.5 * init_grid_space_x / sqrt(init_Es / init_ρs)
 init_step         = floor(init_T / init_ΔT / 50)
 init_ϕ            = deg2rad(19.8)
+init_μd           = 0.99
+init_τy           = 580
+init_ηmax         = 700
 init_FP           = "FP64"
 init_basis        = :uGIMP
 init_NIC          = 27
@@ -46,21 +49,21 @@ args = UserArgs3D(
     Ttol         = init_T,
     Te           = 0,
     ΔT           = init_ΔT,
-    time_step    = :auto,
+    time_step    = :fixed,
     FLIP         = 1,
     PIC          = 0,
-    constitutive = :druckerprager,
+    constitutive = :bingham,
     basis        = init_basis,
-    animation    = false,
+    animation    = true,
     hdf5         = false,
     hdf5_step    = init_step,
     MVL          = false,
     device       = :CUDA,
     coupling     = :OS,
-    scheme       = :USF,
+    scheme       = :MUSL,
     gravity      = -9.8,
     ζs           = 0,
-    project_name = "3d_case",
+    project_name = "3d_bingham",
     project_path = @__DIR__,
     ϵ            = init_FP
 )
@@ -101,21 +104,18 @@ mp = UserParticle3D(
 )
 
 # property setup
-nid = ones(mp.np)
+nid  = ones(mp.np)
 attr = UserProperty(
-    ϵ   = init_FP,
-    nid = nid,
-    ν   = [init_ν],
-    Es  = [init_Es],
-    Gs  = [init_Gs],
-    Ks  = [init_Ks],
-    σt  = [0],
-    ϕ   = [init_ϕ],
-    ϕr  = [0],
-    ψ   = [0],
-    c   = [0],
-    cr  = [0],
-    Hp  = [0]
+    ϵ    = init_FP,
+    nid  = nid,
+    ν    = [init_ν   ],
+    Es   = [init_Es  ],
+    Gs   = [init_Gs  ],
+    Ks   = [init_Ks  ],
+    ϕ    = [init_ϕ   ],
+    μd   = [init_μd  ],
+    τy   = [init_τy  ],
+    ηmax = [init_ηmax]
 )
 
 # boundary setup
@@ -140,7 +140,7 @@ bc = UserVBoundary3D(
 )
 
 # solver setup
-materialpointsolver!(args, grid, mp, attr, bc)
+materialpointsolver!(args, grid, mp, attr, bc, workflow=testprocedure!)
 
 let
     figfont = MaterialPointSolver.tnr
@@ -148,11 +148,11 @@ let
     ax = Axis3(fig[1, 1], xlabel=L"x\ (m)", ylabel=L"y\ (m)", zlabel=L"z\ (m)", 
         aspect=:data, azimuth=0.2*π, elevation=0.1*π, xlabeloffset=60, zlabeloffset=80,
         protrusions=100, xticks=(0:0.04:0.04), height=450, width=950)
-    pl1 = scatter!(ax, mp.ξ, color=log10.(mp.ϵq.+1), colormap=:jet, markersize=3,
+    pl1 = scatter!(ax, mp.ξ, color=mp.ξ[:, 3], colormap=:viridis , markersize=3,
         colorrange=(0, 1))
     Colorbar(fig[1, 1], limits=(0, 1), colormap=:jet, size=16, ticks=0:0.5:1, spinewidth=0,
         label=L"log_{10}(\epsilon_{II}+1)", vertical=false, tellwidth=false, width=200,
         halign=:right, valign=:top, flipaxis=false)
     display(fig)
 end
-rm(joinpath(abspath(args.project_path), args.project_name), recursive=true, force=true)
+#rm(joinpath(abspath(args.project_path), args.project_name), recursive=true, force=true)

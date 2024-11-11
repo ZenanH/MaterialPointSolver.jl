@@ -23,6 +23,7 @@ include(joinpath(@__DIR__, "materials/linearelastic.jl"))
 include(joinpath(@__DIR__, "materials/druckerprager.jl"))
 include(joinpath(@__DIR__, "materials/mohrcoulomb.jl"  ))
 include(joinpath(@__DIR__, "materials/hyperelastic.jl" ))
+include(joinpath(@__DIR__, "materials/bingham.jl"      ))
 
 export procedure!
 export submit_work!

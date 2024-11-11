@@ -32,7 +32,8 @@ function info_print(
     args.constitutive==:linearelastic ? material="L-E" :
     args.constitutive==:hyperelastic  ? material="H-E" :
     args.constitutive==:druckerprager ? material="D-P" :
-    args.constitutive==:mohrcoulomb   ? material="M-C" : material="U-D"
+    args.constitutive==:mohrcoulomb   ? material="M-C" : 
+    args.constitutive==:bingham       ? material="B-H" : material="U-D"
     text_place1 = 5
     text_place2 = 9
     pic  = lpad(       @sprintf("%.2f", args.PIC           ), text_place1)
