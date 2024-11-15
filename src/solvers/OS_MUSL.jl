@@ -38,14 +38,13 @@ function procedure!(
         liE!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :druckerprager
         liE!(dev)(ndrange=mp.np, mp, attr)
-        if Ti ≥ args.Te
-            dpP!(dev)(ndrange=mp.np, mp, attr)
-        end
+        Ti ≥ args.Te && dpP!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :mohrcoulomb
         liE!(dev)(ndrange=mp.np, mp, attr)
-        if Ti ≥ args.Te
-            mcP!(dev)(ndrange=mp.np, mp, attr)
-        end
+        Ti ≥ args.Te && mcP!(dev)(ndrange=mp.np, mp, attr)
+    elseif args.constitutive == :bingham
+        Ti < args.Te && liE!(dev)(ndrange=mp.np, mp, attr)
+        Ti ≥ args.Te && bhP!(dev)(ndrange=mp.np, mp, attr, inv(ΔT))
     end
     if args.MVL == true
         vollock1_OS!(dev)(ndrange=mp.np, grid, mp)
