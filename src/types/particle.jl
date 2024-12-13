@@ -89,10 +89,10 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
     # default values
     phase = phase in [1, 2] ? phase : 1
     NIC = NIC in [4, 9] ? NIC : 9
-    ext = ext == 0 ? TempParticleExtra(rand(2)) : ext
     ϵ == ϵ in ["FP64", "FP32"] ? ϵ : "FP64"
     T1 = ϵ == "FP64" ? Int64 : Int32
     T2 = ϵ == "FP64" ? Float64 : Float32
+    ext = ext == 0 ? TempParticleExtra(rand(T2, 2)) : ext
     # particles properties setup
     np  = size(ξ, 1)
     Ω0  = repeat([dx * dy], np)
@@ -223,10 +223,10 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs
     # default values
     phase = phase in [1, 2] ? phase : 1
     NIC = NIC in [8, 27] ? NIC : 27
-    ext = ext == 0 ? TempParticleExtra(rand(2)) : ext
     ϵ == ϵ in ["FP64", "FP32"] ? ϵ : "FP64"
     T1 = ϵ == "FP64" ? Int64 : Int32
     T2 = ϵ == "FP64" ? Float64 : Float32
+    ext = ext == 0 ? TempParticleExtra(rand(T2, 2)) : ext
     # particles properties setup
     np  = size(ξ, 1)
     Ω0  = repeat([dx * dy * dz], np)

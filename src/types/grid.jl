@@ -80,12 +80,12 @@ function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0)
     y1 < y2 || throw(ArgumentError("y1 should be less than y2"))
     dx > 0 && dy > 0 || throw(ArgumentError("dx and dy should be positive"))
     # default values
-    phase = phase in [1, 2] ? phase : 1
-    NIC = NIC in [4, 9] ? NIC : 9
-    ext = ext == 0 ? TempGridExtra(rand(2)) : ext
     ϵ == ϵ in ["FP64", "FP32"] ? ϵ : "FP64"
     T1 = ϵ == "FP64" ? Int64 : Int32
     T2 = ϵ == "FP64" ? Float64 : Float32
+    phase = phase in [1, 2] ? phase : 1
+    NIC = NIC in [4, 9] ? NIC : 9
+    ext = ext == 0 ? TempGridExtra(rand(T2, 2)) : ext
     # set the nodes in background grid
     vx = x1:dx:x2 |> collect
     vy = y1:dy:y2 |> collect
@@ -219,12 +219,12 @@ function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NI
     dx > 0 && dy > 0 && dz > 0 || 
         throw(ArgumentError("dx, dy, and dz should be positive"))
     # default values
-    phase = phase in [1, 2] ? phase : 1
-    NIC = NIC in [8, 27] ? NIC : 27
-    ext = ext == 0 ? TempGridExtra(rand(2)) : ext
     ϵ == ϵ in ["FP64", "FP32"] ? ϵ : "FP64"
     T1 = ϵ == "FP64" ? Int64 : Int32
     T2 = ϵ == "FP64" ? Float64 : Float32
+    phase = phase in [1, 2] ? phase : 1
+    NIC = NIC in [8, 27] ? NIC : 27
+    ext = ext == 0 ? TempGridExtra(rand(T2, 2)) : ext
     # set the nodes in background grid
     vx = x1:dx:x2 |> collect
     vy = y1:dy:y2 |> collect
