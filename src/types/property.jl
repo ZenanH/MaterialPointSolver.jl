@@ -26,7 +26,7 @@ end
 @user_struct TempPropertyExtra
 
 #=-----------------------------------------------------------------------------------------#
-|    2D Property System                                                                    |
+|    Property System (2/3D)                                                                |
 #↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓=#
 struct Property{T1, T2, 
     T3 <: AbstractArray, # Array{Int  , 1}
@@ -65,10 +65,10 @@ function UserProperty(; ϵ="FP64", nid, ν, Es, Gs, Ks, Kw=[0], k=[0], σt=[0], 
     length(unique(nid)) == length(Es) || 
         throw(ArgumentError("nid layer must be the same as the length of properties."))
 
-    ext = ext == 0 ? TempPropertyExtra(rand(2)) : ext
     ϵ == ϵ in ["FP64", "FP32"] ? ϵ : "FP64"
     T1 = ϵ == "FP64" ? Int64 : Int32
     T2 = ϵ == "FP64" ? Float64 : Float32
+    ext = ext == 0 ? TempPropertyExtra(rand(T2, 2)) : ext
     tmp = Property{T1, T2, AbstractArray{T1, 1}, AbstractArray{T2, 1}, UserPropertyExtra}(
         0, 0.0, nid, ν, Es, Gs, Ks, Kw, k, σt, ϕ, ϕr, ψ, c, cr, Hp, μd, τy, ηmax, ext)
     return user_adapt(Array, tmp)

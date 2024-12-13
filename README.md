@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/LandslideSIM/MaterialPointSolver.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/LandslideSIM/MaterialPointSolver.jl/actions/workflows/ci.yml) 
 [![](https://img.shields.io/badge/docs-wiki-blue.svg?logo=quicklook)](https://github.com/LandslideSIM/MaterialPointSolver.jl/wiki)
-[![](https://img.shields.io/badge/version-v0.3.4-pink)]()
+[![](https://img.shields.io/badge/version-v0.3.5-pink)]()
 
 [![](https://img.shields.io/badge/NVIDIA-CUDA-green.svg?logo=nvidia)](https://developer.nvidia.com/cuda-toolkit)
 [![](https://img.shields.io/badge/AMD-ROCm-red.svg?logo=amd)](https://www.amd.com/en/products/software/rocm.html)
@@ -19,7 +19,7 @@ Just type <kbd>]</kbd> in Julia's  `REPL`:
 
 ```julia
 julia> ]
-(@1.10) Pkg> add MaterialPointSolver
+(@1.11) Pkg> add MaterialPointSolver
 ```
 
 ## Citation ❤

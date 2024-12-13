@@ -86,7 +86,7 @@ function UserArgs2D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     (animation==true)&&(hdf5==false) ? 
         (hdf5=true; @warn "HDF5 forced ON due to the animation") : nothing 
     (hdf5==true)&&(hdf5_step≤0) ? error("HDF5 step cannot be ≤0.") : nothing
-    tmp = ext == 0 ? TempArgsExtra(0) : ext
+    tmp = ext == 0 ? TempArgsExtra(T2(0)) : ext
 
     return Args2D{T1, T2, UserArgsExtra}(Ttol, Te, ΔT, time_step, FLIP, PIC, constitutive, 
         basis, animation, hdf5, hdf5_step, MVL, device, coupling, scheme, progressbar, 
@@ -174,7 +174,7 @@ function UserArgs3D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     (animation==true)&&(hdf5==false) ? 
         (hdf5=true; @warn "HDF5 forced ON due to the animation") : nothing 
     (hdf5==true)&&(hdf5_step≤0) ? error("HDF5 step cannot be ≤0.") : nothing
-    tmp = ext == 0 ? TempArgsExtra(0) : ext
+    tmp = ext == 0 ? TempArgsExtra(T2(0)) : ext
 
     return Args3D{T1, T2, UserArgsExtra}(Ttol, Te, ΔT, time_step, FLIP, PIC, constitutive, 
         basis, animation, hdf5, hdf5_step, MVL, device, coupling, scheme, progressbar, 
