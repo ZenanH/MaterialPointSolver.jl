@@ -46,7 +46,7 @@ args = UserArgs3D(
     Ttol         = init_T,
     Te           = 0,
     ΔT           = init_ΔT,
-    time_step    = :auto,
+    time_step    = :fixed,
     FLIP         = 1,
     PIC          = 0,
     constitutive = :druckerprager,
@@ -57,7 +57,7 @@ args = UserArgs3D(
     MVL          = false,
     device       = :CUDA,
     coupling     = :OS,
-    scheme       = :USF,
+    scheme       = :MUSL,
     gravity      = -9.8,
     ζs           = 0,
     project_name = "3d_druckerprager",
@@ -155,4 +155,3 @@ let
         halign=:right, valign=:top, flipaxis=false)
     display(fig)
 end
-rm(joinpath(abspath(args.project_path), args.project_name), recursive=true, force=true)
