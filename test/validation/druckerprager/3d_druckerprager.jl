@@ -155,3 +155,4 @@ let
         halign=:right, valign=:top, flipaxis=false)
     display(fig)
 end
+rm(joinpath(abspath(args.project_path), args.project_name), recursive=true, force=true)
