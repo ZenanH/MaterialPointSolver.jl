@@ -15,6 +15,7 @@ using CUDA
 using BenchmarkTools
 using UnicodePlots
 using DelimitedFiles
+using Dates
 
 MaterialPointSolver.warmup(Val(:CUDA))
 
@@ -64,14 +65,13 @@ args = UserArgs3D(
     progressbar  = true,
     gravity      = -9.8,
     ζs           = 0,
-    project_name = "3d_case",
+    project_name = "3d_profile",
     project_path = @__DIR__,
     ϵ            = init_FP
 )
 
 # grid setup
 grid = UserGrid3D(
-    ϵ     = init_FP,
     phase =  1,
     x1    = -0.02,
     x2    =  0.07,
@@ -79,10 +79,11 @@ grid = UserGrid3D(
     y2    =  0.75,
     z1    = -0.02,
     z2    =  0.12,
-    dx    =  init_grid_space_x,
-    dy    =  init_grid_space_y,
-    dz    =  init_grid_space_z,
-    NIC   = init_NIC
+    dx    = init_grid_space_x,
+    dy    = init_grid_space_y,
+    dz    = init_grid_space_z,
+    NIC   = init_NIC,
+    ϵ     = init_FP
 )
 
 # material point setup
@@ -227,3 +228,11 @@ func_names = results[:, 1]
 tol_time2 = round(tol_time * 1000, digits=1)
 fig = barplot(func_names, func_value, title="Execution Time Proportion (%)")
 display(fig)
+
+file_name = string(Dates.format(now(), "yyyy-mm-dd-HH-MM-SS"), ".csv")
+open(joinpath(args.project_path, args.project_name, file_name), "w") do io
+    results[:, 2] .*= 1000
+    header = ["function_name" "execution_time(ms)"]
+    rst = vcat(header, results)
+    writedlm(io, rst, ',')
+end
