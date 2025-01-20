@@ -9,13 +9,15 @@
 +==========================================================================================#
 
 using MaterialPointSolver
+using MaterialPointGenerator
 using KernelAbstractions
-using CairoMakie
 using CUDA
 using BenchmarkTools
+using UnicodePlots
+using DelimitedFiles
+using Dates
 
 MaterialPointSolver.warmup(Val(:CUDA))
-include(joinpath(@__DIR__, "func.jl"))
 
 # 0.01000:   8000 pts
 # 0.00660:  27000 pts
@@ -41,7 +43,7 @@ init_step         = floor(init_T / init_ΔT / 50)
 init_ϕ            = deg2rad(19.8)
 init_FP           = "FP64"
 init_basis        = :uGIMP
-init_NIC          = 64
+init_NIC          = 27
 
 # args setup
 args = UserArgs3D(
@@ -60,18 +62,16 @@ args = UserArgs3D(
     device       = :CUDA,
     coupling     = :OS,
     scheme       = :MUSL,
-    va           = :a,
     progressbar  = true,
     gravity      = -9.8,
     ζs           = 0,
-    project_name = "3d_case",
+    project_name = "3d_profile",
     project_path = @__DIR__,
     ϵ            = init_FP
 )
 
 # grid setup
 grid = UserGrid3D(
-    ϵ     = init_FP,
     phase =  1,
     x1    = -0.02,
     x2    =  0.07,
@@ -79,20 +79,21 @@ grid = UserGrid3D(
     y2    =  0.75,
     z1    = -0.02,
     z2    =  0.12,
-    dx    =  init_grid_space_x,
-    dy    =  init_grid_space_y,
-    dz    =  init_grid_space_z,
-    NIC   = init_NIC
+    dx    = init_grid_space_x,
+    dy    = init_grid_space_y,
+    dz    = init_grid_space_z,
+    NIC   = init_NIC,
+    ϵ     = init_FP
 )
 
 # material point setup
 dx = grid.dx / init_mp_in_space
 dy = grid.dy / init_mp_in_space
 dz = grid.dz / init_mp_in_space
-x_tmp, y_tmp, z_tmp = meshbuilder(0 + dx / 2 : dx : 0.05 - dx / 2,
-                                  0 + dy / 2 : dy : 0.20 - dy / 2,
-                                  0 + dz / 2 : dz : 0.10 - dz / 2)
-mpρs = ones(length(x_tmp)) * init_ρs
+ξ0 = meshbuilder(0 + dx / 2 : dx : 0.05 - dx / 2,
+                 0 + dy / 2 : dy : 0.20 - dy / 2,
+                 0 + dz / 2 : dz : 0.10 - dz / 2)
+mpρs = ones(size(ξ0, 1)) * init_ρs
 mp = UserParticle3D(
     ϵ     = init_FP,
     phase = 1,
@@ -100,7 +101,7 @@ mp = UserParticle3D(
     dx    = dx,
     dy    = dy,
     dz    = dz,
-    ξ     = [x_tmp y_tmp z_tmp],
+    ξ     = ξ0,
     ρs    = mpρs
 )
 
@@ -143,7 +144,6 @@ bc = UserVBoundary3D(
     vz_s_val = zeros(grid.ni)
 )
 
-
 initmpstatus!(CPU())(ndrange=mp.np, grid, mp, Val(args.basis))
 # variables setup for the simulation 
 T1 = Int64
@@ -161,7 +161,6 @@ results = ["resetgridstatus_OS!"   0.0;
            "doublemapping2_OS!"    0.0;
            "doublemapping3_OS!"    0.0;
            "G2P_OS!"               0.0;
-           "hyE!"                  0.0;
            "liE!"                  0.0;
            "dpP!"                  0.0;
            "vollock1_OS!"          0.0;
@@ -179,21 +178,19 @@ if args.basis == :uGIMP
 else
     results[2, 2] = @belapsed begin 
         resetmpstatus_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $Val(args.basis))
-        #testresetmpstatus_OS_CPU!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $Val(args.basis))
         KAsync($dev)
     end
 end
-#resetmpstatus_OS!(dev)(ndrange=dev_mp.np, dev_grid, dev_mp, Val(args.basis))
 results[3, 2] = @belapsed begin 
     P2G_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $G)
     KAsync($dev)
 end
 results[4, 2] = @belapsed begin 
-    solvegrid_a_OS!($dev)(ndrange=$dev_grid.ni, $dev_grid, $dev_bc, $ΔT, $args.ζs)
+    solvegrid_OS!($dev)(ndrange=$dev_grid.ni, $dev_grid, $dev_bc, $ΔT, $args.ζs)
     KAsync($dev)
 end
 results[5, 2] = @belapsed begin 
-    doublemapping1_a_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $dev_attr, $ΔT)
+    doublemapping1_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $dev_attr, $ΔT, $args.FLIP, $args.PIC)
     KAsync($dev)
 end
 results[6, 2] = @belapsed begin 
@@ -209,58 +206,33 @@ results[8, 2] = @belapsed begin
     KAsync($dev)
 end
 results[9, 2] = @belapsed begin 
-    hyE!($dev)(ndrange=$dev_mp.np, $dev_mp, $dev_attr)
-    KAsync($dev)
-end
-results[10, 2] = @belapsed begin 
     liE!($dev)(ndrange=$dev_mp.np, $dev_mp, $dev_attr)
     KAsync($dev)
 end
-results[11, 2] = @belapsed begin 
+results[10, 2] = @belapsed begin 
     dpP!($dev)(ndrange=$dev_mp.np, $dev_mp, $dev_attr)
     KAsync($dev)
 end
-results[12, 2] = @belapsed begin 
+results[11, 2] = @belapsed begin 
     vollock1_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp)
     KAsync($dev)
 end
-results[13, 2] = @belapsed begin 
+results[12, 2] = @belapsed begin 
     vollock2_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp)
     KAsync($dev)
 end
 
-results[:, 2] .*= 1000
+tol_time = sum(results[:, 2])
+func_value = round.(results[:, 2] ./ tol_time * 100, digits=1)
+func_names = results[:, 1]
+tol_time2 = round(tol_time * 1000, digits=1)
+fig = barplot(func_names, func_value, title="Execution Time Proportion (%)")
+display(fig)
 
-
-function print_benchmark_results(results)
-    # 计算总时间
-    total_time = sum(results[:, 2])
-    
-    # 找到最长的函数名称和最长的时间字符串的长度
-    max_func_len = maximum(length.(results[:, 1]))  # 最长的函数名称长度
-    max_time_len = maximum(length.(string.(round.(results[:, 2], digits=3))))  # 最长的时间长度
-    
-    # 打印表头
-    println("Benchmark Results:")
-    println("┌", "─"^(max_func_len + 2), "┬", "─"^(max_time_len + 5), "┬────────────┐")
-    println("│ ", rpad("Function Name", max_func_len), " │ ", lpad("Time (ms)", max_time_len + 3), " │ Percentage │")
-    println("├", "─"^(max_func_len + 2), "┼", "─"^(max_time_len + 5), "┼────────────┤")
-    
-    # 打印每个函数的结果
-    for i in 1:size(results, 1)
-        func_name = results[i, 1]
-        time = results[i, 2]
-        percentage = time / total_time * 100
-        
-        # 格式化输出
-        println("│ ", rpad(func_name, max_func_len), " │ ", 
-                lpad(round(time, digits=3), max_time_len + 3), " │ ", 
-                lpad(round(percentage, digits=2), 9), "% │")
-    end
-    
-    # 打印总时间
-    println("├", "─"^(max_func_len + 2), "┼", "─"^(max_time_len + 5), "┼────────────┤")
-    println("│ ", rpad("Total", max_func_len), " │ ", lpad(round(total_time, digits=3), max_time_len + 3), " │ ", lpad("100.00", 9), "% │")
-    println("└", "─"^(max_func_len + 2), "┴", "─"^(max_time_len + 5), "┴────────────┘")
+file_name = string(Dates.format(now(), "yyyy-mm-dd-HH-MM-SS"), ".csv")
+open(joinpath(args.project_path, args.project_name, file_name), "w") do io
+    results[:, 2] .*= 1000
+    header = ["function_name" "execution_time(ms)"]
+    rst = vcat(header, results)
+    writedlm(io, rst, ',')
 end
-print_benchmark_results(results)

@@ -287,26 +287,27 @@ Description:
     mp  ::DeviceParticle3D{T1, T2},
         ::Val{:uGIMP}
 ) where {T1, T2}
+    T3 = T2
     ix = @index(Global)
-    smem = @localmem T2 Int32(19)
-    smem[1]  = grid.dx
-    smem[2]  = mp.dx
-    smem[3]  = T2(1.0) / (T2(4.0) * grid.dx * mp.dx)
-    smem[4]  = T2(1.0) / (grid.dx * mp.dx)
-    smem[5]  = T2(1.0) / grid.dx
-    smem[6]  = T2(0.5) * mp.dx
-    smem[7]  = grid.dy
-    smem[8]  = mp.dy
-    smem[9]  = T2(1.0) / (T2(4.0) * grid.dy * mp.dy)
-    smem[10] = T2(1.0) / (grid.dy * mp.dy)
-    smem[11] = T2(1.0) / grid.dy
-    smem[12] = T2(0.5) * mp.dy
-    smem[13] = grid.dz
-    smem[14] = mp.dz
-    smem[15] = T2(1.0) / (T2(4.0) * grid.dz * mp.dz)
-    smem[16] = T2(1.0) / (grid.dz* mp.dz)
-    smem[17] = T2(1.0) / grid.dz
-    smem[18] = T2(0.5) * mp.dz
+    smem = @localmem T3 Int32(19)
+    smem[1]  = T3(grid.dx)
+    smem[2]  = T3(mp.dx)
+    smem[3]  = T3(1.0 / (4.0 * grid.dx * mp.dx))
+    smem[4]  = T3(1.0 / (grid.dx * mp.dx))
+    smem[5]  = T3(1.0 / grid.dx)
+    smem[6]  = T3(0.5 * mp.dx)
+    smem[7]  = T3(grid.dy)
+    smem[8]  = T3(mp.dy)
+    smem[9]  = T3(1.0 / (4.0 * grid.dy * mp.dy))
+    smem[10] = T3(1.0 / (grid.dy * mp.dy))
+    smem[11] = T3(1.0 / grid.dy)
+    smem[12] = T3(0.5 * mp.dy)
+    smem[13] = T3(grid.dz)
+    smem[14] = T3(mp.dz)
+    smem[15] = T3(1.0 / (4.0 * grid.dz * mp.dz))
+    smem[16] = T3(1.0 / (grid.dz* mp.dz))
+    smem[17] = T3(1.0 / grid.dz)
+    smem[18] = T3(0.5 * mp.dz)
     if ix ≤ mp.np
         mpξ1 = mp.ξ[ix, 1]
         mpξ2 = mp.ξ[ix, 2]
@@ -334,20 +335,20 @@ Description:
             # p2n index
             p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
             # compute distance between particle and related nodes
-            Δdx = mpξ1 - grid.ξ[p2n, 1]
-            Δdy = mpξ2 - grid.ξ[p2n, 2]
-            Δdz = mpξ3 - grid.ξ[p2n, 3]
+            Δdx = T3(mpξ1 - grid.ξ[p2n, 1])
+            Δdy = T3(mpξ2 - grid.ξ[p2n, 2])
+            Δdz = T3(mpξ3 - grid.ξ[p2n, 3])
             # compute basis function
-            if abs(Δdx) < (grid.dx + T2(0.5) * mp.dx) &&
-               abs(Δdy) < (grid.dy + T2(0.5) * mp.dy) &&
-               abs(Δdz) < (grid.dz + T2(0.5) * mp.dz)
+            if abs(Δdx) < (T3(grid.dx) + T3(0.5) * T3(mp.dx)) &&
+               abs(Δdy) < (T3(grid.dy) + T3(0.5) * T3(mp.dy)) &&
+               abs(Δdz) < (T3(grid.dz) + T3(0.5) * T3(mp.dz))
                 Nx, dNx = uGIMPbasisx(Δdx, smem)
                 Ny, dNy = uGIMPbasisy(Δdy, smem)
                 Nz, dNz = uGIMPbasisz(Δdz, smem)
-                mp.Nij[ix, viy] =  Nx * Ny * Nz
-                mp.∂Nx[ix, viy] = dNx * Ny * Nz # x-gradient basis function
-                mp.∂Ny[ix, viy] = dNy * Nx * Nz # y-gradient basis function
-                mp.∂Nz[ix, viy] = dNz * Nx * Ny # z-gradient basis function
+                mp.Nij[ix, viy] = T2( Nx * Ny * Nz)
+                mp.∂Nx[ix, viy] = T2(dNx * Ny * Nz) # x-gradient basis function
+                mp.∂Ny[ix, viy] = T2(dNy * Nx * Nz) # y-gradient basis function
+                mp.∂Nz[ix, viy] = T2(dNz * Nx * Ny) # z-gradient basis function
                 mp.p2n[ix, viy] = p2n
                 viy += T1(1)
             end
@@ -362,6 +363,7 @@ end
         ::Val{:uGIMP}
 ) where {T1, T2}
     ix = @index(Global)
+    T3 = T2
     if ix ≤ mp.np
         mpξ1 = mp.ξ[ix, 1]
         mpξ2 = mp.ξ[ix, 2]
@@ -388,20 +390,20 @@ end
             # p2n index
             p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
             # compute distance betwe en particle and related nodes
-            Δdx = mpξ1 - grid.ξ[p2n, 1]
-            Δdy = mpξ2 - grid.ξ[p2n, 2]
-            Δdz = mpξ3 - grid.ξ[p2n, 3]
+            Δdx = T3(mpξ1 - grid.ξ[p2n, 1])
+            Δdy = T3(mpξ2 - grid.ξ[p2n, 2])
+            Δdz = T3(mpξ3 - grid.ξ[p2n, 3])
             # compute basis function
-            if abs(Δdx) < (grid.dx + T2(0.5) * mp.dx) &&
-               abs(Δdy) < (grid.dy + T2(0.5) * mp.dy) &&
-               abs(Δdz) < (grid.dz + T2(0.5) * mp.dz)
-                Nx, dNx = uGIMPbasis(Δdx, grid.dx, mp.dx)
-                Ny, dNy = uGIMPbasis(Δdy, grid.dy, mp.dy)
-                Nz, dNz = uGIMPbasis(Δdz, grid.dz, mp.dz)
-                mp.Nij[ix, viy] =  Nx * Ny * Nz
-                mp.∂Nx[ix, viy] = dNx * Ny * Nz # x-gradient basis function
-                mp.∂Ny[ix, viy] = dNy * Nx * Nz # y-gradient basis function
-                mp.∂Nz[ix, viy] = dNz * Nx * Ny # z-gradient basis function
+            if abs(Δdx) < (T3(grid.dx) + T3(0.5) * T3(mp.dx)) &&
+               abs(Δdy) < (T3(grid.dy) + T3(0.5) * T3(mp.dy)) &&
+               abs(Δdz) < (T3(grid.dz) + T3(0.5) * T3(mp.dz))
+                Nx, dNx = uGIMPbasis(Δdx, T3(grid.dx), T3(mp.dx))
+                Ny, dNy = uGIMPbasis(Δdy, T3(grid.dy), T3(mp.dy))
+                Nz, dNz = uGIMPbasis(Δdz, T3(grid.dz), T3(mp.dz))
+                mp.Nij[ix, viy] = T2( Nx * Ny * Nz)
+                mp.∂Nx[ix, viy] = T2(dNx * Ny * Nz) # x-gradient basis function
+                mp.∂Ny[ix, viy] = T2(dNy * Nx * Nz) # y-gradient basis function
+                mp.∂Nz[ix, viy] = T2(dNz * Nx * Ny) # z-gradient basis function
                 mp.p2n[ix, viy] = p2n
                 viy += T1(1)
             end

@@ -89,6 +89,7 @@ function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0)
     # set the nodes in background grid
     vx = x1:dx:x2 |> collect
     vy = y1:dy:y2 |> collect
+    x2 = vx[end]; y2 = vy[end]
     sort!(vx); sort!(vy, rev=true) # vy should from largest to smallest
     nnx = length(vx); vx = reshape(vx, 1, nnx)
     nny = length(vy); vy = reshape(vy, nny, 1)
@@ -229,6 +230,7 @@ function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NI
     vx = x1:dx:x2 |> collect
     vy = y1:dy:y2 |> collect
     vz = z1:dz:z2 |> collect
+    x2 = vx[end]; y2 = vy[end]; z2 = vz[end]
     m, n, o = length(vy), length(vx), length(vz)
     vx  = reshape(vx, 1, n, 1)
     vy  = reshape(vy, m, 1, 1)
