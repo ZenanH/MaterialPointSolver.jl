@@ -43,7 +43,6 @@ args = UserArgs2D(
     PIC          = 0,
     constitutive = :druckerprager,
     basis        = init_basis,
-    animation    = false, 
     hdf5         = false,
     hdf5_step    = init_step,
     MVL          = false,

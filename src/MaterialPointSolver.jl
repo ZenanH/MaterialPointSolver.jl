@@ -69,8 +69,6 @@ function materialpointsolver!(
     info_print(args, grid, mp) # terminal info
     submit_work!(args, grid, mp, attr, bc, workflow) # MPM solver
     perf(args) # performance summary
-    # generate animation files (ParaView)
-    args.animation==true ? animation(args) : nothing 
     return nothing
 end
 

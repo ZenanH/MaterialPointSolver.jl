@@ -50,7 +50,7 @@ function info_print(
     ────────────────┬─────────────┬─────────────────
     ΔT  : $(ΔT) │ PIC : $(pic) │ scheme   : $(args.scheme)
     Ttol: $(Ttol) │ FLIP: $(flip) │ coupling : $(args.coupling)
-    pts : $(pts) │ ζs  : $(ζs) │ animation: $(args.animation)
+    pts : $(pts) │ ζs  : $(ζs) │ basis    : $(args.basis)
     nds : $(nds) │ ζw  : $(ζw) │ precision: $(pc)
     MVL : $(mvl) │ HDF5: $(jd) │ material : $(material)
     ────────────────┴─────────────┴─────────────────
