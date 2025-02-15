@@ -15,7 +15,7 @@ This package provides a high-performance, backend-agnostic implementation of the
 
 ## Installation ⚙️
 
-Just type <kbd>]</kbd> in Julia's  `REPL`:
+Just type <kbd>]</kbd> in Julia's `REPL`:
 
 ```julia
 julia> ]
