@@ -19,7 +19,7 @@ If you have any questions about this solver, please do not hesitate to file an i
 
 Just type `]` in Julia's `REPL`:
 
-```julia
+```julia-repl
 julia> ]
 (@1.11) Pkg> add MaterialPointSolver
 ```
