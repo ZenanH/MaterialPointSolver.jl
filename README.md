@@ -1,4 +1,4 @@
-# *MaterialPointSolver* <img src="docs/logo.png" align="right" height="126" />
+# *MaterialPointSolver* <img src="docs/src/assets/logo.png" align="right" height="126" />
 
 [![CI](https://github.com/LandslideSIM/MaterialPointSolver.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/LandslideSIM/MaterialPointSolver.jl/actions/workflows/ci.yml) 
 [![](https://img.shields.io/badge/docs-wiki-blue.svg?logo=quicklook)](https://github.com/LandslideSIM/MaterialPointSolver.jl/wiki)
