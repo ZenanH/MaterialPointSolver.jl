@@ -55,7 +55,7 @@ include(joinpath(@__DIR__, "extension/frictionExt.jl"))
 Description:
 ---
 This function is the main function of the MPM solver, user has to pre-define the data of
-    `args`, `grid`, `mp`, 'attr' and `bc`, they are the model configuration, background 
+    `args`, `grid`, `mp`, `attr` and `bc`, they are the model configuration, background 
     grid, material points, particle property and boundary conditions (2/3D).
 """
 function materialpointsolver!(
