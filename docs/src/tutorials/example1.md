@@ -99,7 +99,7 @@ Here is the complete 2D code:
     dx = grid.dx / init_mp_in_space
     dy = grid.dy / init_mp_in_space
     ξ0 = meshbuilder(0 + dx / 2 : dx : 0.2 - dx / 2,
-                    0 + dy / 2 : dy : 0.1 - dy / 2)
+                     0 + dy / 2 : dy : 0.1 - dy / 2)
     mp = UserParticle2D(
         ϵ     = init_ϵ,
         phase = 1,
@@ -132,7 +132,7 @@ Here is the complete 2D code:
     vx_idx = zeros(grid.ni)
     vy_idx = zeros(grid.ni)
     tmp_idx = findall(i -> grid.ξ[i, 1] ≤ 0.0 || grid.ξ[i, 1] ≥ 0.8 ||
-                        grid.ξ[i, 2] ≤ 0, 1:grid.ni)
+                           grid.ξ[i, 2] ≤ 0, 1:grid.ni)
     tmp_idy = findall(i -> grid.ξ[i, 2] ≤ 0, 1:grid.ni)
     vx_idx[tmp_idx] .= 1
     vy_idx[tmp_idy] .= 1 
@@ -241,8 +241,8 @@ Here is the complete 2D code:
     dy = grid.dy / init_mp_in_space
     dz = grid.dz / init_mp_in_space
     pts = meshbuilder(0 + dx / 2 : dx : 0.05 - dx / 2,
-                    0 + dy / 2 : dy : 0.20 - dy / 2,
-                    0 + dz / 2 : dz : 0.10 - dz / 2)
+                      0 + dy / 2 : dy : 0.20 - dy / 2,
+                      0 + dz / 2 : dz : 0.10 - dz / 2)
     mpρs = ones(size(pts, 1)) * init_ρs
     mp = UserParticle3D(
         ϵ     = init_FP,
@@ -278,7 +278,7 @@ Here is the complete 2D code:
     vy_idx  = zeros(grid.ni)
     vz_idx  = zeros(grid.ni)
     tmp_idx = findall(i -> grid.ξ[i, 1] ≤ 0 || grid.ξ[i, 1] ≥ 0.05 ||
-                        grid.ξ[i, 3] ≤ 0 || grid.ξ[i, 2] ≤ 0, 1:grid.ni)
+                           grid.ξ[i, 3] ≤ 0 || grid.ξ[i, 2] ≤ 0, 1:grid.ni)
     tmp_idy = findall(i -> grid.ξ[i, 2] ≤ 0 || grid.ξ[i, 3] ≤ 0, 1:grid.ni)
     tmp_idz = findall(i -> grid.ξ[i, 3] ≤ 0, 1:grid.ni)
     vx_idx[tmp_idx] .= 1
@@ -320,7 +320,7 @@ Here is the complete 2D code:
 In this example, aluminum bars are used to model the non-cohesive soil collapse. We use uGIMP to simulate the failure process of soil collapse. The geometry of the numerical model is depicted in the figure, with a length ``l`` of ``0.2\ m`` and a height ``h`` of ``0.1\ m``. The parameters of the numerical model are provided in the Table.
 
 ```@raw html
-<img src="./figures/exp_model.png" width=50%>
+<img src="../figures/exp_model.png" width=50%>
 ```
 
 | Parameter   | Value            | Unit       | Description            |
