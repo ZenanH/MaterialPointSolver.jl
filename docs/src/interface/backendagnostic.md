@@ -19,7 +19,7 @@ Taking the CUDA backend as an example, we define automatic conversion methods in
 
     The reason this solution can succeed is that the structs' (including custom structs) fields only contain `scalar` and `array` types for the kernel function, and currently do not support other forms.
 
-Although Julia has a garbage collection mechanism to automatically reclaim memory, we hope to clean up GPU memory usage promptly after each simulation. Currently, in `/ext/CUDA Ext/devicehelpfunc cuda.jl`, we use the function `clean device!` to do this.
+Although Julia has a garbage collection mechanism to automatically reclaim memory, we hope to clean up GPU memory usage promptly after each simulation. Currently, in `/ext/CUDAExt/devicehelpfunc_cuda.jl`, we use the function `clean_device!` to do this.
 
 !!! note
     
@@ -27,9 +27,7 @@ Although Julia has a garbage collection mechanism to automatically reclaim memor
 
 !!! todo
 
-    Currently, this feature can only be achieved on the Nvidia platform, and other platforms are waiting for it to provide the relevant API.
-
-!!! todo
-
-    1) Currently, the Metal on the Apple platform does not support FP64 computation precision.  
-    2) Currently, Intel's GPU devices have not been tested, but the code implementation should be relatively easy. Ideally, it should only require filling in some parts of the `/ext` folder.
+    Currently,
+    1) Memory clean can only be achieved on the Nvidia platform, and other platforms are waiting for it to provide the relevant API.
+    2) Metal on the Apple platform does not support FP64 computation precision.  
+    3) Intel's GPU devices have not been tested, but the code implementation should be relatively easy. Ideally, it should only require filling in some parts of the `/ext` folder.
