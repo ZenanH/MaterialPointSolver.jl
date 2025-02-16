@@ -320,7 +320,7 @@ Here is the complete 2D code:
 In this example, aluminum bars are used to model the non-cohesive soil collapse. We use uGIMP to simulate the failure process of soil collapse. The geometry of the numerical model is depicted in the figure, with a length ``l`` of ``0.2\ m`` and a height ``h`` of ``0.1\ m``. The parameters of the numerical model are provided in the Table.
 
 ```@raw html
-<img src="../figures/exp_model.png" width=50%>
+<img src="exp_model.png" width=50%>
 ```
 
 | Parameter   | Value            | Unit       | Description            |
