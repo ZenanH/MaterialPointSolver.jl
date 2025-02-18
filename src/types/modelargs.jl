@@ -69,6 +69,7 @@ function UserArgs2D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     bas_set = [:uGIMP, :linear]
     dev_set = [:CPU, :CUDA, :ROCm, :oneAPI, :Metal]
     tis_set = [:fixed, :auto]
+    sch_set = [:MUSL, :USL, :USF, :AFFINE]
     # parameter check
     0<Ttol                || error("Simulation time cannot be ≤0 s."         )
     ΔT≤Ttol               || error("Time step cannot be >$(Ttol)s."          )
@@ -82,6 +83,7 @@ function UserArgs2D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     coupling in cop_set   || error("Coupling mode is wrong."                 )
     device in dev_set     || error("Cannot find $(device) device."           )
     time_step in tis_set  || error("$(time_step) time step is not allowed."  )
+    scheme in sch_set     || error("Cannot find $(scheme) scheme."           )
     (hdf5==true)&&(hdf5_step≤0) ? error("HDF5 step cannot be ≤0.") : nothing
     tmp = ext == 0 ? TempArgsExtra(T2(0)) : ext
 
@@ -153,6 +155,7 @@ function UserArgs3D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     bas_set = [:uGIMP, :linear]
     dev_set = [:CPU, :CUDA, :ROCm, :oneAPI, :Metal]
     tis_set = [:fixed, :auto]
+    sch_set = [:MUSL, :USL, :USF, :AFFINE]
     # parameter check
     0<Ttol                || error("Simulation time cannot be ≤0 s."         )
     ΔT≤Ttol               || error("Time step cannot be >$(Ttol)s."          )
@@ -166,6 +169,7 @@ function UserArgs3D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     coupling in cop_set   || error("Coupling mode is wrong."                 )
     device in dev_set     || error("Cannot find $(device) device."           )
     time_step in tis_set  || error("$(time_step) time step is not allowed."  ) 
+    scheme in sch_set     || error("Cannot find $(scheme) scheme."           )
     (hdf5==true)&&(hdf5_step≤0) ? error("HDF5 step cannot be ≤0.") : nothing
     tmp = ext == 0 ? TempArgsExtra(T2(0)) : ext
 

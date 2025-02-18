@@ -11,13 +11,16 @@
 
 include(joinpath(@__DIR__, "solvers/extras.jl"  ))
 include(joinpath(@__DIR__, "solvers/utils_OS.jl"))
+include(joinpath(@__DIR__, "solvers/affine/OS_affine.jl")) # include affine MPM procedures
 include(joinpath(@__DIR__, "solvers/utils_TS.jl"))
+
 include(joinpath(@__DIR__, "solvers/OS_MUSL.jl" ))
 include(joinpath(@__DIR__, "solvers/OS_USL.jl"  ))
 include(joinpath(@__DIR__, "solvers/OS_USF.jl"  ))
 include(joinpath(@__DIR__, "solvers/TS_MUSL.jl" ))
 include(joinpath(@__DIR__, "solvers/TS_USL.jl"  ))
 include(joinpath(@__DIR__, "solvers/TS_USF.jl"  ))
+include(joinpath(@__DIR__, "solvers/affine/OS_aUSF.jl"))   # include affine MPM procedures
 
 include(joinpath(@__DIR__, "materials/linearelastic.jl"))
 include(joinpath(@__DIR__, "materials/druckerprager.jl"))
