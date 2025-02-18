@@ -78,12 +78,14 @@ struct Particle2D{T1, T2,
     ΔFs   :: T6
     ΔFw   :: T6
     F     :: T6
+    aC    :: T6
     ext   :: T7
 end
 
 @user_struct Particle2D
 
-function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw=[0], ext=0)
+function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw=[0], ext=0, 
+    affine=false)
     # input check
     dx > 0 && dy > 0 || throw(ArgumentError("dx and dy should be positive"))
     # default values
@@ -131,12 +133,13 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
     Nij   = zeros(T2, np    , NIC    )
     ∂Nx   = zeros(T2, np    , NIC    )
     ∂Ny   = zeros(T2, np    , NIC    )
-
+    aC = affine == true ? zeros(T2, np, 4) : zeros(T2, 1, 4)
+    
     tmp = Particle2D{T1, T2, AbstractArray{T1, 1}, AbstractArray{T1, 2}, 
         AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, 
         dy, p2c, p2n, ξ, ξ0, σm, ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw, 
-        cfl, σij, ϵijs, ϵijw, Δϵijs, Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ΔFs, ΔFw, F, 
-        ext)
+        cfl, σij, ϵijs, ϵijw, Δϵijs, Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ΔFs, ΔFw, F,
+        aC, ext)
     return user_adapt(Array, tmp)
 end
 
@@ -210,13 +213,14 @@ struct Particle3D{T1, T2,
     ΔFs   :: T6
     ΔFw   :: T6
     F     :: T6
+    aC    :: T6 
     ext   :: T7
 end
 
 @user_struct Particle3D
 
 function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs, ρw=[0], 
-    ext=0)
+    affine=false, ext=0)
     # input check
     dx > 0 && dy > 0 && dz > 0 || 
         throw(ArgumentError("dx, dy, and dz should be positive"))
@@ -266,12 +270,13 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs
     ∂Nx   = zeros(T2, np    , NIC    )
     ∂Ny   = zeros(T2, np    , NIC    )
     ∂Nz   = zeros(T2, np    , NIC    )
+    aC = affine == true ? zeros(T2, np, 9) : zeros(T2, 1, 9)
 
     tmp = Particle3D{T1, T2, AbstractArray{T1, 1}, AbstractArray{T1, 2}, 
         AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, 
         dy, dz, p2c, p2n, ξ, ξ0, σm, ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw,
         cfl, σij, ϵijs, ϵijw, Δϵijs, Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ∂Nz, ΔFs, 
-        ΔFw, F, ext)
+        ΔFw, F, aC, ext)
     return user_adapt(Array, tmp)
 end
 

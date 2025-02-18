@@ -4,7 +4,7 @@ makedocs(
     modules = [MaterialPointSolver],
     format = Documenter.HTML(
         assets = ["assets/favicon.ico"],
-        prettyurls = get(ENV, "CI", nothing) == "true"
+        prettyurls = true
     ),
     clean = false,
     sitename = "MaterialPointSolver.jl",
