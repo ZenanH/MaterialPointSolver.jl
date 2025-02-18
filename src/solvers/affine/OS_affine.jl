@@ -184,7 +184,7 @@ end
 
 """
     aG2P_OS!(grid::DeviceGrid2D{T1, T2}, mp::DeviceParticle2D{T1, T2}, 
-        attr::DeviceProperty{T1, T2}, ΔT::T2, FLIP::T2, PIC::T2)
+        attr::DeviceProperty{T1, T2}, ΔT::T2)
 
 Description:
 ---
@@ -194,13 +194,11 @@ Mapping results from grid to particles. (affine)
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
     attr::  DeviceProperty{T1, T2},
-    ΔT  ::T2,
-    FLIP::T2,
-    PIC ::T2
+    ΔT  ::T2
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        ξx = ξy = vx = vy = T2(0.0)
+        vx = vy = T2(0.0)
         B11 = B12 = B21 = B22 = T2(0.0)
         D11 = D12 = D22 = T2(0.0)
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
@@ -209,10 +207,8 @@ Mapping results from grid to particles. (affine)
             if Ni ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
                 gx, gy = grid.ξ[p2n, 1], grid.ξ[p2n, 2]
-                ξx += Ni *  grid.vsT[p2n, 1]
-                ξy += Ni *  grid.vsT[p2n, 2]
-                vx += Ni * (grid.vsT[p2n, 1] - grid.vs[p2n, 1])
-                vy += Ni * (grid.vsT[p2n, 2] - grid.vs[p2n, 2])
+                vx += Ni * grid.vsT[p2n, 1]
+                vy += Ni * grid.vsT[p2n, 2]
                 # compute B matrix
                 B11 += Ni * grid.vsT[p2n, 1] * (gx - mx)
                 B12 += Ni * grid.vsT[p2n, 1] * (gy - my)
@@ -224,12 +220,12 @@ Mapping results from grid to particles. (affine)
                 D22 += Ni * (gy - my) * (gy - my)
             end
         end
-        # update particle position
-        mp.ξ[ix, 1] += ΔT * ξx
-        mp.ξ[ix, 2] += ΔT * ξy
         # update particle velocity
-        mp.vs[ix, 1] = FLIP * (mp.vs[ix, 1] + vx) + PIC * ξx
-        mp.vs[ix, 2] = FLIP * (mp.vs[ix, 2] + vy) + PIC * ξy
+        mp.vs[ix, 1] = vx
+        mp.vs[ix, 2] = vy
+        # update particle position
+        mp.ξ[ix, 1] += ΔT * vx
+        mp.ξ[ix, 2] += ΔT * vy
         # update affine matrix C
         D_del = D11 * D22 - D12 * D12
         D_del = D_del == T2(0.0) ? T2(1.0) : inv(D_del)
@@ -254,13 +250,11 @@ end
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
     attr::  DeviceProperty{T1, T2},
-    ΔT  ::T2,
-    FLIP::T2,
-    PIC ::T2
+    ΔT  ::T2
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        ξx = ξy = ξz = vx = vy = vz = T2(0.0)
+        vx = vy = vz = T2(0.0)
         B11 = B12 = B13 = B21 = B22 = B23 = B31 = B32 = B33 = T2(0.0)
         D11 = D12 = D13 = D22 = D23 = D33 = T2(0.0)
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
@@ -269,12 +263,9 @@ end
             if Ni ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
                 gx, gy, gz = grid.ξ[p2n, 1], grid.ξ[p2n, 2], grid.ξ[p2n, 3]
-                ξx += Ni *  grid.vsT[p2n, 1]
-                ξy += Ni *  grid.vsT[p2n, 2]
-                ξz += Ni *  grid.vsT[p2n, 3]
-                vx += Ni * (grid.vsT[p2n, 1] - grid.vs[p2n, 1])
-                vy += Ni * (grid.vsT[p2n, 2] - grid.vs[p2n, 2])
-                vz += Ni * (grid.vsT[p2n, 3] - grid.vs[p2n, 3])
+                vx += Ni * grid.vsT[p2n, 1]
+                vy += Ni * grid.vsT[p2n, 2]
+                vz += Ni * grid.vsT[p2n, 3]
                 # compute B matrix
                 B11 += Ni * grid.vsT[p2n, 1] * (gx - mx)
                 B12 += Ni * grid.vsT[p2n, 1] * (gy - my)
@@ -294,14 +285,14 @@ end
                 D33 += Ni * (gz - mz) * (gz - mz)
             end
         end
-        # update particle position
-        mp.ξ[ix, 1] += ΔT * ξx
-        mp.ξ[ix, 2] += ΔT * ξy
-        mp.ξ[ix, 3] += ΔT * ξz
         # update particle velocity
-        mp.vs[ix, 1] = FLIP * (mp.vs[ix, 1] + vx) + PIC * ξx
-        mp.vs[ix, 2] = FLIP * (mp.vs[ix, 2] + vy) + PIC * ξy
-        mp.vs[ix, 3] = FLIP * (mp.vs[ix, 3] + vz) + PIC * ξz
+        mp.vs[ix, 1] = vx
+        mp.vs[ix, 2] = vy
+        mp.vs[ix, 3] = vz
+        # update particle position
+        mp.ξ[ix, 1] += ΔT * vx
+        mp.ξ[ix, 2] += ΔT * vy
+        mp.ξ[ix, 3] += ΔT * vz
         # update affine matrix C
         D_del = D11 * D22 * D33 + D12 * D23 * D13 + D13 * D12 * D23 - 
                 D13 * D22 * D13 - D12 * D12 * D33 - D11 * D23 * D23

@@ -46,6 +46,6 @@ function procedure!(
     end
     aP2G_OS!(dev)(ndrange=mp.np, grid, mp, G)
     solvegrid_OS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs)
-    aG2P_OS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
+    aG2P_OS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
     return nothing
 end
