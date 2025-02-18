@@ -171,12 +171,17 @@ Description:
 2. Compute the value of basis function (uGIMP).
 3. Update particle mass and momentum.
 """
-@kernel inbounds = true function resetmpstatus_OS!(
+@kernel inbounds = true unsafe_indices = true function resetmpstatus_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
         ::Val{:uGIMP}
 ) where {T1, T2}
-    ix = @index(Global)
+    N = @uniform prod(@groupsize())
+    gI = @index(Group, Linear)
+    i = @index(Local, Linear)
+    @synchronize
+    ix = (gI - 1) * N + i
+    # ix = @index(Global)
     if ix ≤ mp.np
         smem = @localmem T2 Int32(13)
         smem[1]  = grid.dx
@@ -282,13 +287,18 @@ Description:
 2. Compute the value of basis function (uGIMP).
 3. Update particle mass and momentum.
 """
-@kernel inbounds = true function resetmpstatus_OS!(
+@kernel inbounds = true unsafe_indices = true function resetmpstatus_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
         ::Val{:uGIMP}
 ) where {T1, T2}
     T3 = T2
-    ix = @index(Global)
+    N = @uniform prod(@groupsize())
+    gI = @index(Group, Linear)
+    i = @index(Local, Linear)
+    @synchronize
+    ix = (gI - 1) * N + i
+    # ix = @index(Global)
     smem = @localmem T3 Int32(19)
     smem[1]  = T3(grid.dx)
     smem[2]  = T3(mp.dx)
