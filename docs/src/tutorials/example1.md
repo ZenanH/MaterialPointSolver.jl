@@ -163,7 +163,7 @@ Here is the complete 2D code:
     end
     ```
 
-Here is the complete 2D code:
+Here is the complete 3D code:
 
 !!! details
 

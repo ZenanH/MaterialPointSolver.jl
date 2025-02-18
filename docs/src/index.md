@@ -19,7 +19,7 @@ In Julia, if you have any questions about a function, you can type `?` in the RE
 
 ```julia-repl
 julia>?
-help?>  materialpointsolver!
+help?> materialpointsolver!
 search: materialpointsolver! MaterialPointSolver
 
   materialpointsolver!(args::DeviceArgs{T1, T2}, grid::DeviceGrid{T1, T2}, 
