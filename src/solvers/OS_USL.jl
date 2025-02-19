@@ -116,9 +116,9 @@ function procedure!(
     G = Ti < args.Te ? args.gravity / args.Te * Ti : args.gravity
     dev = getBackend(Val(args.device))
     resetgridstatus_OS!(dev)(ndrange=grid.ni, grid)
-    args.device == :CPU && args.basis == :uGIMP ? 
-        resetmpstatus_OS_CPU!(dev)(ndrange=mp.np, grid, mp, Val(args.basis)) :
-        resetmpstatus_OS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
+    args.device == :CUDA && args.basis == :uGIMP ?
+        resetmpstatus_OS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis)) :
+        resetmpstatus_OS_CPU!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
     P2G_OS!(dev)(ndrange=mp.np, grid, mp, G)
     solvegrid_USL_OS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs)
     doublemapping1_OS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)

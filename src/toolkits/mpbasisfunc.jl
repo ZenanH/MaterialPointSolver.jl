@@ -8,20 +8,23 @@
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
 |  Functions  : 1. linearBasis                                                             |
 |               2. uGIMPBasis                                                              |
+|               3. bsplineBasis                                                            |
+|               4. get_type                                                                |
 +==========================================================================================#
 
-export linearBasis, uGIMPbasis
+export linearbasis, uGIMPbasis, bsplinebasis
 export uGIMPbasisx, uGIMPbasisy, uGIMPbasisz
+export get_type
 
 """
-    linearBasis(Δx::T2, h::T2)
+    linearbasis(Δx::T2, h::T2)
 
 Description:
 ---
 Standard `linear basis function` for MPM, where `Δx` is the distance between particle and 
     node, and `h` is the grid spacing.
 """
-@inline Base.@propagate_inbounds function linearBasis(Δx::T2, h::T2) where T2
+@inline Base.@propagate_inbounds function linearbasis(Δx::T2, h::T2) where T2
     h_denom = inv(h)
     Ni = T2(1.0) - abs(Δx) * h_denom
     dN = -sign(Δx) * h_denom
@@ -117,4 +120,81 @@ end
         dN = -sign(Δx) * (smem[13] + smem[18] - absΔx) * smem[16]
     end
     return T2(Ni), T2(dN)
+end
+
+@inline Base.@propagate_inbounds function bsplinebasis(r::T2, h::T2, type_v::Int32) where T2
+    # 1/6 = 0.166667
+    # 4/3 = 1.333333
+    # 2/3 = 0.666667
+    # 1/3 = 0.333333
+    Ni, dN = T2(0.0), T2(0.0)
+    if type_v == Int32(1)
+        if Int32(-2) < r < Int32(-1)
+            Ni = T2(0.166667) * r * r * r + r * r + r + r + T2(1.333333)
+            dN = T2(0.5) * r * r + r + r + T2(2.0)
+        elseif Int32(-1) ≤ r < Int32(0)
+            Ni = T2(-0.166667) * r * r * r + r + T2(1.0)
+            dN = T2(-0.5) * r * r + T2(1.0)
+        elseif Int32(0) ≤ r < Int32(1)
+            Ni = T2(0.166667) * r * r * r - r + T2(1.0)
+            dN = T2(0.5) * r * r - T2(1.0)
+        elseif Int32(1) ≤ r < Int32(2)
+            Ni = T2(-0.166667) * r * r * r + r * r - r - r + T2(1.333333)
+            dN = -T2(0.5) * r * r + r + r - T2(2.0)
+        end
+    elseif type_v == Int32(2)
+        if Int32(-1) ≤ r < Int32(0)
+            Ni = T2(-0.333333) * r * r * r - r * r + T2(0.666667)
+            dN = - r * r - r - r
+        elseif Int32(0) ≤ r < Int32(1)
+            Ni = T2(0.5) * r * r * r - r * r + T2(0.666667)
+            dN = T2(1.5) * r * r - r - r
+        elseif Int32(1) ≤ r < Int32(2)
+            Ni = T2(-0.166667) * r * r * r + r * r - r - r + T2(1.333333)
+            dN = T2(-0.5) * r * r + r + r - T2(2.0)
+        end
+    elseif type_v == Int32(3)
+        if Int32(-2) < r < Int32(-1)
+            Ni = T2(0.166667) * r * r * r + r * r + r + r + T2(1.333333)
+            dN = T2(0.5) * r * r + r + r + T2(2.0)
+        elseif Int32(-1) ≤ r < Int32(0)
+            Ni = T2(-0.5) * r * r * r - r * r + T2(0.666667)
+            dN = T2(-1.5) * r * r - r - r
+        elseif Int32(0) ≤ r < Int32(1)
+            Ni = T2(0.5) * r * r * r - r * r + T2(0.666667)
+            dN = T2(1.5) * r * r - r - r
+        elseif Int32(1) ≤ r < Int32(2)
+            Ni = T2(-0.166667) * r * r * r + r * r - r - r + T2(1.333333)
+            dN = T2(-0.5) * r * r + r + r - T2(2.0)
+        end 
+    elseif type_v == Int32(4)
+        if Int32(-2) < r < Int32(-1)
+            Ni = T2(0.166667) * r * r * r + r * r + r + r + T2(1.333333)
+            dN = T2(0.5) * r * r + r + r + T2(2.0)
+        elseif Int32(-1) ≤ r < Int32(0)
+            Ni = T2(-0.5) * r * r * r - r * r + T2(0.666667)
+            dN = T2(-1.5) * r * r - r - r
+        elseif Int32(0) ≤ r ≤ Int32(1)
+            Ni = T2(0.333333) * r * r * r - r * r + T2(0.666667)
+            dN = r * r - r - r
+        end
+    end
+    return T2(Ni), T2(dN / h)
+end
+
+@inline Base.@propagate_inbounds function get_type(
+    gξ::T2, 
+    b1::T2, 
+    b2::T2, 
+    h ::T2
+)::Int32 where T2
+    if gξ == b1 || gξ == b2
+        return Int32(1)
+    elseif gξ == b1 + h
+        return Int32(2)
+    elseif gξ == b2 - h
+        return Int32(4)
+    else
+        return Int32(3)
+    end
 end
