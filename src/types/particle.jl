@@ -90,7 +90,7 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
     dx > 0 && dy > 0 || throw(ArgumentError("dx and dy should be positive"))
     # default values
     phase = phase in [1, 2] ? phase : 1
-    NIC = NIC in [4, 9] ? NIC : 9
+    NIC = NIC in [4, 9, 16] ? NIC : 9
     ϵ == ϵ in ["FP64", "FP32"] ? ϵ : "FP64"
     T1 = ϵ == "FP64" ? Int64 : Int32
     T2 = ϵ == "FP64" ? Float64 : Float32
@@ -226,7 +226,7 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs
         throw(ArgumentError("dx, dy, and dz should be positive"))
     # default values
     phase = phase in [1, 2] ? phase : 1
-    NIC = NIC in [8, 27] ? NIC : 27
+    NIC = NIC in [8, 27, 64] ? NIC : 27
     ϵ == ϵ in ["FP64", "FP32"] ? ϵ : "FP64"
     T1 = ϵ == "FP64" ? Int64 : Int32
     T2 = ϵ == "FP64" ? Float64 : Float32

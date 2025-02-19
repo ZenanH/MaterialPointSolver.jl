@@ -22,9 +22,9 @@ function procedure!(
     G = Ti < args.Te ? args.gravity / args.Te * Ti : args.gravity
     dev = getBackend(Val(args.device))
     resetgridstatus_OS!(dev)(ndrange=grid.ni, grid)
-    args.device == :CPU && args.basis == :uGIMP ? 
-        resetmpstatus_OS_CPU!(dev)(ndrange=mp.np, grid, mp, Val(args.basis)) :
-        resetmpstatus_OS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
+    args.device == :CUDA && args.basis == :uGIMP ?
+        resetmpstatus_OS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis)) :
+        resetmpstatus_OS_CPU!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
     aUpdatestatus!(dev)(ndrange=mp.np, mp, ΔT)
     if args.constitutive == :hyperelastic
         hyE!(dev)(ndrange=mp.np, mp, attr)

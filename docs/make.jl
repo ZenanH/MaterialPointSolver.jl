@@ -13,9 +13,9 @@ makedocs(
         "Home" => "index.md",
         "Interface" => Any[
             "interface/structs.md",
+            "interface/backendagnostic.md",
             "interface/kernelfunctions.md",
             "interface/mpmprocess.md",
-            "interface/backendagnostic.md",
             "interface/workflow.md",
             "interface/import.md",
             "interface/export.md"

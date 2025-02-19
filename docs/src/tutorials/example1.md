@@ -2,7 +2,7 @@
 
 !!! note
 
-    1) We use a classic example: 2D & 3D granular collapse[^1][^2], to demonstrate how to establish computational models and solve them. 
+    1) We use a classic example: 2D & 3D granular collapse[^1], to demonstrate how to establish computational models and solve them. 
     2) To successfully run the code, we will install the dependencies at the beginning of the code provided below. If you are already familiar with the Julia Pkg ENV and have installed the necessary packages, you can ignore this part.
     3) We default to using Nvidia's GPU or x86/ARM CPUs. If you want to use other acceleration backends, please make modifications in the appropriate places in the code.
     4) We use Unicode to enhance readability (when comparing formulas), but sometimes it may be confused with regular letters, such as ``\nu`` and `v`. If you are using VSCode, you can enable the following in the settings:
@@ -23,8 +23,7 @@
        bash> julia path/to/your_file.jl
        ```
 
-[^1]: A footnote definition uses the `[^label]: ...` syntax in a block scope.
-[^2]: asda
+[^1]: Bui, H.H., Fukagawa, R., Sako, K., Ohno, S., 2008. Lagrangian meshfree particles method (SPH) for large deformation and failure flows of geomaterial using elastic–plastic soil constitutive model. Int. J. Numer. Anal. Methods Geomech. 32, 1537–1570. https://doi.org/10.1002/nag.688
 
 Here is the complete 2D code:
 

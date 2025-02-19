@@ -9,28 +9,30 @@
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
 |  Functions  : 01. resetgridstatus_OS!     [2D]                                           |
 |               02. resetgridstatus_OS!     [3D]                                           |
-|               03. resetmpstatus_OS!       [2D, linear basis]                             |
-|               04. resetmpstatus_OS!       [3D, linear basis]                             |
-|               05. resetmpstatus_OS!       [2D,  uGIMP basis]                             |
-|               06. resetmpstatus_OS_CPU!   [2D,  uGIMP basis]                             |
-|               07. resetmpstatus_OS!       [3D,  uGIMP basis]                             |
-|               08. resetmpstatus_OS_CPU!   [3D,  uGIMP basis]                             |
-|               09. P2G_OS!                 [2D]                                           |
-|               10. P2G_OS!                 [3D]                                           |
-|               11. solvegrid_OS!           [2D]                                           |
-|               12. solvegrid_OS!           [3D]                                           |
-|               13. doublemapping1_OS!      [2D]                                           |
-|               14. doublemapping1_OS!      [3D]                                           |
-|               15. doublemapping2_OS!      [2D]                                           |
-|               16. doublemapping2_OS!      [3D]                                           |
-|               17. doublemapping3_OS!      [2D]                                           |
-|               18. doublemapping3_OS!      [3D]                                           |
-|               19. G2P_OS!                 [2D]                                           |
-|               20. G2P_OS!                 [3D]                                           |
-|               21. vollock1_OS!            [2D]                                           |
-|               22. vollock1_OS!            [3D]                                           |
-|               23. vollock2_OS!            [2D]                                           |
-|               24. vollock2_OS!            [3D]                                           |
+|               03. resetmpstatus_OS!       [2D,  linear basis]                            |
+|               04. resetmpstatus_OS!       [3D,  linear basis]                            |
+|               05. resetmpstatus_OS!       [2D,   uGIMP basis]                            |
+|               06. resetmpstatus_OS_CPU!   [2D,   uGIMP basis]                            |
+|               07. resetmpstatus_OS!       [3D,   uGIMP basis]                            |
+|               08. resetmpstatus_OS_CPU!   [3D,   uGIMP basis]                            |
+|               09. resetmpstatus_OS_CPU!   [2D, bspline basis]                            |
+|               10. resetmpstatus_OS_CPU!   [3D, bspline basis]                            |
+|               11. P2G_OS!                 [2D]                                           |
+|               12. P2G_OS!                 [3D]                                           |
+|               13. solvegrid_OS!           [2D]                                           |
+|               14. solvegrid_OS!           [3D]                                           |
+|               15. doublemapping1_OS!      [2D]                                           |
+|               16. doublemapping1_OS!      [3D]                                           |
+|               17. doublemapping2_OS!      [2D]                                           |
+|               18. doublemapping2_OS!      [3D]                                           |
+|               19. doublemapping3_OS!      [2D]                                           |
+|               20. doublemapping3_OS!      [3D]                                           |
+|               21. G2P_OS!                 [2D]                                           |
+|               22. G2P_OS!                 [3D]                                           |
+|               23. vollock1_OS!            [2D]                                           |
+|               24. vollock1_OS!            [3D]                                           |
+|               25. vollock2_OS!            [2D]                                           |
+|               26. vollock2_OS!            [3D]                                           |
 +==========================================================================================#
 
 export resetgridstatus_OS!
@@ -116,8 +118,8 @@ end
             Δdx = mp.ξ[ix, 1] - grid.ξ[p2n, 1]
             Δdy = mp.ξ[ix, 2] - grid.ξ[p2n, 2]
             # compute basis function
-            Nx, dNx = linearBasis(Δdx, grid.dx)
-            Ny, dNy = linearBasis(Δdy, grid.dy)
+            Nx, dNx = linearbasis(Δdx, grid.dx)
+            Ny, dNy = linearbasis(Δdy, grid.dy)
             mp.Nij[ix, iy] =  Nx * Ny
             mp.∂Nx[ix, iy] = dNx * Ny # x-gradient shape function
             mp.∂Ny[ix, iy] = dNy * Nx # y-gradient shape function
@@ -150,9 +152,9 @@ end
             Δdy = mp.ξ[ix, 2] - grid.ξ[p2n, 2]
             Δdz = mp.ξ[ix, 3] - grid.ξ[p2n, 3]
             # compute basis function
-            Nx, dNx = linearBasis(Δdx, grid.dx)
-            Ny, dNy = linearBasis(Δdy, grid.dy)
-            Nz, dNz = linearBasis(Δdz, grid.dz)
+            Nx, dNx = linearbasis(Δdx, grid.dx)
+            Ny, dNy = linearbasis(Δdy, grid.dy)
+            Nz, dNz = linearbasis(Δdz, grid.dz)
             mp.Nij[ix, iy] =  Nx * Ny * Nz
             mp.∂Nx[ix, iy] = dNx * Ny * Nz # x-gradient shape function
             mp.∂Ny[ix, iy] = dNy * Nx * Nz # y-gradient shape function
@@ -418,6 +420,86 @@ end
                 viy += T1(1)
             end
             viy > mp.NIC && break
+        end
+    end
+end
+
+@kernel inbounds = true function resetmpstatus_OS_CPU!(
+    grid::    DeviceGrid2D{T1, T2},
+    mp  ::DeviceParticle2D{T1, T2},
+        ::Val{:bspline}
+) where {T1, T2}
+    ix = @index(Global)
+    T3 = T2
+    if ix ≤ mp.np
+        # update mass and momentum
+        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
+        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
+        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
+        # p2c index
+        mp.p2c[ix] = unsafe_trunc(T1,
+            cld(mp.ξ[ix, 2] - grid.y1, grid.dy) +
+            fld(mp.ξ[ix, 1] - grid.x1, grid.dx) * grid.ncy)
+        @KAunroll for iy in Int32(1):Int32(16)
+            # p2n index
+            p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
+            # compute distance between particle and related nodes
+            rx = T3((mp.ξ[ix, 1] - grid.ξ[p2n, 1]) / grid.dx)
+            ry = T3((mp.ξ[ix, 2] - grid.ξ[p2n, 2]) / grid.dy)
+            # compute basis function
+            type_vx = get_type(grid.ξ[p2n, 1], grid.x1, grid.x2, grid.dx)
+            Nx, dNx = bsplinebasis(rx, grid.dx, type_vx)
+            type_vy = get_type(grid.ξ[p2n, 2], grid.y1, grid.y2, grid.dy)
+            Ny, dNy = bsplinebasis(ry, grid.dy, type_vy)
+            mp.Nij[ix, iy] =  Nx * Ny
+            mp.∂Nx[ix, iy] = dNx * Ny # x-gradient shape function
+            mp.∂Ny[ix, iy] = dNy * Nx # y-gradient shape function
+            mp.p2n[ix, iy] = p2n
+        end
+    end
+end
+
+@kernel inbounds = true function resetmpstatus_OS_CPU!(
+    grid::    DeviceGrid3D{T1, T2},
+    mp  ::DeviceParticle3D{T1, T2},
+        ::Val{:bspline}
+) where {T1, T2}
+    ix = @index(Global)
+    T3 = T2
+    if ix ≤ mp.np
+        mpξ1 = mp.ξ[ix, 1]
+        mpξ2 = mp.ξ[ix, 2]
+        mpξ3 = mp.ξ[ix, 3]
+        mpms = mp.Ω[ix] * mp.ρs[ix]
+        # update particle mass and momentum
+        mp.ms[ix]    = mpms
+        mp.ps[ix, 1] = mpms * mp.vs[ix, 1]
+        mp.ps[ix, 2] = mpms * mp.vs[ix, 2]
+        mp.ps[ix, 3] = mpms * mp.vs[ix, 3]
+        # p2c index
+        mp.p2c[ix] = unsafe_trunc(T1,
+            cld(mpξ2 - grid.y1, grid.dy) +
+            fld(mpξ3 - grid.z1, grid.dz) * grid.ncy * grid.ncx +
+            fld(mpξ1 - grid.x1, grid.dx) * grid.ncy)
+        @KAunroll for iy in Int32(1):Int32(64)
+            # p2n index
+            p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
+            # compute distance betwe en particle and related nodes
+            rx = T3((mpξ1 - grid.ξ[p2n, 1]) / grid.dx)
+            ry = T3((mpξ2 - grid.ξ[p2n, 2]) / grid.dy)
+            rz = T3((mpξ3 - grid.ξ[p2n, 3]) / grid.dz)
+            # compute basis function
+            type_vx = get_type(grid.ξ[p2n, 1], grid.x1, grid.x2, grid.dx)
+            Nx, dNx = bsplinebasis(rx, grid.dx, type_vx)
+            type_vy = get_type(grid.ξ[p2n, 2], grid.y1, grid.y2, grid.dy)
+            Ny, dNy = bsplinebasis(ry, grid.dy, type_vy)
+            type_vz = get_type(grid.ξ[p2n, 3], grid.z1, grid.z2, grid.dz)
+            Nz, dNz = bsplinebasis(rz, grid.dz, type_vz)
+            mp.Nij[ix, iy] = T2( Nx * Ny * Nz)
+            mp.∂Nx[ix, iy] = T2(dNx * Ny * Nz) # x-gradient basis function
+            mp.∂Ny[ix, iy] = T2(dNy * Nx * Nz) # y-gradient basis function
+            mp.∂Nz[ix, iy] = T2(dNz * Nx * Ny) # z-gradient basis function
+            mp.p2n[ix, iy] = p2n
         end
     end
 end
