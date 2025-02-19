@@ -22,18 +22,6 @@ julia> ]
 (@1.11) Pkg> add MaterialPointSolver
 ```
 
-## Showcases
-
-| | | |
-|:--:|:--:|:--:|
-| <video width="200" autoplay muted loop><source src="https://github.com/user-attachments/assets/537b2645-f2f7-481c-b889-fd544125261b" type="video/mp4">Your browser does not support the video tag.</video> | <video width="200" autoplay muted loop><source src="https://github.com/user-attachments/assets/5ae288f5-da45-4782-9da9-f69031eff234" type="video/mp4">Your browser does not support the video tag.</video> | <video width="200" autoplay muted loop><source src="https://github.com/user-attachments/assets/12f1bf17-90e3-4b64-bb28-29efb9542c95" type="video/mp4">Your browser does not support the video tag.</video> |
-
-| |
-|:--:|
-|<video width="600" autoplay muted loop><source src="https://github.com/user-attachments/assets/957fbfb0-24ca-431c-bc17-ffe045cd6f4b" type="video/mp4">Your browser does not support the video tag.</video>|
-
-
-
 ## Citation ❤
 If you use `MaterialPointSolver.jl` in your research, please consider to cite this paper:
 
