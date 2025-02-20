@@ -22,6 +22,7 @@ function procedure!(
 ) where {T1, T2}
     G = Ti < args.Te ? args.gravity / args.Te * Ti : args.gravity
     dev = getBackend(Val(args.device))
+    # MPM procedure
     resetgridstatus_OS!(dev)(ndrange=grid.ni, grid)
     args.device == :CUDA && args.basis == :uGIMP ?
         resetmpstatus_OS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis)) :
@@ -31,7 +32,15 @@ function procedure!(
     doublemapping1_OS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
     doublemapping2_OS!(dev)(ndrange=mp.np, grid, mp)
     doublemapping3_OS!(dev)(ndrange=grid.ni, grid, bc, ΔT)
-    G2P_OS!(dev)(ndrange=mp.np, grid, mp, ΔT)
+    # F-bar based volumetric locking elimination approach
+    if args.MVL == false
+        G2P_OS!(dev)(ndrange=mp.np, grid, mp, ΔT)
+    else
+        G2Pvl1_OS!(dev)(ndrange=mp.np, grid, mp)
+        fastdiv!(dev)(ndrange=grid.ni, grid)
+        G2Pvl2_OS!(dev)(ndrange=mp.np, grid, mp, ΔT)
+    end
+    # update stress status
     if args.constitutive == :hyperelastic
         hyE!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :linearelastic
@@ -45,10 +54,6 @@ function procedure!(
     elseif args.constitutive == :bingham
         Ti < args.Te && liE!(dev)(ndrange=mp.np, mp, attr)
         Ti ≥ args.Te && bhP!(dev)(ndrange=mp.np, mp, attr, inv(ΔT))
-    end
-    if args.MVL == true
-        vollock1_OS!(dev)(ndrange=mp.np, grid, mp)
-        vollock2_OS!(dev)(ndrange=mp.np, grid, mp)
     end
     return nothing
 end

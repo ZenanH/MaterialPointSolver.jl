@@ -29,10 +29,11 @@
 |               20. doublemapping3_OS!      [3D]                                           |
 |               21. G2P_OS!                 [2D]                                           |
 |               22. G2P_OS!                 [3D]                                           |
-|               23. vollock1_OS!            [2D]                                           |
-|               24. vollock1_OS!            [3D]                                           |
-|               25. vollock2_OS!            [2D]                                           |
-|               26. vollock2_OS!            [3D]                                           |
+|               23. G2Pvl1_OS!              [2D]                                           |
+|               24. G2Pvl1_OS!              [3D]                                           |
+|               25. G2Pvl2_OS!              [2D]                                           |
+|               26. G2Pvl2_OS!              [3D]                                           |
+|               27. fastdiv!                [- ]                                           |
 +==========================================================================================#
 
 export resetgridstatus_OS!
@@ -43,8 +44,9 @@ export doublemapping1_OS!
 export doublemapping2_OS!
 export doublemapping3_OS!
 export G2P_OS! 
-export vollock1_OS!
-export vollock2_OS!
+export G2Pvl1_OS!
+export G2Pvl2_OS!
+export fastdiv!
 
 """
     resetgridstatus_OS!(grid::DeviceGrid2D{T1, T2})
@@ -58,10 +60,8 @@ Reset some variables for the grid.
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        if ix ≤ grid.nc
-            grid.σm[ix] = T2(0.0)
-            grid.Ω[ix]  = T2(0.0)
-        end
+        grid.σm[ix]    = T2(0.0)
+        grid.Ω[ix]     = T2(0.0)
         grid.ms[ix]    = T2(0.0)
         grid.ps[ix, 1] = T2(0.0)
         grid.ps[ix, 2] = T2(0.0)
@@ -82,10 +82,8 @@ Reset some variables for the grid.
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        if ix ≤ grid.nc
-            grid.σm[ix] = T2(0.0)
-            grid.Ω[ix]  = T2(0.0)
-        end
+        grid.σm[ix]    = T2(0.0)
+        grid.Ω[ix]     = T2(0.0)
         grid.ms[ix]    = T2(0.0)
         grid.ps[ix, 1] = T2(0.0)
         grid.ps[ix, 2] = T2(0.0)
@@ -1025,106 +1023,204 @@ Update particle information.
     end
 end
 
-"""
-    vollock1_OS!(grid::DeviceGrid2D{T1, T2}, mp::DeviceParticle2D{T1, T2})
-
-Description:
----
-Mapping mean stress and volume from particle to grid.
-"""
-@kernel inbounds = true function vollock1_OS!(
+@kernel inbounds = true function G2Pvl1_OS!(
     grid::    DeviceGrid2D{T1, T2},
-    mp  ::DeviceParticle2D{T1, T2}
+    mp  ::DeviceParticle2D{T1, T2},
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        p2c = mp.p2c[ix]
+        dF1 = dF2 = dF3 = dF4 = T2(0.0)
+        @KAunroll for iy in Int32(1):Int32(mp.NIC)
+            if mp.Nij[ix, iy] ≠ T2(0.0)
+                p2n = mp.p2n[ix, iy]
+                ∂Nx = mp.∂Nx[ix, iy]
+                ∂Ny = mp.∂Ny[ix, iy]
+                # compute solid incremental deformation gradient
+                dF1 += grid.Δus[p2n, 1] * ∂Nx
+                dF2 += grid.Δus[p2n, 1] * ∂Ny
+                dF3 += grid.Δus[p2n, 2] * ∂Nx
+                dF4 += grid.Δus[p2n, 2] * ∂Ny
+            end
+        end
+        dF1 += T2(1.0); dF4 += T2(1.0)
+        mp.ΔFs[ix, 1] = dF1; mp.ΔFs[ix, 2] = dF2; mp.ΔFs[ix, 3] = dF3; mp.ΔFs[ix, 4] = dF4
+        # compute ΔJₚ in the current time step
+        ΔJ = dF1 * dF4 - dF2 * dF3 
+        # map this value from particle to grid cell
         vol = mp.Ω[ix]
-        @KAatomic grid.σm[p2c] += vol * mp.σm[ix]
-        @KAatomic grid.Ω[p2c]  += vol
+        @KAunroll for iy in Int32(1):Int32(mp.NIC)
+            NiV = mp.Nij[ix, iy] * vol
+            if NiV ≠ T2(0.0)
+                p2n = mp.p2n[ix, iy]
+                @KAatomic grid.σm[p2n] += NiV * ΔJ
+                @KAatomic grid.Ω[p2n] += NiV
+            end
+        end
     end
 end
 
-"""
-    vollock1_OS!(grid::DeviceGrid3D{T1, T2}, mp::DeviceParticle3D{T1, T2})
-
-Description:
----
-Mapping mean stress and volume from particle to grid.
-"""
-@kernel inbounds = true function vollock1_OS!(
+@kernel inbounds = true function G2Pvl1_OS!(
     grid::    DeviceGrid3D{T1, T2},
-    mp  ::DeviceParticle3D{T1, T2}
+    mp  ::DeviceParticle3D{T1, T2},
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        p2c = mp.p2c[ix]
+        dF1 = dF2 = dF3 = dF4 = dF5 = dF6 = dF7 = dF8 = dF9 = T2(0.0)
+        @KAunroll for iy in Int32(1):Int32(mp.NIC)
+            if mp.Nij[ix, iy] ≠ T2(0.0)
+                p2n = mp.p2n[ix, iy]
+                ∂Nx = mp.∂Nx[ix, iy]; ds1 = grid.Δus[p2n, 1]
+                ∂Ny = mp.∂Ny[ix, iy]; ds2 = grid.Δus[p2n, 2]
+                ∂Nz = mp.∂Nz[ix, iy]; ds3 = grid.Δus[p2n, 3]
+                # compute solid incremental deformation gradient
+                dF1 += ds1 * ∂Nx; dF2 += ds1 * ∂Ny; dF3 += ds1 * ∂Nz
+                dF4 += ds2 * ∂Nx; dF5 += ds2 * ∂Ny; dF6 += ds2 * ∂Nz
+                dF7 += ds3 * ∂Nx; dF8 += ds3 * ∂Ny; dF9 += ds3 * ∂Nz
+            end
+        end
+        dF1 += T2(1.0); dF5 += T2(1.0); dF9 += T2(1.0)
+        mp.ΔFs[ix, 1] = dF1; mp.ΔFs[ix, 2] = dF2; mp.ΔFs[ix, 3] = dF3
+        mp.ΔFs[ix, 4] = dF4; mp.ΔFs[ix, 5] = dF5; mp.ΔFs[ix, 6] = dF6
+        mp.ΔFs[ix, 7] = dF7; mp.ΔFs[ix, 8] = dF8; mp.ΔFs[ix, 9] = dF9
+        # compute ΔJₚ in the current time step
+        ΔJ = dF1 * dF5 * dF9 + dF2 * dF6 * dF7 + dF3 * dF4 * dF8 - 
+             dF7 * dF5 * dF3 - dF8 * dF6 * dF1 - dF9 * dF4 * dF2 
+        # map this value from particle to grid cell
         vol = mp.Ω[ix]
-        @KAatomic grid.σm[p2c] += vol * mp.σm[ix]
-        @KAatomic grid.Ω[p2c]  += vol
+        @KAunroll for iy in Int32(1):Int32(mp.NIC)
+            NiV = mp.Nij[ix, iy] * vol
+            if NiV ≠ T2(0.0)
+                p2n = mp.p2n[ix, iy]
+                @KAatomic grid.σm[p2n] += NiV * ΔJ
+                @KAatomic grid.Ω[p2n] += NiV
+            end
+        end
     end
 end
 
-"""
-    vollock2_OS!(grid::DeviceGrid2D{T1, T2}, mp::DeviceParticle2D{T1, T2})
-
-Description:
----
-Mapping back mean stress and volume from grid to particle.
-"""
-@kernel inbounds = true function vollock2_OS!(
+@kernel inbounds = true function G2Pvl2_OS!(
     grid::    DeviceGrid2D{T1, T2},
-    mp  ::DeviceParticle2D{T1, T2}
+    mp  ::DeviceParticle2D{T1, T2},
+    ΔT  ::T2
 ) where {T1, T2}
     ix = @index(Global)
+    ΔT_1 = inv(ΔT)
     if ix ≤ mp.np
-        p2c = mp.p2c[ix]
-        σm  = grid.σm[p2c] / grid.Ω[p2c]
-        mp.σij[ix, 1] = mp.sij[ix, 1] + σm
-        mp.σij[ix, 2] = mp.sij[ix, 2] + σm
-        mp.σij[ix, 3] = mp.sij[ix, 3] + σm
-        mp.σij[ix, 4] = mp.sij[ix, 4]
-        # update mean stress tensor
-        σm = (mp.σij[ix, 1] + mp.σij[ix, 2] + mp.σij[ix, 3]) * T2(0.333333) # 1/3 ≈ 0.333333
-        mp.σm[ix] = σm
-        # update deviatoric stress tensor
-        mp.sij[ix, 1] = mp.σij[ix, 1] - σm
-        mp.sij[ix, 2] = mp.σij[ix, 2] - σm
-        mp.sij[ix, 3] = mp.σij[ix, 3] - σm
-        mp.sij[ix, 4] = mp.σij[ix, 4]
+        co = T2(0.0)
+        @KAunroll for iy in Int32(1):Int32(mp.NIC)
+            Nij = mp.Nij[ix, iy]
+            if Nij ≠ T2(0.0)
+                p2n = mp.p2n[ix, iy]
+                co += Nij * grid.σm[p2n]
+            end
+        end
+        Jc = sign(co) * abs(co) ^ T2(0.5)
+        mp.ΔFs[ix, 1] *= Jc; mp.ΔFs[ix, 2] *= Jc; mp.ΔFs[ix, 3] *= Jc; mp.ΔFs[ix, 4] *= Jc
+        mp.ΔFs[ix, 1] -= T2(1.0); mp.ΔFs[ix, 4] -= T2(1.0)
+        dF1 = mp.ΔFs[ix, 1]; dF2 = mp.ΔFs[ix, 2]; dF3 = mp.ΔFs[ix, 3]; dF4 = mp.ΔFs[ix, 4]
+        # strain rate (Second Invariant of Strain Rate Tensor)
+        dϵxx = dF1 * ΔT_1
+        dϵyy = dF4 * ΔT_1
+        dϵxy = T2(0.5) * (dF2 + dF3) * ΔT_1
+        mp.ϵv[ix] = sqrt(dϵxx * dϵxx + dϵyy * dϵyy + T2(2.0) * dϵxy * dϵxy)
+        # compute strain increment 
+        mp.Δϵijs[ix, 1] = dF1
+        mp.Δϵijs[ix, 2] = dF4
+        mp.Δϵijs[ix, 4] = dF2 + dF3
+        # update strain tensor
+        mp.ϵijs[ix, 1] += dF1
+        mp.ϵijs[ix, 2] += dF4
+        mp.ϵijs[ix, 4] += dF2 + dF3
+        # deformation gradient matrix
+        F1 = mp.F[ix, 1]; F2 = mp.F[ix, 2]; F3 = mp.F[ix, 3]; F4 = mp.F[ix, 4]      
+        mp.F[ix, 1] = (dF1 + T2(1.0)) * F1 + dF2 * F3
+        mp.F[ix, 2] = (dF1 + T2(1.0)) * F2 + dF2 * F4
+        mp.F[ix, 3] = (dF4 + T2(1.0)) * F3 + dF3 * F1
+        mp.F[ix, 4] = (dF4 + T2(1.0)) * F4 + dF3 * F2
+        # update jacobian value and particle volume
+        J = mp.F[ix, 1] * mp.F[ix, 4] - mp.F[ix, 2] * mp.F[ix, 3]
+        mp.Ω[ix]  = J * mp.Ω0[ix]
+        mp.ρs[ix] = mp.ρs0[ix] / J
+    end
+
+end
+
+@kernel inbounds = true function G2Pvl2_OS!(
+    grid::    DeviceGrid3D{T1, T2},
+    mp  ::DeviceParticle3D{T1, T2},
+    ΔT  ::T2
+) where {T1, T2}
+    ix = @index(Global)
+    ΔT_1 = inv(ΔT)
+    if ix ≤ mp.np
+        co = T2(0.0)
+        @KAunroll for iy in Int32(1):Int32(mp.NIC)
+            Nij = mp.Nij[ix, iy]
+            if Nij ≠ T2(0.0)
+                p2n = mp.p2n[ix, iy]
+                co += Nij * grid.σm[p2n]
+            end
+        end
+        Jc = co ^ T2(0.333333)
+        mp.ΔFs[ix, 1] *= Jc; mp.ΔFs[ix, 2] *= Jc; mp.ΔFs[ix, 3] *= Jc
+        mp.ΔFs[ix, 4] *= Jc; mp.ΔFs[ix, 5] *= Jc; mp.ΔFs[ix, 6] *= Jc
+        mp.ΔFs[ix, 7] *= Jc; mp.ΔFs[ix, 8] *= Jc; mp.ΔFs[ix, 9] *= Jc
+        mp.ΔFs[ix, 1] -= T2(1.0); mp.ΔFs[ix, 5] -= T2(1.0); mp.ΔFs[ix, 9] -= T2(1.0)
+        dF1 = mp.ΔFs[ix, 1]; dF2 = mp.ΔFs[ix, 2]; dF3 = mp.ΔFs[ix, 3]
+        dF4 = mp.ΔFs[ix, 4]; dF5 = mp.ΔFs[ix, 5]; dF6 = mp.ΔFs[ix, 6]
+        dF7 = mp.ΔFs[ix, 7]; dF8 = mp.ΔFs[ix, 8]; dF9 = mp.ΔFs[ix, 9]
+        # strain rate (Second Invariant of Strain Rate Tensor)
+        dϵxx = dF1 * ΔT_1
+        dϵyy = dF5 * ΔT_1
+        dϵzz = dF9 * ΔT_1
+        dϵxy = T2(0.5) * (dF2 + dF4) * ΔT_1
+        dϵyz = T2(0.5) * (dF6 + dF8) * ΔT_1
+        dϵxz = T2(0.5) * (dF3 + dF7) * ΔT_1
+        mp.ϵv[ix] = sqrt(dϵxx * dϵxx + dϵyy * dϵyy + dϵzz * dϵzz + 
+            T2(2.0) * (dϵxy * dϵxy + dϵyz * dϵyz + dϵxz * dϵxz))
+        # compute strain increment
+        mp.Δϵijs[ix, 1] = dF1
+        mp.Δϵijs[ix, 2] = dF5
+        mp.Δϵijs[ix, 3] = dF9
+        mp.Δϵijs[ix, 4] = dF2 + dF4
+        mp.Δϵijs[ix, 5] = dF6 + dF8
+        mp.Δϵijs[ix, 6] = dF3 + dF7
+        # update strain tensor
+        mp.ϵijs[ix, 1] += dF1
+        mp.ϵijs[ix, 2] += dF5
+        mp.ϵijs[ix, 3] += dF9
+        mp.ϵijs[ix, 4] += dF2 + dF4
+        mp.ϵijs[ix, 5] += dF6 + dF8
+        mp.ϵijs[ix, 6] += dF3 + dF7
+        # deformation gradient matrix
+        F1 = mp.F[ix, 1]; F2 = mp.F[ix, 2]; F3 = mp.F[ix, 3]
+        F4 = mp.F[ix, 4]; F5 = mp.F[ix, 5]; F6 = mp.F[ix, 6]
+        F7 = mp.F[ix, 7]; F8 = mp.F[ix, 8]; F9 = mp.F[ix, 9]        
+        mp.F[ix, 1] = (dF1 + T2(1.0)) * F1 + dF2 * F4 + dF3 * F7
+        mp.F[ix, 2] = (dF1 + T2(1.0)) * F2 + dF2 * F5 + dF3 * F8
+        mp.F[ix, 3] = (dF1 + T2(1.0)) * F3 + dF2 * F6 + dF3 * F9
+        mp.F[ix, 4] = (dF5 + T2(1.0)) * F4 + dF4 * F1 + dF6 * F7
+        mp.F[ix, 5] = (dF5 + T2(1.0)) * F5 + dF4 * F2 + dF6 * F8
+        mp.F[ix, 6] = (dF5 + T2(1.0)) * F6 + dF4 * F3 + dF6 * F9
+        mp.F[ix, 7] = (dF9 + T2(1.0)) * F7 + dF8 * F4 + dF7 * F1
+        mp.F[ix, 8] = (dF9 + T2(1.0)) * F8 + dF8 * F5 + dF7 * F2
+        mp.F[ix, 9] = (dF9 + T2(1.0)) * F9 + dF8 * F6 + dF7 * F3
+        # update jacobian value and particle volume
+        J = mp.F[ix, 1] * mp.F[ix, 5] * mp.F[ix, 9] + 
+            mp.F[ix, 2] * mp.F[ix, 6] * mp.F[ix, 7] +
+            mp.F[ix, 3] * mp.F[ix, 4] * mp.F[ix, 8] - 
+            mp.F[ix, 7] * mp.F[ix, 5] * mp.F[ix, 3] -
+            mp.F[ix, 8] * mp.F[ix, 6] * mp.F[ix, 1] - 
+            mp.F[ix, 9] * mp.F[ix, 4] * mp.F[ix, 2] 
+        mp.Ω[ix]  = J * mp.Ω0[ix]
+        mp.ρs[ix] = mp.ρs0[ix] / J
     end
 end
 
-"""
-    vollock2_OS!(grid::DeviceGrid3D{T1, T2}, mp::DeviceParticle3D{T1, T2})
-
-Description:
----
-Mapping back mean stress and volume from grid to particle.
-"""
-@kernel inbounds = true function vollock2_OS!(
-    grid::    DeviceGrid3D{T1, T2},
-    mp  ::DeviceParticle3D{T1, T2}
-) where {T1, T2}
+@kernel inbounds = true function fastdiv!(grid::DeviceGrid{T1, T2}) where {T1, T2}
     ix = @index(Global)
-    if ix <= mp.np
-        p2c = mp.p2c[ix]
-        σm  = grid.σm[p2c] / grid.Ω[p2c]
-        mp.σij[ix, 1] = mp.sij[ix, 1] + σm
-        mp.σij[ix, 2] = mp.sij[ix, 2] + σm
-        mp.σij[ix, 3] = mp.sij[ix, 3] + σm
-        mp.σij[ix, 4] = mp.sij[ix, 4]
-        mp.σij[ix, 5] = mp.sij[ix, 5]
-        mp.σij[ix, 6] = mp.sij[ix, 6]
-        # update mean stress tensor
-        σm = (mp.σij[ix, 1] + mp.σij[ix, 2] + mp.σij[ix, 3]) * T2(0.333333) # 1/3 ≈ 0.333333
-        mp.σm[ix] = σm
-        # update deviatoric stress tensor
-        mp.sij[ix, 1] = mp.σij[ix, 1] - σm
-        mp.sij[ix, 2] = mp.σij[ix, 2] - σm
-        mp.sij[ix, 3] = mp.σij[ix, 3] - σm
-        mp.sij[ix, 4] = mp.σij[ix, 4]
-        mp.sij[ix, 5] = mp.σij[ix, 5]
-        mp.sij[ix, 6] = mp.σij[ix, 6]
+    if ix ≤ grid.ni
+        Ω = grid.Ω[ix] == T2(0.0) ? T2(0.0) : inv(grid.Ω[ix])
+        grid.σm[ix] *= Ω
     end
 end
