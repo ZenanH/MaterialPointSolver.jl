@@ -9,11 +9,9 @@
 [![](https://img.shields.io/badge/Intel-oneAPI-blue.svg?logo=intel)](https://www.intel.com/content/www/us/en/developer/tools/oneapi/overview.html)
 [![](https://img.shields.io/badge/Apple-Metal-purple.svg?logo=apple)](https://developer.apple.com/metal/)
 
-<div style="display: flex; align-items: center;">
-    <img src="docs/assets/readme.gif" style="width: 150px; height: auto; margin-right: 20px;">
-    <p>This package provides a high-performance, backend-agnostic implementation of the Material Point Method (MPM) using the <a href="https://julialang.org" target="_blank"><img src="https://raw.githubusercontent.com/JuliaLang/julia-logo-graphics/master/images/julia.ico" width="16em"> Julia Language</a>. It is lightweight and user-friendly, allowing efficient execution on various hardware accelerators with a single codebase. Please check here for the <a href="https://landslidesim.github.io/MaterialPointSolver.jl/stable/" target="_blank">documentation</a>.</p>
-</div>
-
+<p>
+This package provides a high-performance, backend-agnostic implementation of the Material Point Method (MPM) using the <a href="https://julialang.org" target="_blank"><img src="https://raw.githubusercontent.com/JuliaLang/julia-logo-graphics/master/images/julia.ico" width="16em"> Julia Language</a>. It is lightweight and user-friendly, allowing efficient execution on various hardware accelerators with a single codebase. Please check here for the <a href="https://landslidesim.github.io/MaterialPointSolver.jl/stable/" target="_blank">documentation</a>.
+</p>
 
 ## Installation ⚙️
 
@@ -25,6 +23,9 @@ julia> ]
 ```
 
 ## Citation ❤
+
+<img src="docs/assets/readme.gif" width="20%" align="right">
+
 If you use `MaterialPointSolver.jl` in your research, please consider to cite this paper:
 
 ```bib
