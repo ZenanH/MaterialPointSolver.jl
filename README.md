@@ -13,6 +13,8 @@
 This package provides a high-performance, backend-agnostic implementation of the Material Point Method (MPM) using the <a href="https://julialang.org" target="_blank"><img src="https://raw.githubusercontent.com/JuliaLang/julia-logo-graphics/master/images/julia.ico" width="16em"> Julia Language</a>. It is lightweight and user-friendly, allowing efficient execution on various hardware accelerators with a single codebase. Please check here for the <a href="https://landslidesim.github.io/MaterialPointSolver.jl/stable/" target="_blank">documentation</a>.
 </p>
 
+<img src="docs/assets/readme.gif" width="100%" align="center">
+
 ## Installation ⚙️
 
 Just type <kbd>]</kbd> in Julia's `REPL`:
@@ -22,9 +24,46 @@ julia> ]
 (@1.11) Pkg> add MaterialPointSolver
 ```
 
-## Citation ❤
+## Features 💪
 
-<img src="docs/assets/readme.gif" width="20%" align="right">
+*These features can be combined in any way.*
+
+- Basis function:
+
+  - [x] standard MPM
+  - [x] uGIMP (uniformed Generalized interpolation MPM)
+  - [x] cubic B-spline (boundary modified)
+
+- Stress update scheme:
+
+  - [x] USL (update stress last)
+  - [x] USF (update stress first)
+  - [x] MUSL (modified USL)
+
+- MPM formulation:
+
+  - [x] one-phase single-point
+  - [ ] two-phase single-point (saturated/unsaturated) 🚧
+  
+- Constitutive model:
+
+  - [x] linear elastic
+  - [x] hyper elastic (Neo-hooken)
+  - [x] Drucker-Prager (with softening/harding)
+  - [ ] Mohr-Coulomb 🚧
+  - [x] Bingham
+  
+    ...
+
+- Others:
+
+  - [x] affine MPM
+  - [x] $\bar{F}$-based volumetric locking elimination
+  - [x] Gaussian random field
+  - [x] one-click switch between `FP64` and `FP32`
+  - [x] user-defined algorithms/extensions at any level
+
+## Citation ❤
 
 If you use `MaterialPointSolver.jl` in your research, please consider to cite this paper:
 
