@@ -105,9 +105,9 @@ function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0)
     DoF = 2
     phase == 1 ? (nc_new = 1 ; ni_new = 1 ; DoF_new = 1  ) : 
     phase == 2 ? (nc_new = nc; ni_new = ni; DoF_new = DoF) : nothing
-    σm  = zeros(T2, nc             )
+    σm  = zeros(T2, ni             )
     σw  = zeros(T2, nc_new         )
-    Ω   = zeros(T2, nc             )
+    Ω   = zeros(T2, ni             )
     ms  = zeros(T2, ni             )
     mw  = zeros(T2, ni_new         )
     mi  = zeros(T2, ni_new         )
@@ -255,9 +255,9 @@ function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NI
     DoF = 3
     phase == 1 ? (nc_new = 1 ; ni_new = 1 ; DoF_new = 1  ) : 
     phase == 2 ? (nc_new = nc; ni_new = ni; DoF_new = DoF) : nothing
-    σm  = zeros(T2, nc             )
+    σm  = zeros(T2, ni             )
     σw  = zeros(T2, nc_new         )
-    Ω   = zeros(T2, nc             )
+    Ω   = zeros(T2, ni             )
     ms  = zeros(T2, ni             )
     mw  = zeros(T2, ni_new         )
     mi  = zeros(T2, ni_new         )

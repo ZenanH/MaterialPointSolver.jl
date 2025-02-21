@@ -21,11 +21,20 @@ function procedure!(
 ) where {T1, T2}
     G = Ti < args.Te ? args.gravity / args.Te * Ti : args.gravity
     dev = getBackend(Val(args.device))
+    # MPM procedure
     resetgridstatus_OS!(dev)(ndrange=grid.ni, grid)
     args.device == :CUDA && args.basis == :uGIMP ?
         resetmpstatus_OS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis)) :
         resetmpstatus_OS_CPU!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
-    aUpdatestatus!(dev)(ndrange=mp.np, mp, ΔT)
+    # F-bar based volumetric locking elimination approach
+    if args.MVL == false
+        aUpdatestatus_OS!(dev)(ndrange=mp.np, mp, ΔT)
+    else
+        aUpdatestatusvl1_OS!(dev)(ndrange=mp.np, grid, mp, ΔT)
+        fastdiv!(dev)(ndrange=grid.ni, grid)
+        aUpdatestatusvl2_OS!(dev)(ndrange=mp.np, grid, mp, ΔT)
+    end
+    # Update stress status
     if args.constitutive == :hyperelastic
         hyE!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :linearelastic
@@ -40,10 +49,7 @@ function procedure!(
         Ti < args.Te && liE!(dev)(ndrange=mp.np, mp, attr)
         Ti ≥ args.Te && bhP!(dev)(ndrange=mp.np, mp, attr, inv(ΔT))
     end
-    if args.MVL == true
-        vollock1_OS!(dev)(ndrange=mp.np, grid, mp)
-        vollock2_OS!(dev)(ndrange=mp.np, grid, mp)
-    end
+    # MPM procedure
     aP2G_OS!(dev)(ndrange=mp.np, grid, mp, G)
     solvegrid_OS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs)
     aG2P_OS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
