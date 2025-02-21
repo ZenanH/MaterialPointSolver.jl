@@ -28,40 +28,42 @@ julia> ]
 
 *These features can be combined in any way.*
 
+
+
 - Basis function:
 
-  - [x] standard MPM
-  - [x] uGIMP (uniformed Generalized interpolation MPM)
-  - [x] cubic B-spline (boundary modified)
+  - ✅ standard MPM
+  - ✅ uGIMP (uniformed Generalized interpolation MPM)
+  - ✅ cubic B-spline (boundary modified)
 
 - Stress update scheme:
 
-  - [x] USL (update stress last)
-  - [x] USF (update stress first)
-  - [x] MUSL (modified USL)
+  - ✅ USL (update stress last)
+  - ✅ USF (update stress first)
+  - ✅ MUSL (modified USL)
 
 - MPM formulation:
 
-  - [x] one-phase single-point
-  - [ ] two-phase single-point (saturated/unsaturated) 🚧
-  
+  - ✅ one-phase single-point
+  - 🚧 two-phase single-point (saturated/unsaturated)
+
 - Constitutive model:
 
-  - [x] linear elastic
-  - [x] hyper elastic (Neo-hooken)
-  - [x] Drucker-Prager (with softening/harding)
-  - [ ] Mohr-Coulomb 🚧
-  - [x] Bingham
-  
-    ...
+  - ✅ linear elastic
+  - ✅ hyper elastic (Neo-Hookean)
+  - ✅ Drucker-Prager (with softening/harding)
+  - 🚧 Mohr-Coulomb
+  - ✅ Bingham
+    
+    …
 
 - Others:
 
-  - [x] affine MPM
-  - [x] $\bar{F}$-based volumetric locking elimination
-  - [x] Gaussian random field
-  - [x] one-click switch between `FP64` and `FP32`
-  - [x] user-defined algorithms/extensions at any level
+  - ✅ affine MPM
+  - ✅ $\bar{F}$-based volumetric locking elimination
+  - ✅ Gaussian random field
+  - ✅ one-click switch between `FP64` and `FP32`
+  - ✅ user-defined algorithms/extensions at any level
 
 ## Citation ❤
 
