@@ -66,10 +66,10 @@ function UserArgs2D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     folderdir = joinpath(abspath(project_path), project_name)
     mkpath(folderdir); rm(folderdir, recursive=true, force=true); mkpath(folderdir)
     cop_set = [:OS, :TS]
-    bas_set = [:uGIMP, :linear, :bspline]
+    bas_set = [:uGIMP, :linear, :bspline2, :bspline3]
     dev_set = [:CPU, :CUDA, :ROCm, :oneAPI, :Metal]
     tis_set = [:fixed, :auto]
-    sch_set = [:MUSL, :USL, :USF, :AFFINE]
+    sch_set = [:MUSL, :USL, :USF, :AFFINE, :MLS]
     # parameter check
     0<Ttol                || error("Simulation time cannot be ≤0 s."         )
     ΔT≤Ttol               || error("Time step cannot be >$(Ttol)s."          )
@@ -152,10 +152,10 @@ function UserArgs3D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     folderdir = joinpath(abspath(project_path), project_name)
     mkpath(folderdir); rm(folderdir, recursive=true, force=true); mkpath(folderdir)
     cop_set = [:OS, :TS]
-    bas_set = [:uGIMP, :linear, :bspline]
+    bas_set = [:uGIMP, :linear, :bspline2, :bspline3]
     dev_set = [:CPU, :CUDA, :ROCm, :oneAPI, :Metal]
     tis_set = [:fixed, :auto]
-    sch_set = [:MUSL, :USL, :USF, :AFFINE]
+    sch_set = [:MUSL, :USL, :USF, :AFFINE, :MLS]
     # parameter check
     0<Ttol                || error("Simulation time cannot be ≤0 s."         )
     ΔT≤Ttol               || error("Time step cannot be >$(Ttol)s."          )

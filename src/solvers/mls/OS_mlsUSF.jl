@@ -1,11 +1,13 @@
 #==========================================================================================+
 |           MaterialPointSolver.jl: High-performance MPM Solver for Geomechanics           |
 +------------------------------------------------------------------------------------------+
-|  File Name  : OS_aUSF.jl                                                                 |
-|  Description: Efficient affine MPM procedure                                             |
+|  File Name  : OS_mlsUSF.jl                                                               |
+|  Description: Efficient MLS-MPM procedure                                                |
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
+|  Notes      : Only quadratic basis function can be used in MLS-MPM, and we don't         |
+|               calculate the gradient of the basis function                               |
 +==========================================================================================#
 
 function procedure!(
@@ -17,13 +19,13 @@ function procedure!(
     ΔT  ::T2,
     Ti  ::T2,
         ::Val{:OS},
-        ::Val{:AFFINE}
+        ::Val{:MLS}
 ) where {T1, T2}
     G = Ti < args.Te ? args.gravity / args.Te * Ti : args.gravity
     dev = getBackend(Val(args.device))
     # MPM procedure
-    resetgridstatus_OS!(dev)(ndrange=grid.ni, grid)
-    resetmpstatus_OS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis)) 
+    resetgridstatus_MLS_OS!(dev)(ndrange=grid.ni, grid)
+    resetmpstatus_MLS_OS!(dev)(ndrange=mp.np, grid, mp)
     # F-bar based volumetric locking elimination approach
     if args.MVL == false
         aUpdatestatus_OS!(dev)(ndrange=mp.np, mp, ΔT)
@@ -48,8 +50,8 @@ function procedure!(
         Ti ≥ args.Te && bhP!(dev)(ndrange=mp.np, mp, attr, inv(ΔT))
     end
     # MPM procedure
-    aP2G_OS!(dev)(ndrange=mp.np, grid, mp, G)
-    solvegrid_OS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs)
-    aG2P_OS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
+    aP2G_MLS_OS!(dev)(ndrange=mp.np, grid, mp, ΔT)
+    solvegrid_MLS_OS!(dev)(ndrange=grid.ni, grid, bc, G, ΔT)
+    aG2P_MLS_OS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
     return nothing
 end
