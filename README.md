@@ -66,7 +66,7 @@ julia> ]
 
 ## Citation ❤
 
-If you use `MaterialPointSolver.jl` in your research, please consider to cite this paper:
+If you find `MaterialPointSolver.jl` useful or have used it in your research, please cite it as follows:
 
 ```bib
 @article{index,
