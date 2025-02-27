@@ -631,24 +631,25 @@ P2G procedure for scattering the mass, momentum, and forces from particles to gr
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
+        vol = mp.Ω[ix]
+        mps = mp.ms[ix]
+        mppsx, mppsy = mp.ps[ix, 1], mp.ps[ix, 2]
+        σxx, σyy, σxy = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 4]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Ni = mp.Nij[ix, iy]
             if Ni ≠ T2(0.0)
                 ∂Nx = mp.∂Nx[ix, iy]
                 ∂Ny = mp.∂Ny[ix, iy]
                 p2n = mp.p2n[ix, iy]
-                vol = mp.Ω[ix]
-                NiM = mp.ms[ix] * Ni
                 # compute nodal mass
-                @KAatomic grid.ms[p2n] += NiM
+                @KAatomic grid.ms[p2n] += Ni * mps
                 # compute nodal momentum
-                @KAatomic grid.ps[p2n, 1] += Ni * mp.ps[ix, 1]
-                @KAatomic grid.ps[p2n, 2] += Ni * mp.ps[ix, 2]
+                @KAatomic grid.ps[p2n, 1] += Ni * mppsx
+                @KAatomic grid.ps[p2n, 2] += Ni * mppsy
                 # compute nodal total force for solid
-                @KAatomic grid.fs[p2n, 1] += -vol * (∂Nx * mp.σij[ix, 1]  + 
-                                                     ∂Ny * mp.σij[ix, 4])
-                @KAatomic grid.fs[p2n, 2] += -vol * (∂Ny * mp.σij[ix, 2]  + 
-                                                     ∂Nx * mp.σij[ix, 4]) + NiM * gravity
+                @KAatomic grid.fs[p2n, 1] += -vol * (∂Nx * σxx[ix, 1] + ∂Ny * σxy[ix, 4])
+                @KAatomic grid.fs[p2n, 2] += -vol * (∂Ny * σyy[ix, 2] + ∂Nx * σxy[ix, 4]) + 
+                    Ni * mps * gravity
             end
         end
     end
@@ -668,6 +669,11 @@ P2G procedure for scattering the mass, momentum, and forces from particles to gr
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
+        vol = mp.Ω[ix]
+        mps = mp.ms[ix]
+        mppsx, mppsy, mppsz = mp.ps[ix, 1], mp.ps[ix, 2], mp.ps[ix, 3]
+        σxx, σyy, σzz = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 3]
+        σxy, σyz, σzx = mp.σij[ix, 4], mp.σij[ix, 5], mp.σij[ix, 6]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Ni = mp.Nij[ix, iy]
             if Ni ≠ T2(0.0)
@@ -675,24 +681,17 @@ P2G procedure for scattering the mass, momentum, and forces from particles to gr
                 ∂Ny = mp.∂Ny[ix, iy]
                 ∂Nz = mp.∂Nz[ix, iy]
                 p2n = mp.p2n[ix, iy]
-                vol = mp.Ω[ix]
-                NiM = mp.ms[ix] * Ni
                 # compute nodal mass
-                @KAatomic grid.ms[p2n] += NiM
+                @KAatomic grid.ms[p2n] += Ni * mps
                 # compute nodal momentum
-                @KAatomic grid.ps[p2n, 1] += Ni * mp.ps[ix, 1]
-                @KAatomic grid.ps[p2n, 2] += Ni * mp.ps[ix, 2]
-                @KAatomic grid.ps[p2n, 3] += Ni * mp.ps[ix, 3]
+                @KAatomic grid.ps[p2n, 1] += Ni * mppsx
+                @KAatomic grid.ps[p2n, 2] += Ni * mppsy
+                @KAatomic grid.ps[p2n, 3] += Ni * mppsz
                 # compute nodal total force for solid
-                @KAatomic grid.fs[p2n, 1] += -vol * (∂Nx * mp.σij[ix, 1]  + 
-                                                     ∂Ny * mp.σij[ix, 4]  + 
-                                                     ∂Nz * mp.σij[ix, 6])
-                @KAatomic grid.fs[p2n, 2] += -vol * (∂Ny * mp.σij[ix, 2]  + 
-                                                     ∂Nx * mp.σij[ix, 4]  + 
-                                                     ∂Nz * mp.σij[ix, 5])
-                @KAatomic grid.fs[p2n, 3] += -vol * (∂Nz * mp.σij[ix, 3]  + 
-                                                     ∂Nx * mp.σij[ix, 6]  + 
-                                                     ∂Ny * mp.σij[ix, 5]) + NiM * gravity
+                @KAatomic grid.fs[p2n, 1] += -vol * (∂Nx * σxx + ∂Ny * σxy + ∂Nz * σzx)
+                @KAatomic grid.fs[p2n, 2] += -vol * (∂Ny * σyy + ∂Nx * σxy + ∂Nz * σyz)
+                @KAatomic grid.fs[p2n, 3] += -vol * (∂Nz * σzz + ∂Nx * σzx + ∂Ny * σyz) + 
+                    Ni * mps * gravity
             end
         end
     end
