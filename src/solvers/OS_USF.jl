@@ -48,8 +48,8 @@ function procedure!(
     # MPM procedure
     resetgridstatus_OS!(dev)(ndrange=grid.ni, grid)
     args.device == :CUDA && args.basis == :uGIMP ?
-        resetmpstatus_OS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis)) :
-        resetmpstatus_OS_CPU!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
+        resetmpstatus_OS_CUDA!(dev)(ndrange=mp.np, grid, mp, Val(args.basis)) :
+        resetmpstatus_OS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
     P2G_OS!(dev)(ndrange=mp.np, grid, mp, G)
     solvegrid_USL_OS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs)
     doublemapping1_OS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)                             

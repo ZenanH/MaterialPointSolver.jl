@@ -85,7 +85,7 @@ end
 @user_struct Particle2D
 
 function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw=[0], ext=0, 
-    affine=false)
+    affine=false, mls=false)
     # input check
     dx > 0 && dy > 0 || throw(ArgumentError("dx and dy should be positive"))
     # default values
@@ -131,8 +131,16 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
     vs    = zeros(T2, np    , DoF    )
     vw    = zeros(T2, np_new, DoF_new)
     Nij   = zeros(T2, np    , NIC    )
-    ∂Nx   = zeros(T2, np    , NIC    )
-    ∂Ny   = zeros(T2, np    , NIC    )
+    if mls
+        # ∂Nx = zeros(T2, 1, 2)
+        # ∂Ny = zeros(T2, 1, 2)
+        ∂Nx = zeros(T2, np, NIC)
+        ∂Ny = zeros(T2, np, NIC)
+        affine = true
+    else
+        ∂Nx = zeros(T2, np, NIC)
+        ∂Ny = zeros(T2, np, NIC)
+    end
     aC = affine == true ? zeros(T2, np, 4) : zeros(T2, 1, 4)
     
     tmp = Particle2D{T1, T2, AbstractArray{T1, 1}, AbstractArray{T1, 2}, 
@@ -220,7 +228,7 @@ end
 @user_struct Particle3D
 
 function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs, ρw=[0], 
-    affine=false, ext=0)
+    affine=false, mls=false, ext=0)
     # input check
     dx > 0 && dy > 0 && dz > 0 || 
         throw(ArgumentError("dx, dy, and dz should be positive"))
@@ -267,9 +275,16 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs
     vs    = zeros(T2, np    , DoF    )
     vw    = zeros(T2, np_new, DoF_new)
     Nij   = zeros(T2, np    , NIC    )
-    ∂Nx   = zeros(T2, np    , NIC    )
-    ∂Ny   = zeros(T2, np    , NIC    )
-    ∂Nz   = zeros(T2, np    , NIC    )
+    if mls
+        ∂Nx = zeros(T2, 1, 2)
+        ∂Ny = zeros(T2, 1, 2)
+        ∂Nz = zeros(T2, 1, 2)
+        affine = true
+    else
+        ∂Nx = zeros(T2, np, NIC)
+        ∂Ny = zeros(T2, np, NIC)
+        ∂Nz = zeros(T2, np, NIC)
+    end
     aC = affine == true ? zeros(T2, np, 9) : zeros(T2, 1, 9)
 
     tmp = Particle3D{T1, T2, AbstractArray{T1, 1}, AbstractArray{T1, 2}, 

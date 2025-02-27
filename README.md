@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/LandslideSIM/MaterialPointSolver.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/LandslideSIM/MaterialPointSolver.jl/actions/workflows/ci.yml) 
 [![](https://img.shields.io/badge/docs-stable-blue.svg?logo=quicklook)](https://landslidesim.github.io/MaterialPointSolver.jl/stable/)
-[![](https://img.shields.io/badge/version-v0.3.11-pink)]()
+[![](https://img.shields.io/badge/version-v0.3.12-pink)]()
 
 [![](https://img.shields.io/badge/NVIDIA-CUDA-green.svg?logo=nvidia)](https://developer.nvidia.com/cuda-toolkit)
 [![](https://img.shields.io/badge/AMD-ROCm-red.svg?logo=amd)](https://www.amd.com/en/products/software/rocm.html)
@@ -26,14 +26,13 @@ julia> ]
 
 ## Features 💪
 
-*These features can be combined in any way.*
-
-
+*These features can be combined in any way, but MLS-MPM can only use quadratic b-spline for the speed*
 
 - Basis function:
 
   - ✅ standard MPM
   - ✅ uGIMP (uniformed Generalized interpolation MPM)
+  - ✅ quadratic B-spline
   - ✅ cubic B-spline (boundary modified)
 
 - Stress update scheme:
@@ -59,7 +58,7 @@ julia> ]
 
 - Others:
 
-  - ✅ affine MPM
+  - ✅ Affine/MLS-MPM
   - ✅ $\bar{F}$-based volumetric locking elimination
   - ✅ Gaussian random field
   - ✅ one-click switch between `FP64` and `FP32`

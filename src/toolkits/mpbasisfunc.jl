@@ -8,11 +8,12 @@
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
 |  Functions  : 1. linearBasis                                                             |
 |               2. uGIMPBasis                                                              |
-|               3. bsplineBasis                                                            |
+|               3. bspline2basis                                                           |
+|               4. bspline3basis                                                           |
 |               4. get_type                                                                |
 +==========================================================================================#
 
-export linearbasis, uGIMPbasis, bsplinebasis
+export linearbasis, uGIMPbasis, bspline2basis, bspline3basis
 export uGIMPbasisx, uGIMPbasisy, uGIMPbasisz
 export get_type
 
@@ -54,7 +55,6 @@ between particle and node, `h` is the grid spacing, `lp` is the particle spacing
     end
     return T2(Ni), T2(dN)
 end
-
 
 @inline Base.@propagate_inbounds function uGIMPbasisx(Δx::T2, smem) where T2
     # smem[1] = h
@@ -122,7 +122,33 @@ end
     return T2(Ni), T2(dN)
 end
 
-@inline Base.@propagate_inbounds function bsplinebasis(r::T2, h::T2, type_v::Int32) where T2
+@inline Base.@propagate_inbounds function bspline2basis(ξ1::T2, ξ2::T2, ξ3::T2) where T2
+    N1 = T2(0.50) * (T2(1.5) - ξ1) * (T2(1.5) - ξ1)
+    N2 = T2(0.75) - ξ2 * ξ2
+    N3 = T2(0.50) * (T2(1.5) + ξ3) * (T2(1.5) + ξ3)
+    return N1, N2, N3
+end
+
+@inline Base.@propagate_inbounds function bspline2basis(
+    ξ1::T2,
+    ξ2::T2, 
+    ξ3::T2,
+    Δ1::T2
+) where T2
+    N1 = T2(0.50) * (T2(1.5) - ξ1) * (T2(1.5) - ξ1)
+    N2 = T2(0.75) - ξ2 * ξ2
+    N3 = T2(0.50) * (T2(1.5) + ξ3) * (T2(1.5) + ξ3)
+    d1 = ξ1 - T2(1.5)
+    d2 = T2(-2.0) * ξ2
+    d3 = ξ3 + T2(1.5)
+    return N1, N2, N3, d1 * Δ1, d2 * Δ1, d3 * Δ1
+end
+
+@inline Base.@propagate_inbounds function bspline3basis(
+    r     ::T2, 
+    h     ::T2, 
+    type_v::Int32
+) where T2
     # 1/6 = 0.166667
     # 4/3 = 1.333333
     # 2/3 = 0.666667

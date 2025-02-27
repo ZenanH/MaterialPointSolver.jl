@@ -1,7 +1,7 @@
 #==========================================================================================+
 |           MaterialPointSolver.jl: High-performance MPM Solver for Geomechanics           |
 +------------------------------------------------------------------------------------------+
-|  File Name  : 3d_case.jl                                                                 |
+|  File Name  : 3d_profile_mlsmpm.jl                                                       |
 |  Description: Case used to vaildate the functions                                        |
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
@@ -42,7 +42,7 @@ init_ΔT           = 0.5 * init_grid_space_x / sqrt(init_Es / init_ρs)
 init_step         = floor(init_T / init_ΔT / 50)
 init_ϕ            = deg2rad(19.8)
 init_FP           = "FP64"
-init_basis        = :uGIMP
+init_basis        = :bspline2
 init_NIC          = 27
 
 # args setup
@@ -60,11 +60,11 @@ args = UserArgs3D(
     MVL          = false,
     device       = :CUDA,
     coupling     = :OS,
-    scheme       = :MUSL,
+    scheme       = :MLS,
     progressbar  = true,
     gravity      = -9.8,
     ζs           = 0,
-    project_name = "3d_profile",
+    project_name = "3d_profile_mlsmpm",
     project_path = @__DIR__,
     ϵ            = init_FP
 )
@@ -94,14 +94,16 @@ dz = grid.dz / init_mp_in_space
                  0 + dz / 2 : dz : 0.10 - dz / 2)
 mpρs = ones(size(ξ0, 1)) * init_ρs
 mp = UserParticle3D(
-    ϵ     = init_FP,
-    phase = 1,
-    NIC   = init_NIC,
-    dx    = dx,
-    dy    = dy,
-    dz    = dz,
-    ξ     = ξ0,
-    ρs    = mpρs
+    ϵ      = init_FP,
+    phase  = 1,
+    NIC    = init_NIC,
+    dx     = dx,
+    dy     = dy,
+    dz     = dz,
+    ξ      = ξ0,
+    ρs     = mpρs,
+    affine = true,
+    mls    = true
 )
 
 # property setup
@@ -152,62 +154,45 @@ Ti = T2(0.0)
 dev_grid, dev_mp, dev_attr, dev_bc = host2device(grid, mp, attr, bc, Val(args.device))
 G = Ti < args.Te ? args.gravity / args.Te * Ti : args.gravity
 dev = getBackend(Val(args.device))
-results = ["resetgridstatus_OS!"   0.0;
-           "resetmpstatus_OS_CPU!" 0.0;
-           "P2G_OS!"               0.0;
-           "solvegrid_a_OS!"       0.0;
-           "doublemapping1_a_OS!"  0.0;
-           "doublemapping2_OS!"    0.0;
-           "doublemapping3_OS!"    0.0;
-           "G2P_OS!"               0.0;
-           "liE!"                  0.0;
-           "dpP!"                  0.0;]
+results = ["resetgridstatus_MLS_OS!" 0.0;
+           "resetmpstatus_MLS_OS!"   0.0;
+           "aUpdatestatus_OS!"       0.0;
+           "liE!"                    0.0;
+           "dpP!"                    0.0;
+           "aP2G_MLS_OS!"            0.0;
+           "solvegrid_MLS_OS!"       0.0;
+           "aG2P_MLS_OS!"            0.0]
 
 results[1, 2] = @belapsed begin 
-    resetgridstatus_OS!($dev)(ndrange=$dev_grid.ni, $dev_grid)
+    resetgridstatus_MLS_OS!($dev)(ndrange=$dev_grid.ni, $dev_grid)
     KAsync($dev)
 end
-if args.basis == :uGIMP && args.device == :CUDA
-    results[2, 2] = @belapsed begin 
-        resetmpstatus_OS_CUDA!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $Val(args.basis)) 
-        KAsync($dev)
-    end
-else
-    results[2, 2] = @belapsed begin 
-        resetmpstatus_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $Val(args.basis))
-        KAsync($dev)
-    end
+results[2, 2] = @belapsed begin 
+    resetmpstatus_MLS_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp) 
+    KAsync($dev)
 end
 results[3, 2] = @belapsed begin 
-    P2G_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $G)
+    aUpdatestatus_OS!($dev)(ndrange=$dev_mp.np, $dev_mp, $ΔT)
     KAsync($dev)
 end
 results[4, 2] = @belapsed begin 
-    solvegrid_OS!($dev)(ndrange=$dev_grid.ni, $dev_grid, $dev_bc, $ΔT, $args.ζs)
-    KAsync($dev)
-end
-results[5, 2] = @belapsed begin 
-    doublemapping1_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $dev_attr, $ΔT, $args.FLIP, $args.PIC)
-    KAsync($dev)
-end
-results[6, 2] = @belapsed begin 
-    doublemapping2_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp)
-    KAsync($dev)
-end
-results[7, 2] = @belapsed begin 
-    doublemapping3_OS!($dev)(ndrange=$dev_grid.ni, $dev_grid, $dev_bc, $ΔT)
-    KAsync($dev)
-end
-results[8, 2] = @belapsed begin 
-    G2P_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $ΔT)
-    KAsync($dev)
-end
-results[9, 2] = @belapsed begin 
     liE!($dev)(ndrange=$dev_mp.np, $dev_mp, $dev_attr)
     KAsync($dev)
 end
-results[10, 2] = @belapsed begin 
+results[5, 2] = @belapsed begin 
     dpP!($dev)(ndrange=$dev_mp.np, $dev_mp, $dev_attr)
+    KAsync($dev)
+end
+results[6, 2] = @belapsed begin 
+    aP2G_MLS_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $ΔT)
+    KAsync($dev)
+end
+results[7, 2] = @belapsed begin 
+    solvegrid_MLS_OS!($dev)(ndrange=$dev_grid.ni, $dev_grid, $dev_bc, $G, $ΔT)
+    KAsync($dev)
+end
+results[8, 2] = @belapsed begin 
+    aG2P_MLS_OS!($dev)(ndrange=$dev_mp.np, $dev_grid, $dev_mp, $dev_attr, $ΔT)
     KAsync($dev)
 end
 

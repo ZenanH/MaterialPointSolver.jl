@@ -47,13 +47,13 @@ function info_print(
     nds  = lpad(string(@sprintf("%.2e", grid.ni  ), " "), text_place2)
     mvl  = lpad(string(                 args.MVL  , " "), text_place2)
     @info """$(args.project_name) [$(ct)]
-    ────────────────┬─────────────┬───────────────────
+    ────────────────┬─────────────┬────────────────────
     ΔT  : $(ΔT) │ PIC : $(pic) │ scheme   : $(args.scheme)
     Ttol: $(Ttol) │ FLIP: $(flip) │ coupling : $(args.coupling)
     pts : $(pts) │ ζs  : $(ζs) │ basis    : $(args.basis)
     nds : $(nds) │ ζw  : $(ζw) │ precision: $(pc)
     MVL : $(mvl) │ HDF5: $(jd) │ material : $(material)
-    ────────────────┴─────────────┴───────────────────
+    ────────────────┴─────────────┴────────────────────
     """
     return nothing
 end
