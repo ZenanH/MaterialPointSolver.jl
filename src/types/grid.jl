@@ -31,10 +31,9 @@ end
 |    2D Grid System                                                                        |
 #↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓=#
 struct Grid2D{T1, T2,
-    T3 <: AbstractArray, # Array{Int  , 2} 
-    T4 <: AbstractArray, # Array{Float, 1}
-    T5 <: AbstractArray, # Array{Float, 2}
-    T6 <: UserGridExtra
+    T3 <: AbstractArray, # Array{Float, 1}
+    T4 <: AbstractArray, # Array{Float, 2}
+    T5 <: UserGridExtra
 } <: DeviceGrid2D{T1, T2}
     phase :: T1
     x1    :: T2
@@ -47,29 +46,28 @@ struct Grid2D{T1, T2,
     nny   :: T1
     ni    :: T1
     NIC   :: T1
-    ξ     :: T5
+    ξ     :: T4
     ncx   :: T1
     ncy   :: T1
     nc    :: T1
-    p2nD  :: T3
-    σm    :: T4
-    σw    :: T4
-    Ω     :: T4
-    ms    :: T4
-    mw    :: T4
-    mi    :: T4
-    ps    :: T5
-    pw    :: T5
-    vs    :: T5
-    vw    :: T5
-    vsT   :: T5
-    vwT   :: T5
-    fs    :: T5
-    fw    :: T5
-    fd    :: T5
-    Δus   :: T5
-    Δuw   :: T5
-    ext   :: T6
+    σm    :: T3
+    σw    :: T3
+    Ω     :: T3
+    ms    :: T3
+    mw    :: T3
+    mi    :: T3
+    ps    :: T4
+    pw    :: T4
+    vs    :: T4
+    vw    :: T4
+    vsT   :: T4
+    vwT   :: T4
+    fs    :: T4
+    fw    :: T4
+    fd    :: T4
+    Δus   :: T4
+    Δuw   :: T4
+    ext   :: T5
 end
 
 @user_struct Grid2D
@@ -122,21 +120,11 @@ function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0)
     fd  = zeros(T2, ni_new, DoF_new)
     Δus = zeros(T2, ni    , DoF    )
     Δuw = zeros(T2, ni_new, DoF_new)
-    # set the computing cell to node topology
-    if NIC == 4
-        p2nD = T1.([0 1; 0 0; nny 1; nny 0])
-    elseif NIC == 9
-        p2nD = T1.([
-            -nny   2; -nny   1; -nny   0; -nny   -1       
-               0   2;    0   1;    0   0;    0   -1     
-             nny   2;  nny   1;  nny   0;  nny   -1       
-             nny*2 2;  nny*2 1;  nny*2 0;  nny*2 -1 
-        ])
-    end
 
-    tmp = Grid2D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, AbstractArray{T2, 2}, 
-        UserGridExtra}(phase, x1, x2, y1, y2, dx, dy, nnx, nny, ni, NIC, ξ, ncx, ncy, nc, 
-        p2nD, σm, σw, Ω, ms, mw, mi, ps, pw, vs, vw, vsT, vwT, fs, fw, fd, Δus, Δuw, ext)
+    tmp = Grid2D{T1, T2, AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserGridExtra}(phase, 
+        x1, x2, y1, y2, dx, dy, nnx, nny, ni, NIC, ξ, ncx, ncy, nc, σm, σw, Ω, ms, mw, mi, 
+        ps, pw, vs, vw, vsT, vwT, fs, fw, fd, Δus, Δuw, ext)
+
     return user_adapt(Array, tmp)
 end
 
@@ -164,10 +152,9 @@ end
 |    3D Grid System                                                                        |
 #↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓=#
 struct Grid3D{T1, T2,
-    T3 <: AbstractArray, # Array{Int  , 2} 
-    T4 <: AbstractArray, # Array{Float, 1}
-    T5 <: AbstractArray, # Array{Float, 2}
-    T6 <: UserGridExtra
+    T3 <: AbstractArray, # Array{Float, 1}
+    T4 <: AbstractArray, # Array{Float, 2}
+    T5 <: UserGridExtra
 } <: DeviceGrid3D{T1, T2}
     phase :: T1
     x1    :: T2
@@ -184,30 +171,29 @@ struct Grid3D{T1, T2,
     nnz   :: T1
     ni    :: T1
     NIC   :: T1
-    ξ     :: T5
+    ξ     :: T4
     ncx   :: T1
     ncy   :: T1
     ncz   :: T1
     nc    :: T1
-    p2nD  :: T3
-    σm    :: T4
-    σw    :: T4
-    Ω     :: T4
-    ms    :: T4
-    mw    :: T4
-    mi    :: T4
-    ps    :: T5
-    pw    :: T5
-    vs    :: T5
-    vw    :: T5
-    vsT   :: T5
-    vwT   :: T5
-    fs    :: T5
-    fw    :: T5
-    fd    :: T5
-    Δus   :: T5
-    Δuw   :: T5
-    ext   :: T6
+    σm    :: T3
+    σw    :: T3
+    Ω     :: T3
+    ms    :: T3
+    mw    :: T3
+    mi    :: T3
+    ps    :: T4
+    pw    :: T4
+    vs    :: T4
+    vw    :: T4
+    vsT   :: T4
+    vwT   :: T4
+    fs    :: T4
+    fw    :: T4
+    fd    :: T4
+    Δus   :: T4
+    Δuw   :: T4
+    ext   :: T5
 end
 
 @user_struct Grid3D
@@ -272,32 +258,11 @@ function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NI
     fd  = zeros(T2, ni_new, DoF_new)
     Δus = zeros(T2, ni    , DoF    )
     Δuw = zeros(T2, ni_new, DoF_new)
-    # set the computing cell to node topology
-    if NIC == 8
-        p2nD = T1.([
-            -1 -1 -1; -1 0 -1; 0 0 -1; 0 -1 -1
-            -1 -1  0; -1 0  0; 0 0  0; 0 -1  0
-        ])
-    elseif NIC == 27
-        p2nD = T1.([
-            -1 -1 -1 +0; -1 -0 -1 +0; -0 -0 -1 +0; -0 -1 -1 +0; -0 -2 -1 +0; -1 -2 -1 +0 
-            -2 -2 -1 +0; -2 -1 -1 +0; -2 -0 -1 +0; -2 +1 -1 +0; -1 +1 -1 +0; -0 +1 -1 +0 
-            +1 +1 -1 +0; +1 -0 -1 +0; +1 -1 -1 +0; +1 -2 -1 +0; -1 -1 -1 +1; -1 -0 -1 +1 
-            -0 -0 -1 +1; -0 -1 -1 +1; -0 -2 -1 +1; -1 -2 -1 +1; -2 -2 -1 +1; -2 -1 -1 +1 
-            -2 -0 -1 +1; -2 +1 -1 +1; -1 +1 -1 +1; -0 +1 -1 +1; +1 +1 -1 +1; +1 -0 -1 +1 
-            +1 -1 -1 +1; +1 -2 -1 +1; -1 -1 -0 +1; -1 -0 -0 +1; -0 -0 -0 +1; -0 -1 -0 +1 
-            -0 -2 -0 +1; -1 -2 -0 +1; -2 -2 -0 +1; -2 -1 -0 +1; -2 -0 -0 +1; -2 +1 -0 +1 
-            -1 +1 -0 +1; -0 +1 -0 +1; +1 +1 -0 +1; +1 -0 -0 +1; +1 -1 -0 +1; +1 -2 -0 +1 
-            -1 -1 -0 +2; -1 -0 -0 +2; -0 -0 -0 +2; -0 -1 -0 +2; -0 -2 -0 +2; -1 -2 -0 +2 
-            -2 -2 -0 +2; -2 -1 -0 +2; -2 -0 -0 +2; -2 +1 -0 +2; -1 +1 -0 +2; -0 +1 -0 +2 
-            +1 +1 -0 +2; +1 -0 -0 +2; +1 -1 -0 +2; +1 -2 -0 +2
-        ])
-    end
 
-    tmp = Grid3D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, AbstractArray{T2, 2}, 
-        UserGridExtra}(phase, x1, x2, y1, y2, z1, z2, dx, dy, dz, nnx, nny, nnz, ni, NIC, ξ, 
-        ncx, ncy, ncz, nc, p2nD, σm, σw, Ω, ms, mw, mi, ps, pw, vs, vw, vsT, vwT, fs, fw, 
-        fd, Δus, Δuw, ext)
+    tmp = Grid3D{T1, T2, AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserGridExtra}(
+        phase, x1, x2, y1, y2, z1, z2, dx, dy, dz, nnx, nny, nnz, ni, NIC, ξ, ncx, ncy, ncz, 
+        nc, σm, σw, Ω, ms, mw, mi, ps, pw, vs, vw, vsT, vwT, fs, fw, fd, Δus, Δuw, ext)
+    
     return user_adapt(Array, tmp)
 end
 

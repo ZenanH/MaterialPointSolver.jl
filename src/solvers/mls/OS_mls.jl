@@ -58,19 +58,12 @@ end
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         # base index in the grid
-        # note the base index needs a shift of 0.5 (see Taichi)
+        # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
         bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * grid.dx - grid.x1, grid.dx))
         bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * grid.dy - grid.y1, grid.dy))
         bid = T1(grid.nny * bnx + grid.nny - bny)
         gξx, gξy = grid.ξ[bid, 1], grid.ξ[bid, 2]
-        # p2n index
-        @KAunroll for iy in 1:9
-            # p2n index
-            bac = T1(cld(iy, 3) - 1)
-            iyc = T1(iy - bac * 3)
-            mp.p2n[ix, iy] = T1(bid + bac * grid.nny - (iyc - 1))
-        end
         # compute x value in the basis function N(x)
         x1 = gdx_1 * (mξx - gξx)
         x2 = gdx_1 * (mξx - gξx - grid.dx)
@@ -81,9 +74,15 @@ end
         Nx1, Nx2, Nx3 = bspline2basis(x1, x2, x3)
         Ny1, Ny2, Ny3 = bspline2basis(y1, y2, y3)
         # assign the value (in order)
-        mp.Nij[ix, 1], mp.Nij[ix, 2], mp.Nij[ix, 3] = Nx1 * Ny1, Nx1 * Ny2, Nx1 * Ny3
-        mp.Nij[ix, 4], mp.Nij[ix, 5], mp.Nij[ix, 6] = Nx2 * Ny1, Nx2 * Ny2, Nx2 * Ny3
-        mp.Nij[ix, 7], mp.Nij[ix, 8], mp.Nij[ix, 9] = Nx3 * Ny1, Nx3 * Ny2, Nx3 * Ny3
+        it = Int32(1)
+        Nxs, Nys = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3)
+        @KAunroll for i in Int32(1):Int32(3)  # x-direction
+            for j in Int32(1):Int32(3)        # y-direction
+                mp.p2n[ix, it] = bid - (j - Int32(1)) + grid.nny * (i - Int32(1))
+                mp.Nij[ix, it] = Nxs[i] * Nys[j]
+                it += Int32(1)
+            end
+        end
     end
 end
 
@@ -100,22 +99,13 @@ end
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
         # base index in the grid
-        # note the base index needs a shift of 0.5 (see Taichi)
+        # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
         bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * grid.dx - grid.x1, grid.dx))
         bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * grid.dy - grid.y1, grid.dy))
         bnz = unsafe_trunc(T1, fld(mξz - T2(0.5) * grid.dz - grid.z1, grid.dz))
         bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
         gξx, gξy, gξz = grid.ξ[bid, 1], grid.ξ[bid, 2], grid.ξ[bid, 3]
-        # p2n index
-        @KAunroll for k in 0:2
-            for j in 0:2
-                for i in 0:2
-                    iy = 1 + i + 3*j + 9*k
-                    mp.p2n[ix, iy] = bid + i + grid.nny*j + grid.nny*grid.nnx*k
-                end
-            end
-        end
         # compute x value in the basis function N(x)
         x1 = gdx_1 * (mξx - gξx)
         x2 = gdx_1 * (mξx - gξx - grid.dx)
@@ -131,12 +121,14 @@ end
         Nz1, Nz2, Nz3 = bspline2basis(z1, z2, z3)
         # assign the value (in order)
         it = Int32(1)
-        @KAunroll for k in 1:3 # z-direction
-            for i in 1:3       # x-direction
-                for j in 1:3   # y-direction
-                    mp.Nij[ix, it] = (Nx1, Nx2, Nx3)[i] * 
-                                     (Ny1, Ny2, Ny3)[j] * 
-                                     (Nz1, Nz2, Nz3)[k]
+        Nxs, Nys, Nzs = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3), (Nz1, Nz2, Nz3)
+        @KAunroll for k in Int32(1):Int32(3) # z-direction
+            for i in Int32(1):Int32(3)       # x-direction
+                for j in Int32(1):Int32(3)   # y-direction
+                    mp.p2n[ix, it] = bid +                 (j - Int32(1)) + 
+                                     grid.nny *            (i - Int32(1)) + 
+                                     grid.nny * grid.nnx * (k - Int32(1))
+                    mp.Nij[ix, it] = Nxs[i] * Nys[j] * Nzs[k]
                     it += Int32(1)
                 end
             end
@@ -152,27 +144,28 @@ end
     ix = @index(Global)
     if ix ≤ mp.np
         gdx_1, gdy_1 = inv(grid.dx), inv(grid.dy)
+        vtx = mp.Ω[ix] * ΔT * T2(-4.0) * gdx_1 * gdx_1
+        vty = mp.Ω[ix] * ΔT * T2(-4.0) * gdy_1 * gdy_1
+        # get particle mass and position
+        mps, mξx, mξy = mp.ms[ix], mp.ξ[ix, 1], mp.ξ[ix, 2]
+        # get particle momentum
+        mppx, mppy = mp.ps[ix, 1], mp.ps[ix, 2]
+        # get particle stresses
+        σxx, σyy, σxy = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 4]
+        # compute nodal momentum
+        aC1 = mp.aC[ix, 1] * mps + σxx * vtx
+        aC2 = mp.aC[ix, 2] * mps + σxy * vtx
+        aC3 = mp.aC[ix, 3] * mps + σxy * vty
+        aC4 = mp.aC[ix, 4] * mps + σyy * vty
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Ni = mp.Nij[ix, iy]
-            if Ni ≠ T2(0.0)
-                p2n = mp.p2n[ix, iy]
-                NiM = mp.ms[ix] * Ni
-                vtx = mp.Ω[ix] * ΔT * T2(-4.0) * gdx_1 * gdx_1
-                vty = mp.Ω[ix] * ΔT * T2(-4.0) * gdy_1 * gdy_1
-                gx, gy = grid.ξ[p2n, 1], grid.ξ[p2n, 2]
-                mx, my = mp.ξ[ix, 1], mp.ξ[ix, 2]
-                dx, dy = gx - mx, gy - my
-                # compute nodal mass
-                @KAatomic grid.ms[p2n] += NiM
-                # compute nodal momentum
-                aC1 = mp.aC[ix, 1] * mp.ms[ix] + mp.σij[ix, 1] * vtx
-                aC2 = mp.aC[ix, 2] * mp.ms[ix] + mp.σij[ix, 4] * vtx
-                aC3 = mp.aC[ix, 3] * mp.ms[ix] + mp.σij[ix, 4] * vty
-                aC4 = mp.aC[ix, 4] * mp.ms[ix] + mp.σij[ix, 2] * vty
-                # vsT here is momentum
-                @KAatomic grid.vsT[p2n, 1] += Ni * (mp.ps[ix, 1] + (aC1 * dx + aC2 * dy))
-                @KAatomic grid.vsT[p2n, 2] += Ni * (mp.ps[ix, 2] + (aC3 * dx + aC4 * dy))
-            end
+            gi = mp.p2n[ix, iy]
+            dx, dy = grid.ξ[gi, 1] - mξx, grid.ξ[gi, 2] - mξy
+            # compute nodal mass
+            @KAatomic grid.ms[gi] += mps * Ni
+            # vsT here is momentum
+            @KAatomic grid.vsT[gi, 1] += Ni * (mppx + (aC1 * dx + aC2 * dy))
+            @KAatomic grid.vsT[gi, 2] += Ni * (mppy + (aC3 * dx + aC4 * dy))
         end
     end
 end
@@ -185,37 +178,38 @@ end
     ix = @index(Global)
     if ix ≤ mp.np
         gdx_1, gdy_1, gdz_1 = inv(grid.dx), inv(grid.dy), inv(grid.dz)
+        vtx = mp.Ω[ix] * ΔT * T2(-4.0) * gdx_1 * gdx_1
+        vty = mp.Ω[ix] * ΔT * T2(-4.0) * gdy_1 * gdy_1
+        vtz = mp.Ω[ix] * ΔT * T2(-4.0) * gdz_1 * gdz_1
+        # get particle mass and position
+        mps, mξx, mξy, mξz = mp.ms[ix], mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
+        # get particle momentum
+        mppx, mppy, mppz = mp.ps[ix, 1], mp.ps[ix, 2], mp.ps[ix, 3]
+        # get particle stresses
+        σxx, σyy, σzz = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 3]
+        σxy, σyz, σzx = mp.σij[ix, 4], mp.σij[ix, 5], mp.σij[ix, 6]
+        # compute nodal momentum
+        aC1 = mp.aC[ix, 1] * mps + σxx * vtx
+        aC2 = mp.aC[ix, 2] * mps + σxy * vtx
+        aC3 = mp.aC[ix, 3] * mps + σzx * vtx
+        aC4 = mp.aC[ix, 4] * mps + σxy * vty
+        aC5 = mp.aC[ix, 5] * mps + σyy * vty
+        aC6 = mp.aC[ix, 6] * mps + σyz * vty
+        aC7 = mp.aC[ix, 7] * mps + σzx * vtz
+        aC8 = mp.aC[ix, 8] * mps + σyz * vtz
+        aC9 = mp.aC[ix, 9] * mps + σzz * vtz
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Ni = mp.Nij[ix, iy]
-            if Ni ≠ T2(0.0)
-                p2n = mp.p2n[ix, iy]
-                NiM = mp.ms[ix] * Ni
-                vtx = mp.Ω[ix] * ΔT * T2(-4.0) * gdx_1 * gdx_1
-                vty = mp.Ω[ix] * ΔT * T2(-4.0) * gdy_1 * gdy_1
-                vtz = mp.Ω[ix] * ΔT * T2(-4.0) * gdz_1 * gdz_1
-                dx = grid.ξ[p2n, 1] - mp.ξ[ix, 1]
-                dy = grid.ξ[p2n, 2] - mp.ξ[ix, 2]
-                dz = grid.ξ[p2n, 3] - mp.ξ[ix, 3]
-                # compute nodal mass
-                @KAatomic grid.ms[p2n] += NiM
-                # compute nodal momentum
-                aC1 = mp.aC[ix, 1] * mp.ms[ix] + mp.σij[ix, 1] * vtx
-                aC2 = mp.aC[ix, 2] * mp.ms[ix] + mp.σij[ix, 4] * vtx
-                aC3 = mp.aC[ix, 3] * mp.ms[ix] + mp.σij[ix, 6] * vtx
-                aC4 = mp.aC[ix, 4] * mp.ms[ix] + mp.σij[ix, 4] * vty
-                aC5 = mp.aC[ix, 5] * mp.ms[ix] + mp.σij[ix, 2] * vty
-                aC6 = mp.aC[ix, 6] * mp.ms[ix] + mp.σij[ix, 5] * vty
-                aC7 = mp.aC[ix, 7] * mp.ms[ix] + mp.σij[ix, 6] * vtz
-                aC8 = mp.aC[ix, 8] * mp.ms[ix] + mp.σij[ix, 5] * vtz
-                aC9 = mp.aC[ix, 9] * mp.ms[ix] + mp.σij[ix, 3] * vtz
-                # vsT here is momentum
-                @KAatomic grid.vsT[p2n, 1] += Ni * (mp.ps[ix, 1] + 
-                    (aC1 * dx + aC2 * dy + aC3 * dz))
-                @KAatomic grid.vsT[p2n, 2] += Ni * (mp.ps[ix, 2] + 
-                    (aC4 * dx + aC5 * dy + aC6 * dz))
-                @KAatomic grid.vsT[p2n, 3] += Ni * (mp.ps[ix, 3] + 
-                    (aC7 * dx + aC8 * dy + aC9 * dz))
-            end
+            gi = mp.p2n[ix, iy]
+            dx = grid.ξ[gi, 1] - mξx
+            dy = grid.ξ[gi, 2] - mξy
+            dz = grid.ξ[gi, 3] - mξz
+            # compute nodal mass
+            @KAatomic grid.ms[gi] += mps * Ni
+            # vsT here is momentum
+            @KAatomic grid.vsT[gi, 1] += Ni * (mppx + (aC1 * dx + aC2 * dy + aC3 * dz))
+            @KAatomic grid.vsT[gi, 2] += Ni * (mppy + (aC4 * dx + aC5 * dy + aC6 * dz))
+            @KAatomic grid.vsT[gi, 3] += Ni * (mppz + (aC7 * dx + aC8 * dy + aC9 * dz))
         end
     end
 end
@@ -266,23 +260,19 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1 = inv(grid.dx), inv(grid.dy)
+        # prepare variables
         vx = vy = T2(0.0)
         B11 = B12 = B21 = B22 = T2(0.0)
+        gdx_1, gdy_1 = inv(grid.dx), inv(grid.dy)
+        mx, my = mp.ξ[ix, 1], mp.ξ[ix, 2]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            Ni = mp.Nij[ix, iy]
-            mx, my = mp.ξ[ix, 1], mp.ξ[ix, 2]
-            if Ni ≠ T2(0.0)
-                p2n = mp.p2n[ix, iy]
-                gx, gy = grid.ξ[p2n, 1], grid.ξ[p2n, 2]
-                vx += Ni * grid.vsT[p2n, 1]
-                vy += Ni * grid.vsT[p2n, 2]
-                # compute B matrix
-                B11 += Ni * grid.vsT[p2n, 1] * (gx - mx)
-                B12 += Ni * grid.vsT[p2n, 1] * (gy - my)
-                B21 += Ni * grid.vsT[p2n, 2] * (gx - mx)
-                B22 += Ni * grid.vsT[p2n, 2] * (gy - my)
-            end
+            Ni, gi = mp.Nij[ix, iy], mp.p2n[ix, iy]
+            gmx, gmy = grid.ξ[gi, 1] - mx, grid.ξ[gi, 2] - my
+            vNx, vNy = Ni * grid.vsT[gi, 1], Ni * grid.vsT[gi, 2]
+            vx += vNx; vy += vNy
+            # compute B matrix
+            B11 += vNx * gmx; B12 += vNx * gmy
+            B21 += vNy * gmx; B22 += vNy * gmy
         end
         # update particle velocity
         mp.vs[ix, 1] = vx
@@ -315,29 +305,20 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1, gdz_1 = inv(grid.dx), inv(grid.dy), inv(grid.dz)
+        # prepare variables
         vx = vy = vz = T2(0.0)
         B11 = B12 = B13 = B21 = B22 = B23 = B31 = B32 = B33 = T2(0.0)
+        gdx_1, gdy_1, gdz_1 = inv(grid.dx), inv(grid.dy), inv(grid.dz)
+        mx, my, mz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            Ni = mp.Nij[ix, iy]
-            mx, my, mz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
-            if Ni ≠ T2(0.0)
-                p2n = mp.p2n[ix, iy]
-                gx, gy, gz = grid.ξ[p2n, 1], grid.ξ[p2n, 2], grid.ξ[p2n, 3]
-                vx += Ni * grid.vsT[p2n, 1]
-                vy += Ni * grid.vsT[p2n, 2]
-                vz += Ni * grid.vsT[p2n, 3]
-                # compute B matrix
-                B11 += Ni * grid.vsT[p2n, 1] * (gx - mx)
-                B12 += Ni * grid.vsT[p2n, 1] * (gy - my)
-                B13 += Ni * grid.vsT[p2n, 1] * (gz - mz)
-                B21 += Ni * grid.vsT[p2n, 2] * (gx - mx)
-                B22 += Ni * grid.vsT[p2n, 2] * (gy - my)
-                B23 += Ni * grid.vsT[p2n, 2] * (gz - mz)
-                B31 += Ni * grid.vsT[p2n, 3] * (gx - mx)
-                B32 += Ni * grid.vsT[p2n, 3] * (gy - my)
-                B33 += Ni * grid.vsT[p2n, 3] * (gz - mz)
-            end
+            Ni, gi = mp.Nij[ix, iy], mp.p2n[ix, iy]
+            gmx, gmy, gmz = grid.ξ[gi, 1] - mx, grid.ξ[gi, 2] - my, grid.ξ[gi, 3] - mz
+            vNx, vNy, vNz = Ni * grid.vsT[gi, 1], Ni * grid.vsT[gi, 2], Ni * grid.vsT[gi, 3]
+            vx += vNx; vy += vNy; vz += vNz
+            # compute B matrix
+            B11 += vNx * gmx; B12 += vNx * gmy; B13 += vNx * gmz
+            B21 += vNy * gmx; B22 += vNy * gmy; B23 += vNy * gmz
+            B31 += vNz * gmx; B32 += vNz * gmy; B33 += vNz * gmz
         end
         # update particle velocity
         mp.vs[ix, 1] = vx

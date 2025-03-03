@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/LandslideSIM/MaterialPointSolver.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/LandslideSIM/MaterialPointSolver.jl/actions/workflows/ci.yml) 
 [![](https://img.shields.io/badge/docs-stable-blue.svg?logo=quicklook)](https://landslidesim.github.io/MaterialPointSolver.jl/stable/)
-[![](https://img.shields.io/badge/version-v0.3.12-pink)]()
+[![](https://img.shields.io/badge/version-v0.4.0-pink)]()
 
 [![](https://img.shields.io/badge/NVIDIA-CUDA-green.svg?logo=nvidia)](https://developer.nvidia.com/cuda-toolkit)
 [![](https://img.shields.io/badge/AMD-ROCm-red.svg?logo=amd)](https://www.amd.com/en/products/software/rocm.html)
@@ -66,7 +66,7 @@ julia> ]
 
 ## Citation ❤
 
-If you use `MaterialPointSolver.jl` in your research, please consider to cite this paper:
+If you find `MaterialPointSolver.jl` useful or have used it in your research, please cite it as follows:
 
 ```bib
 @article{index,

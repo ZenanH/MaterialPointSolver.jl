@@ -31,55 +31,53 @@ end
 |    2D Particle System                                                                    |
 #↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓=#
 struct Particle2D{T1, T2,
-    T3 <: AbstractArray, # Array{Int  , 1}
-    T4 <: AbstractArray, # Array{Int  , 2}
-    T5 <: AbstractArray, # Array{Float, 1}
-    T6 <: AbstractArray, # Array{Float, 2}
-    T7 <: UserParticleExtra,
+    T3 <: AbstractArray, # Array{Int  , 2}
+    T4 <: AbstractArray, # Array{Float, 1}
+    T5 <: AbstractArray, # Array{Float, 2}
+    T6 <: UserParticleExtra,
 } <: DeviceParticle2D{T1, T2}
     phase :: T1
     np    :: T1
     NIC   :: T1
     dx    :: T2
     dy    :: T2
-    p2c   :: T3
-    p2n   :: T4
-    ξ     :: T6
-    ξ0    :: T6
-    σm    :: T5
-    ϵq    :: T5
-    ϵk    :: T5
-    ϵv    :: T5
-    Ω     :: T5
-    Ω0    :: T5
-    ms    :: T5
-    mw    :: T5
-    mi    :: T5
-    n     :: T5
-    ρs    :: T5
-    ρs0   :: T5
-    ρw    :: T5
-    ρw0   :: T5
-    σw    :: T5
-    cfl   :: T5
-    σij   :: T6
-    ϵijs  :: T6
-    ϵijw  :: T6
-    Δϵijs :: T6
-    Δϵijw :: T6
-    sij   :: T6
-    vs    :: T6
-    vw    :: T6
-    ps    :: T6
-    pw    :: T6
-    Nij   :: T6
-    ∂Nx   :: T6
-    ∂Ny   :: T6
-    ΔFs   :: T6
-    ΔFw   :: T6
-    F     :: T6
-    aC    :: T6
-    ext   :: T7
+    p2n   :: T3
+    ξ     :: T5
+    ξ0    :: T5
+    σm    :: T4
+    ϵq    :: T4
+    ϵk    :: T4
+    ϵv    :: T4
+    Ω     :: T4
+    Ω0    :: T4
+    ms    :: T4
+    mw    :: T4
+    mi    :: T4
+    n     :: T4
+    ρs    :: T4
+    ρs0   :: T4
+    ρw    :: T4
+    ρw0   :: T4
+    σw    :: T4
+    cfl   :: T4
+    σij   :: T5
+    ϵijs  :: T5
+    ϵijw  :: T5
+    Δϵijs :: T5
+    Δϵijw :: T5
+    sij   :: T5
+    vs    :: T5
+    vw    :: T5
+    ps    :: T5
+    pw    :: T5
+    Nij   :: T5
+    ∂Nx   :: T5
+    ∂Ny   :: T5
+    ΔFs   :: T5
+    ΔFw   :: T5
+    F     :: T5
+    aC    :: T5
+    ext   :: T6
 end
 
 @user_struct Particle2D
@@ -107,7 +105,6 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
     phase == 2 ? (np_new = np; DoF_new = DoF) : nothing
     ρs0   = copy(ρs)
     ρw0   = copy(ρw)
-    p2c   = zeros(T1, np             )
     ms    = zeros(T1, np             )
     mw    = zeros(T1, np_new         )
     mi    = zeros(T1, np_new         )
@@ -143,11 +140,11 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
     end
     aC = affine == true ? zeros(T2, np, 4) : zeros(T2, 1, 4)
     
-    tmp = Particle2D{T1, T2, AbstractArray{T1, 1}, AbstractArray{T1, 2}, 
-        AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, 
-        dy, p2c, p2n, ξ, ξ0, σm, ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw, 
-        cfl, σij, ϵijs, ϵijw, Δϵijs, Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ΔFs, ΔFw, F,
-        aC, ext)
+    tmp = Particle2D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, 
+        AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, dy, p2n, ξ, ξ0, σm, ϵq, 
+        ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
+        Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ΔFs, ΔFw, F, aC, ext)
+
     return user_adapt(Array, tmp)
 end
 
@@ -172,11 +169,10 @@ end
 |    3D Particle System                                                                    |
 #↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓=#
 struct Particle3D{T1, T2,
-    T3 <: AbstractArray, # Array{Int  , 1}
-    T4 <: AbstractArray, # Array{Int  , 2}
-    T5 <: AbstractArray, # Array{Float, 1}
-    T6 <: AbstractArray, # Array{Float, 2}
-    T7 <: UserParticleExtra,
+    T3 <: AbstractArray, # Array{Int  , 2}
+    T4 <: AbstractArray, # Array{Float, 1}
+    T5 <: AbstractArray, # Array{Float, 2}
+    T6 <: UserParticleExtra,
 } <: DeviceParticle3D{T1, T2}
     phase :: T1
     np    :: T1
@@ -184,45 +180,44 @@ struct Particle3D{T1, T2,
     dx    :: T2
     dy    :: T2
     dz    :: T2
-    p2c   :: T3
-    p2n   :: T4
-    ξ     :: T6
-    ξ0    :: T6
-    σm    :: T5
-    ϵq    :: T5
-    ϵk    :: T5
-    ϵv    :: T5
-    Ω     :: T5
-    Ω0    :: T5
-    ms    :: T5
-    mw    :: T5
-    mi    :: T5
-    n     :: T5
-    ρs    :: T5
-    ρs0   :: T5
-    ρw    :: T5
-    ρw0   :: T5
-    σw    :: T5
-    cfl   :: T5
-    σij   :: T6
-    ϵijs  :: T6
-    ϵijw  :: T6
-    Δϵijs :: T6
-    Δϵijw :: T6
-    sij   :: T6
-    vs    :: T6
-    vw    :: T6
-    ps    :: T6
-    pw    :: T6
-    Nij   :: T6
-    ∂Nx   :: T6
-    ∂Ny   :: T6
-    ∂Nz   :: T6
-    ΔFs   :: T6
-    ΔFw   :: T6
-    F     :: T6
-    aC    :: T6 
-    ext   :: T7
+    p2n   :: T3
+    ξ     :: T5
+    ξ0    :: T5
+    σm    :: T4
+    ϵq    :: T4
+    ϵk    :: T4
+    ϵv    :: T4
+    Ω     :: T4
+    Ω0    :: T4
+    ms    :: T4
+    mw    :: T4
+    mi    :: T4
+    n     :: T4
+    ρs    :: T4
+    ρs0   :: T4
+    ρw    :: T4
+    ρw0   :: T4
+    σw    :: T4
+    cfl   :: T4
+    σij   :: T5
+    ϵijs  :: T5
+    ϵijw  :: T5
+    Δϵijs :: T5
+    Δϵijw :: T5
+    sij   :: T5
+    vs    :: T5
+    vw    :: T5
+    ps    :: T5
+    pw    :: T5
+    Nij   :: T5
+    ∂Nx   :: T5
+    ∂Ny   :: T5
+    ∂Nz   :: T5
+    ΔFs   :: T5
+    ΔFw   :: T5
+    F     :: T5
+    aC    :: T5 
+    ext   :: T6
 end
 
 @user_struct Particle3D
@@ -251,7 +246,6 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs
     phase == 2 ? (np_new = np; DoF_new = DoF) : nothing
     ρs0   = copy(ρs)
     ρw0   = copy(ρw)
-    p2c   = zeros(T1, np             )
     ms    = zeros(T1, np             )
     mw    = zeros(T1, np_new         )
     mi    = zeros(T1, np_new         )
@@ -287,11 +281,11 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs
     end
     aC = affine == true ? zeros(T2, np, 9) : zeros(T2, 1, 9)
 
-    tmp = Particle3D{T1, T2, AbstractArray{T1, 1}, AbstractArray{T1, 2}, 
-        AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, 
-        dy, dz, p2c, p2n, ξ, ξ0, σm, ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw,
-        cfl, σij, ϵijs, ϵijw, Δϵijs, Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ∂Nz, ΔFs, 
-        ΔFw, F, aC, ext)
+    tmp = Particle3D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, 
+        AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, dy, dz, p2n, ξ, ξ0, σm, 
+        ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
+        Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ∂Nz, ΔFs, ΔFw, F, aC, ext)
+        
     return user_adapt(Array, tmp)
 end
 

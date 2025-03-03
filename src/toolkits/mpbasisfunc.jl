@@ -6,120 +6,77 @@
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
-|  Functions  : 1. linearBasis                                                             |
-|               2. uGIMPBasis                                                              |
+|  Functions  : 1. linearbasis                                                             |
+|               2. uGIMPbasis                                                              |
 |               3. bspline2basis                                                           |
 |               4. bspline3basis                                                           |
 |               4. get_type                                                                |
 +==========================================================================================#
 
 export linearbasis, uGIMPbasis, bspline2basis, bspline3basis
-export uGIMPbasisx, uGIMPbasisy, uGIMPbasisz
 export get_type
 
 """
-    linearbasis(Δx::T2, h::T2)
+    linearbasis(x1::T2, x2, h::T2)
 
 Description:
 ---
-Standard `linear basis function` for MPM, where `Δx` is the distance between particle and 
-    node, and `h` is the grid spacing.
+Standard `linear basis function` for MPM, where `x1`, `x2` are the distance between particle
+and node, and `h` is the grid spacing.
 """
-@inline Base.@propagate_inbounds function linearbasis(Δx::T2, h::T2) where T2
+@inline Base.@propagate_inbounds function linearbasis(x1::T2, x2::T2, h::T2) where T2
     h_denom = inv(h)
-    Ni = T2(1.0) - abs(Δx) * h_denom
-    dN = -sign(Δx) * h_denom
-    return T2(Ni), T2(dN)
+    N1 = T2(1.0) - x1 * h_denom
+    d1 = -h_denom
+    N2 = T2(1.0) - x2 * h_denom
+    d2 = h_denom
+    return N1, N2, d1, d2
 end
 
-"""
-    uGIMPbasis(Δx::T2, h::T2, lp::T2)
+@inline Base.@propagate_inbounds function uGIMPbasis(
+    x1::T2, 
+    x2::T2, 
+    x3::T2, 
+    h ::T2, 
+    lp::T2
+) where T2
+    N1 = d1 = N2 = d2 = N3 = d3 = T2(0.0)
+    absx1, absx2, absx3 = abs(x1), abs(x2), abs(x3)
 
-Description:
----
-`Uniform Generalized Interpolation` MPM basis function for MPM, where `Δx` is the distance 
-between particle and node, `h` is the grid spacing, `lp` is the particle spacing.
-"""
-# This version will take a longer time since too many registers are used.
-@inline Base.@propagate_inbounds function uGIMPbasis(Δx::T2, h::T2, lp::T2) where T2
-    Ni = dN = T2(0.0)
-    if abs(Δx) < T2(0.5)*lp
-        Ni = T2(1.0) - ((T2(4.0) * Δx * Δx + lp * lp) / (T2(4.0) * h * lp))
-        dN = -((T2(8.0) * Δx) / (T2(4.0) * h * lp))
-    elseif (T2(0.5) * lp) ≤ abs(Δx) < (h - T2(0.5) * lp)
-        Ni = T2(1.0) - (abs(Δx) / h)
-        dN = sign(Δx) * (T2(-1.0) / h)
-    elseif (h - T2(0.5) * lp) ≤ abs(Δx) < (h + T2(0.5) * lp)
-        Ni = ((h + T2(0.5) * lp - abs(Δx)) * (h + T2(0.5) * lp - abs(Δx))) / (T2(2.0) * h * lp)
-        dN = -sign(Δx) * ((h + T2(0.5) * lp - abs(Δx)) / (h * lp))
+    if absx1 < T2(0.5)*lp
+        N1 = T2(1.0) - ((T2(4.0) * x1 * x1 + lp * lp) / (T2(4.0) * h * lp))
+        d1 = -((T2(8.0) * x1) / (T2(4.0) * h * lp))
+    elseif (T2(0.5) * lp) ≤ absx1 < (h - T2(0.5) * lp)
+        N1 = T2(1.0) - (absx1 / h)
+        d1 = sign(x1) * (T2(-1.0) / h)
+    elseif (h - T2(0.5) * lp) ≤ absx1 < (h + T2(0.5) * lp)
+        N1 = ((h + T2(0.5) * lp - absx1) * (h + T2(0.5) * lp - absx1)) / (T2(2.0) * h * lp)
+        d1 = -sign(x1) * ((h + T2(0.5) * lp - absx1) / (h * lp))
     end
-    return T2(Ni), T2(dN)
-end
 
-@inline Base.@propagate_inbounds function uGIMPbasisx(Δx::T2, smem) where T2
-    # smem[1] = h
-    # smem[2] = lp
-    # smem[3] = T2(1.0) / (T2(4.0) * h * lp)
-    # smem[4] = T2(1.0) / (h * lp)
-    # smem[5] = T2(1.0) / h
-    # smem[6] = T2(0.5) * lp
-    absΔx = abs(Δx)
-    Ni = dN = T2(0.0)
-    if absΔx < smem[6]
-        Ni = T2(1.0) - ((T2(4.0) * Δx * Δx + smem[2] * smem[2]) * smem[3])
-        dN = -T2(8.0) * Δx * smem[3]
-    elseif smem[6] ≤ absΔx < smem[1] - smem[6]
-        Ni = T2(1.0) - (absΔx / smem[1])
-        dN = sign(Δx) * -smem[5]
-    elseif smem[1] - smem[6] ≤ absΔx < smem[1] + smem[6]
-        Ni = (smem[1] + smem[6] - absΔx) * (smem[1] + smem[6] - absΔx) * T2(0.5) * smem[4]
-        dN = -sign(Δx) * (smem[1] + smem[6] - absΔx) * smem[4]
+    if absx2 < T2(0.5)*lp
+        N2 = T2(1.0) - ((T2(4.0) * x2 * x2 + lp * lp) / (T2(4.0) * h * lp))
+        d2 = -((T2(8.0) * x2) / (T2(4.0) * h * lp))
+    elseif (T2(0.5) * lp) ≤ absx2 < (h - T2(0.5) * lp)
+        N2 = T2(1.0) - (absx2 / h)
+        d2 = sign(x2) * (T2(-1.0) / h)
+    elseif (h - T2(0.5) * lp) ≤ absx2 < (h + T2(0.5) * lp)
+        N2 = ((h + T2(0.5) * lp - absx2) * (h + T2(0.5) * lp - absx2)) / (T2(2.0) * h * lp)
+        d2 = -sign(x2) * ((h + T2(0.5) * lp - absx2) / (h * lp))
     end
-    return T2(Ni), T2(dN)
-end
 
-@inline Base.@propagate_inbounds function uGIMPbasisy(Δx::T2, smem) where T2
-    # smem[7]  = h
-    # smem[8]  = lp
-    # smem[9]  = T2(1.0) / (T2(4.0) * h * lp)
-    # smem[10] = T2(1.0) / (h * lp)
-    # smem[11] = T2(1.0) / h
-    # smem[12] = T2(0.5) * lp
-    absΔx = abs(Δx)
-    Ni = dN = T2(0.0)
-    if absΔx < smem[12]
-        Ni = T2(1.0) - ((T2(4.0) * Δx * Δx + smem[8] * smem[8]) * smem[9])
-        dN = -T2(8.0) * Δx * smem[9]
-    elseif smem[12] ≤ absΔx < smem[7] - smem[12]
-        Ni = T2(1.0) - (absΔx / smem[7])
-        dN = sign(Δx) * -smem[11]
-    elseif smem[7] - smem[12] ≤ absΔx < smem[7] + smem[12]
-        Ni = (smem[7] + smem[12] - absΔx) * (smem[7] + smem[12] - absΔx) * T2(0.5) * smem[10]
-        dN = -sign(Δx) * (smem[7] + smem[12] - absΔx) * smem[10]
+    if absx3 < T2(0.5)*lp
+        N3 = T2(1.0) - ((T2(4.0) * x3 * x3 + lp * lp) / (T2(4.0) * h * lp))
+        d3 = -((T2(8.0) * x3) / (T2(4.0) * h * lp))
+    elseif (T2(0.5) * lp) ≤ absx3 < (h - T2(0.5) * lp)
+        N3 = T2(1.0) - (absx3 / h)
+        d3 = sign(x3) * (T2(-1.0) / h)
+    elseif (h - T2(0.5) * lp) ≤ absx3 < (h + T2(0.5) * lp)
+        N3 = ((h + T2(0.5) * lp - absx3) * (h + T2(0.5) * lp - absx3)) / (T2(2.0) * h * lp)
+        d3 = -sign(x3) * ((h + T2(0.5) * lp - absx3) / (h * lp))
     end
-    return T2(Ni), T2(dN)
-end
-
-@inline Base.@propagate_inbounds function uGIMPbasisz(Δx::T2, smem) where T2
-    # smem[13] = h
-    # smem[14] = lp
-    # smem[15] = T2(1.0) / (T2(4.0) * h * lp)
-    # smem[16] = T2(1.0) / (h * lp)
-    # smem[17] = T2(1.0) / h
-    # smem[18] = T2(0.5) * lp
-    absΔx = abs(Δx)
-    Ni = dN = T2(0.0)
-    if absΔx < smem[18]
-        Ni = T2(1.0) - ((T2(4.0) * Δx * Δx + smem[14] * smem[14]) * smem[15])
-        dN = -T2(8.0) * Δx * smem[15]
-    elseif smem[18] ≤ absΔx < smem[13] - smem[18]
-        Ni = T2(1.0) - (absΔx / smem[13])
-        dN = sign(Δx) * -smem[17]
-    elseif smem[13] - smem[18] ≤ absΔx < smem[13] + smem[18]
-        Ni = (smem[13] + smem[18] - absΔx) * (smem[13] + smem[18] - absΔx) * T2(0.5) * smem[16]
-        dN = -sign(Δx) * (smem[13] + smem[18] - absΔx) * smem[16]
-    end
-    return T2(Ni), T2(dN)
+    
+    return N1, N2, N3, d1, d2, d3
 end
 
 @inline Base.@propagate_inbounds function bspline2basis(ξ1::T2, ξ2::T2, ξ3::T2) where T2
@@ -205,7 +162,7 @@ end
             dN = r * r - r - r
         end
     end
-    return T2(Ni), T2(dN / h)
+    return T2(Ni), T2(dN * inv(h))
 end
 
 @inline Base.@propagate_inbounds function get_type(
