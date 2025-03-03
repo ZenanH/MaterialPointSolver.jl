@@ -58,19 +58,12 @@ end
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         # base index in the grid
-        # note the base index needs a shift of 0.5 (see Taichi)
+        # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
         bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * grid.dx - grid.x1, grid.dx))
         bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * grid.dy - grid.y1, grid.dy))
         bid = T1(grid.nny * bnx + grid.nny - bny)
         gξx, gξy = grid.ξ[bid, 1], grid.ξ[bid, 2]
-        # p2n index
-        @KAunroll for iy in 1:9
-            # p2n index
-            bac = T1(cld(iy, 3) - 1)
-            iyc = T1(iy - bac * 3)
-            mp.p2n[ix, iy] = T1(bid + bac * grid.nny - (iyc - 1))
-        end
         # compute x value in the basis function N(x)
         x1 = gdx_1 * (mξx - gξx)
         x2 = gdx_1 * (mξx - gξx - grid.dx)
@@ -81,9 +74,15 @@ end
         Nx1, Nx2, Nx3 = bspline2basis(x1, x2, x3)
         Ny1, Ny2, Ny3 = bspline2basis(y1, y2, y3)
         # assign the value (in order)
-        mp.Nij[ix, 1], mp.Nij[ix, 2], mp.Nij[ix, 3] = Nx1 * Ny1, Nx1 * Ny2, Nx1 * Ny3
-        mp.Nij[ix, 4], mp.Nij[ix, 5], mp.Nij[ix, 6] = Nx2 * Ny1, Nx2 * Ny2, Nx2 * Ny3
-        mp.Nij[ix, 7], mp.Nij[ix, 8], mp.Nij[ix, 9] = Nx3 * Ny1, Nx3 * Ny2, Nx3 * Ny3
+        it = Int32(1)
+        Nxs, Nys = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3)
+        @KAunroll for i in Int32(1):Int32(3)  # x-direction
+            for j in Int32(1):Int32(3)        # y-direction
+                mp.p2n[ix, it] = bid - (j - Int32(1)) + grid.nny * (i - Int32(1))
+                mp.Nij[ix, it] = Nxs[i] * Nys[j]
+                it += Int32(1)
+            end
+        end
     end
 end
 
@@ -100,22 +99,13 @@ end
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
         # base index in the grid
-        # note the base index needs a shift of 0.5 (see Taichi)
+        # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
         bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * grid.dx - grid.x1, grid.dx))
         bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * grid.dy - grid.y1, grid.dy))
         bnz = unsafe_trunc(T1, fld(mξz - T2(0.5) * grid.dz - grid.z1, grid.dz))
         bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
         gξx, gξy, gξz = grid.ξ[bid, 1], grid.ξ[bid, 2], grid.ξ[bid, 3]
-        # p2n index
-        @KAunroll for k in 0:2
-            for j in 0:2
-                for i in 0:2
-                    iy = 1 + i + 3*j + 9*k
-                    mp.p2n[ix, iy] = bid + i + grid.nny*j + grid.nny*grid.nnx*k
-                end
-            end
-        end
         # compute x value in the basis function N(x)
         x1 = gdx_1 * (mξx - gξx)
         x2 = gdx_1 * (mξx - gξx - grid.dx)
@@ -131,12 +121,14 @@ end
         Nz1, Nz2, Nz3 = bspline2basis(z1, z2, z3)
         # assign the value (in order)
         it = Int32(1)
-        @KAunroll for k in 1:3 # z-direction
-            for i in 1:3       # x-direction
-                for j in 1:3   # y-direction
-                    mp.Nij[ix, it] = (Nx1, Nx2, Nx3)[i] * 
-                                     (Ny1, Ny2, Ny3)[j] * 
-                                     (Nz1, Nz2, Nz3)[k]
+        Nxs, Nys, Nzs = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3), (Nz1, Nz2, Nz3)
+        @KAunroll for k in Int32(1):Int32(3) # z-direction
+            for i in Int32(1):Int32(3)       # x-direction
+                for j in Int32(1):Int32(3)   # y-direction
+                    mp.p2n[ix, it] = bid +                 (j - Int32(1)) + 
+                                     grid.nny *            (i - Int32(1)) + 
+                                     grid.nny * grid.nnx * (k - Int32(1))
+                    mp.Nij[ix, it] = Nxs[i] * Nys[j] * Nzs[k]
                     it += Int32(1)
                 end
             end

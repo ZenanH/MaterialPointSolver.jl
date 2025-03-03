@@ -9,14 +9,14 @@
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
 |  Functions  : 01. resetgridstatus_OS!     [2D]                                           |
 |               02. resetgridstatus_OS!     [3D]                                           |
-|               03. resetmpstatus_OS!       [2D,  linear basis]                            |
-|               04. resetmpstatus_OS!       [3D,  linear basis]                            |
-|               05. resetmpstatus_OS!       [2D,   uGIMP basis]                            |
-|               06. resetmpstatus_OS_CPU!   [2D,   uGIMP basis]                            |
-|               07. resetmpstatus_OS!       [3D,   uGIMP basis]                            |
-|               08. resetmpstatus_OS_CPU!   [3D,   uGIMP basis]                            |
-|               09. resetmpstatus_OS_CPU!   [2D, bspline basis]                            |
-|               10. resetmpstatus_OS_CPU!   [3D, bspline basis]                            |
+|               03. resetmpstatus_OS!       [2D,   linear basis]                           |
+|               04. resetmpstatus_OS!       [3D,   linear basis]                           |
+|               05. resetmpstatus_OS!       [2D,    uGIMP basis]                           |
+|               06. resetmpstatus_OS!       [3D,    uGIMP basis]                           |
+|               07. resetmpstatus_OS!       [2D, bspline2 basis]                           |
+|               08. resetmpstatus_OS!       [3D, bspline2 basis]                           |
+|               09. resetmpstatus_OS!       [2D, bspline3 basis]                           |
+|               10. resetmpstatus_OS!       [3D, bspline3 basis]                           |
 |               11. P2G_OS!                 [2D]                                           |
 |               12. P2G_OS!                 [3D]                                           |
 |               13. solvegrid_OS!           [2D]                                           |
@@ -105,22 +105,29 @@ end
         mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        # compute particle to cell and particle to node index
-        mp.p2c[ix] = unsafe_trunc(T1,
-            cld(mp.ξ[ix, 2] - grid.y1, grid.dy) +
-            fld(mp.ξ[ix, 1] - grid.x1, grid.dx) * grid.ncy)
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            p2n = getP2N_linear(grid, mp.p2c[ix], iy)
-            mp.p2n[ix, iy] = p2n
-            # compute distance between particle and related nodes
-            Δdx = mp.ξ[ix, 1] - grid.ξ[p2n, 1]
-            Δdy = mp.ξ[ix, 2] - grid.ξ[p2n, 2]
-            # compute basis function
-            Nx, dNx = linearbasis(Δdx, grid.dx)
-            Ny, dNy = linearbasis(Δdy, grid.dy)
-            mp.Nij[ix, iy] =  Nx * Ny
-            mp.∂Nx[ix, iy] = dNx * Ny # x-gradient shape function
-            mp.∂Ny[ix, iy] = dNy * Nx # y-gradient shape function
+        # base index in the grid
+        mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
+        bnx = unsafe_trunc(T1, fld(mξx - grid.x1, grid.dx))
+        bny = unsafe_trunc(T1, fld(mξy - grid.y1, grid.dy))
+        bid = T1(grid.nny * bnx + grid.nny - bny)
+        gξx, gξy = grid.ξ[bid, 1], grid.ξ[bid, 2]
+        # compute x value in the basis function N(x)
+        x1, y1 = mξx - gξx, mξy - gξy
+        x2, y2 = grid.dx - x1, grid.dy - y1
+        Nx1, Nx2, ∂x1, ∂x2 = linearbasis(x1, x2, grid.dx)
+        Ny1, Ny2, ∂y1, ∂y2 = linearbasis(y1, y2, grid.dy)
+        # assign the value (in order)
+        it = Int32(1)
+        Nxs, Nys = (Nx1, Nx2), (Ny1, Ny2)
+        dxs, dys = (∂x1, ∂x2), (∂y1, ∂y2)
+        @KAunroll for i in Int32(1):Int32(2)  # x-direction
+            for j in Int32(1):Int32(2)        # y-direction
+                mp.p2n[ix, it] = bid - (j - Int32(1)) + (i - Int32(1)) * grid.nny 
+                mp.Nij[ix, it] = Nxs[i] * Nys[j]
+                mp.∂Nx[ix, it] = dxs[i] * Nys[j]
+                mp.∂Ny[ix, it] = Nxs[i] * dys[j]
+                it += Int32(1)
+            end
         end
     end
 end
@@ -137,32 +144,42 @@ end
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
-        # compute particle to cell and particle to node index
-        mp.p2c[ix] = unsafe_trunc(T1, 
-            cld(mp.ξ[ix, 2] - grid.y1, grid.dy) +
-            fld(mp.ξ[ix, 3] - grid.z1, grid.dz) * grid.ncy * grid.ncx +
-            fld(mp.ξ[ix, 1] - grid.x1, grid.dx) * grid.ncy)
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            p2n = getP2N_linear(grid, mp.p2c[ix], iy)
-            mp.p2n[ix, iy] = p2n
-            # compute distance between particle and related nodes
-            Δdx = mp.ξ[ix, 1] - grid.ξ[p2n, 1]
-            Δdy = mp.ξ[ix, 2] - grid.ξ[p2n, 2]
-            Δdz = mp.ξ[ix, 3] - grid.ξ[p2n, 3]
-            # compute basis function
-            Nx, dNx = linearbasis(Δdx, grid.dx)
-            Ny, dNy = linearbasis(Δdy, grid.dy)
-            Nz, dNz = linearbasis(Δdz, grid.dz)
-            mp.Nij[ix, iy] =  Nx * Ny * Nz
-            mp.∂Nx[ix, iy] = dNx * Ny * Nz # x-gradient shape function
-            mp.∂Ny[ix, iy] = dNy * Nx * Nz # y-gradient shape function
-            mp.∂Nz[ix, iy] = dNz * Nx * Ny # z-gradient shape function
+        # base index in the grid
+        mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
+        bnx = unsafe_trunc(T1, fld(mξx - grid.x1, grid.dx))
+        bny = unsafe_trunc(T1, fld(mξy - grid.y1, grid.dy))
+        bnz = unsafe_trunc(T1, fld(mξz - grid.z1, grid.dz))
+        bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
+        gξx, gξy, gξz = grid.ξ[bid, 1], grid.ξ[bid, 2], grid.ξ[bid, 3]
+        # compute x value in the basis function N(x)
+        x1, y1, z1 = mξx - gξx, mξy - gξy, mξz - gξz
+        x2, y2, z2 = grid.dx - x1, grid.dy - y1, grid.dz - z1
+        Nx1, Nx2, ∂x1, ∂x2 = linearbasis(x1, x2, grid.dx)
+        Ny1, Ny2, ∂y1, ∂y2 = linearbasis(y1, y2, grid.dy)
+        Nz1, Nz2, ∂z1, ∂z2 = linearbasis(z1, z2, grid.dz)
+        # assign the value (in order)
+        it = Int32(1)
+        Nxs, Nys, Nzs = (Nx1, Nx2), (Ny1, Ny2), (Nz1, Nz2)
+        dxs, dys, dzs = (∂x1, ∂x2), (∂y1, ∂y2),(∂z1, ∂z2)
+        @KAunroll for k in Int32(1):Int32(2) # z-direction
+            for i in Int32(1):Int32(2)       # x-direction
+                for j in Int32(1):Int32(2)   # y-direction
+                    mp.p2n[ix, it] = bid +                 (j - Int32(1)) +
+                                     grid.nny *            (i - Int32(1)) +
+                                     grid.nnx * grid.nny * (k - Int32(1))
+                    mp.Nij[ix, it] = Nxs[i] * Nys[j] * Nzs[k]
+                    mp.∂Nx[ix, it] = dxs[i] * Nys[j] * Nzs[k]
+                    mp.∂Ny[ix, it] = Nxs[i] * dys[j] * Nzs[k]
+                    mp.∂Nz[ix, it] = Nxs[i] * Nys[j] * dzs[k]
+                    it += Int32(1)
+                end
+            end
         end
     end
 end
 
 """
-    resetmpstatus_OS_CUDA!(grid::DeviceGrid2D{T1, T2}, mp::DeviceParticle2D{T1, T2}, 
+    resetmpstatus_OS!(grid::DeviceGrid2D{T1, T2}, mp::DeviceParticle2D{T1, T2}, 
         ::Val{:uGIMP})
 
 Description:
@@ -171,68 +188,6 @@ Description:
 2. Compute the value of basis function (uGIMP).
 3. Update particle mass and momentum.
 """
-@kernel inbounds = true unsafe_indices = true function resetmpstatus_OS_CUDA!(
-    grid::    DeviceGrid2D{T1, T2},
-    mp  ::DeviceParticle2D{T1, T2},
-        ::Val{:uGIMP}
-) where {T1, T2}
-    N = @uniform prod(@groupsize())
-    gI = @index(Group, Linear)
-    i = @index(Local, Linear)
-    @synchronize
-    ix = (gI - 1) * N + i
-    # ix = @index(Global)
-    if ix ≤ mp.np
-        smem = @localmem T2 Int32(13)
-        smem[1]  = grid.dx
-        smem[2]  = mp.dx
-        smem[3]  = T2(1.0) / (T2(4.0) * grid.dx * mp.dx)
-        smem[4]  = T2(1.0) / (grid.dx * mp.dx)
-        smem[5]  = T2(1.0) / grid.dx
-        smem[6]  = T2(0.5) * mp.dx
-        smem[7]  = grid.dy
-        smem[8]  = mp.dy
-        smem[9]  = T2(1.0) / (T2(4.0) * grid.dy * mp.dy)
-        smem[10] = T2(1.0) / (grid.dy * mp.dy)
-        smem[11] = T2(1.0) / grid.dy
-        smem[12] = T2(0.5) * mp.dy
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        # p2c index
-        mp.p2c[ix] = unsafe_trunc(T1,
-            cld(mp.ξ[ix, 2] - grid.y1, grid.dy) +
-            fld(mp.ξ[ix, 1] - grid.x1, grid.dx) * grid.ncy)
-        # reset Nij, ∂Nx, ∂Ny
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            mp.Nij[ix, iy] = T2(0.0)
-            mp.∂Nx[ix, iy] = T2(0.0)
-            mp.∂Ny[ix, iy] = T2(0.0)
-        end
-        viy = T1(1)
-        @KAunroll for iy in Int32(1):Int32(16)
-            # p2n index
-            p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
-            # compute distance between particle and related nodes
-            Δdx = mp.ξ[ix, 1] - grid.ξ[p2n, 1]
-            Δdy = mp.ξ[ix, 2] - grid.ξ[p2n, 2]
-            # compute basis function
-            if abs(Δdx) < (grid.dx + T2(0.5) * mp.dx) &&
-               abs(Δdy) < (grid.dy + T2(0.5) * mp.dy)
-                Nx, dNx = uGIMPbasisx(Δdx, smem)
-                Ny, dNy = uGIMPbasisy(Δdy, smem)
-                mp.Nij[ix, viy] =  Nx * Ny
-                mp.∂Nx[ix, viy] = dNx * Ny # x-gradient shape function
-                mp.∂Ny[ix, viy] = dNy * Nx # y-gradient shape function
-                mp.p2n[ix, viy] = p2n
-                viy += T1(1)
-            end
-            viy > mp.NIC && break
-        end
-    end
-end
-
 @kernel inbounds = true function resetmpstatus_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
@@ -244,41 +199,40 @@ end
         mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        # p2c index
-        mp.p2c[ix] = unsafe_trunc(T1,
-            cld(mp.ξ[ix, 2] - grid.y1, grid.dy) +
-            fld(mp.ξ[ix, 1] - grid.x1, grid.dx) * grid.ncy)
-        # reset Nij, ∂Nx, ∂Ny
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            mp.Nij[ix, iy] = T2(0.0)
-            mp.∂Nx[ix, iy] = T2(0.0)
-            mp.∂Ny[ix, iy] = T2(0.0)
-        end
-        viy = T1(1)
-        @KAunroll for iy in Int32(1):Int32(16)
-            # p2n index
-            p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
-            # compute distance between particle and related nodes
-            Δdx = mp.ξ[ix, 1] - grid.ξ[p2n, 1]
-            Δdy = mp.ξ[ix, 2] - grid.ξ[p2n, 2]
-            # compute basis function
-            if abs(Δdx) < (grid.dx + T2(0.5) * mp.dx) &&
-               abs(Δdy) < (grid.dy + T2(0.5) * mp.dy)
-                Nx, dNx = uGIMPbasis(Δdx, grid.dx, mp.dx)
-                Ny, dNy = uGIMPbasis(Δdy, grid.dy, mp.dy)
-                mp.Nij[ix, viy] =  Nx * Ny
-                mp.∂Nx[ix, viy] = dNx * Ny # x-gradient shape function
-                mp.∂Ny[ix, viy] = dNy * Nx # y-gradient shape function
-                mp.p2n[ix, viy] = p2n
-                viy += T1(1)
+        # base index in the grid
+        # note the base index needs a shift of 0.5lp (see Taichi)
+        mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
+        bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * mp.dx - grid.x1, grid.dx))
+        bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * mp.dy - grid.y1, grid.dy))
+        bid = T1(grid.nny * bnx + grid.nny - bny)
+        gξx, gξy = grid.ξ[bid, 1], grid.ξ[bid, 2]
+        # compute x value in the basis function N(x)
+        x1 = mξx - gξx
+        x2 = mξx - gξx - grid.dx
+        x3 = mξx - gξx - grid.dx - grid.dx
+        y1 = mξy - gξy
+        y2 = mξy - gξy - grid.dy
+        y3 = mξy - gξy - grid.dy - grid.dy
+        Nx1, Nx2, Nx3, ∂x1, ∂x2, ∂x3 = uGIMPbasis(x1, x2, x3, grid.dx, mp.dx)
+        Ny1, Ny2, Ny3, ∂y1, ∂y2, ∂y3 = uGIMPbasis(y1, y2, y3, grid.dy, mp.dy)
+        # assign the value (in order)
+        it = Int32(1)
+        Nxs, Nys = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3)
+        dxs, dys = (∂x1, ∂x2, ∂x3), (∂y1, ∂y2, ∂y3)
+        @KAunroll for i in Int32(1):Int32(3)  # x-direction
+            for j in Int32(1):Int32(3)        # y-direction
+                mp.p2n[ix, it] = bid - (j - Int32(1)) + grid.nny * (i - Int32(1))
+                mp.Nij[ix, it] = Nxs[i] * Nys[j]
+                mp.∂Nx[ix, it] = dxs[i] * Nys[j]
+                mp.∂Ny[ix, it] = Nxs[i] * dys[j]
+                it += Int32(1)
             end
-            viy > mp.NIC && break
         end
     end
 end
 
 """
-    resetmpstatus_OS_CUDA!(grid::DeviceGrid3D{T1, T2}, mp::DeviceParticle3D{T1, T2},
+    resetmpstatus_OS!(grid::DeviceGrid3D{T1, T2}, mp::DeviceParticle3D{T1, T2},
         ::Val{:uGIMP})
 
 Description:
@@ -287,86 +241,6 @@ Description:
 2. Compute the value of basis function (uGIMP).
 3. Update particle mass and momentum.
 """
-@kernel inbounds = true unsafe_indices = true function resetmpstatus_OS_CUDA!(
-    grid::    DeviceGrid3D{T1, T2},
-    mp  ::DeviceParticle3D{T1, T2},
-        ::Val{:uGIMP}
-) where {T1, T2}
-    T3 = T2
-    N = @uniform prod(@groupsize())
-    gI = @index(Group, Linear)
-    i = @index(Local, Linear)
-    @synchronize
-    ix = (gI - 1) * N + i
-    # ix = @index(Global)
-    smem = @localmem T3 Int32(19)
-    smem[1]  = T3(grid.dx)
-    smem[2]  = T3(mp.dx)
-    smem[3]  = T3(1.0 / (4.0 * grid.dx * mp.dx))
-    smem[4]  = T3(1.0 / (grid.dx * mp.dx))
-    smem[5]  = T3(1.0 / grid.dx)
-    smem[6]  = T3(0.5 * mp.dx)
-    smem[7]  = T3(grid.dy)
-    smem[8]  = T3(mp.dy)
-    smem[9]  = T3(1.0 / (4.0 * grid.dy * mp.dy))
-    smem[10] = T3(1.0 / (grid.dy * mp.dy))
-    smem[11] = T3(1.0 / grid.dy)
-    smem[12] = T3(0.5 * mp.dy)
-    smem[13] = T3(grid.dz)
-    smem[14] = T3(mp.dz)
-    smem[15] = T3(1.0 / (4.0 * grid.dz * mp.dz))
-    smem[16] = T3(1.0 / (grid.dz* mp.dz))
-    smem[17] = T3(1.0 / grid.dz)
-    smem[18] = T3(0.5 * mp.dz)
-    if ix ≤ mp.np
-        mpξ1 = mp.ξ[ix, 1]
-        mpξ2 = mp.ξ[ix, 2]
-        mpξ3 = mp.ξ[ix, 3]
-        mpms = mp.Ω[ix] * mp.ρs[ix]
-        # update particle mass and momentum
-        mp.ms[ix]    = mpms
-        mp.ps[ix, 1] = mpms * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mpms * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mpms * mp.vs[ix, 3]
-        # p2c index
-        mp.p2c[ix] = unsafe_trunc(T1,
-            cld(mpξ2 - grid.y1, grid.dy) +
-            fld(mpξ3 - grid.z1, grid.dz) * grid.ncy * grid.ncx +
-            fld(mpξ1 - grid.x1, grid.dx) * grid.ncy)
-        # reset Nij, ∂Nx, ∂Ny, ∂Nz
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            mp.Nij[ix, iy] = T2(0.0)
-            mp.∂Nx[ix, iy] = T2(0.0)
-            mp.∂Ny[ix, iy] = T2(0.0)
-            mp.∂Nz[ix, iy] = T2(0.0)
-        end
-        viy = T1(1)
-        @KAunroll for iy in Int32(1):Int32(64)
-            # p2n index
-            p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
-            # compute distance between particle and related nodes
-            Δdx = T3(mpξ1 - grid.ξ[p2n, 1])
-            Δdy = T3(mpξ2 - grid.ξ[p2n, 2])
-            Δdz = T3(mpξ3 - grid.ξ[p2n, 3])
-            # compute basis function
-            if abs(Δdx) < (T3(grid.dx) + T3(0.5) * T3(mp.dx)) &&
-               abs(Δdy) < (T3(grid.dy) + T3(0.5) * T3(mp.dy)) &&
-               abs(Δdz) < (T3(grid.dz) + T3(0.5) * T3(mp.dz))
-                Nx, dNx = uGIMPbasisx(Δdx, smem)
-                Ny, dNy = uGIMPbasisy(Δdy, smem)
-                Nz, dNz = uGIMPbasisz(Δdz, smem)
-                mp.Nij[ix, viy] = T2( Nx * Ny * Nz)
-                mp.∂Nx[ix, viy] = T2(dNx * Ny * Nz) # x-gradient basis function
-                mp.∂Ny[ix, viy] = T2(dNy * Nx * Nz) # y-gradient basis function
-                mp.∂Nz[ix, viy] = T2(dNz * Nx * Ny) # z-gradient basis function
-                mp.p2n[ix, viy] = p2n
-                viy += T1(1)
-            end
-            viy > mp.NIC && break
-        end
-    end
-end
-
 @kernel inbounds = true function resetmpstatus_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
@@ -375,49 +249,50 @@ end
     ix = @index(Global)
     T3 = T2
     if ix ≤ mp.np
-        mpξ1 = mp.ξ[ix, 1]
-        mpξ2 = mp.ξ[ix, 2]
-        mpξ3 = mp.ξ[ix, 3]
         mpms = mp.Ω[ix] * mp.ρs[ix]
         # update particle mass and momentum
         mp.ms[ix]    = mpms
         mp.ps[ix, 1] = mpms * mp.vs[ix, 1]
         mp.ps[ix, 2] = mpms * mp.vs[ix, 2]
         mp.ps[ix, 3] = mpms * mp.vs[ix, 3]
-        # p2c index
-        mp.p2c[ix] = unsafe_trunc(T1,
-            cld(mpξ2 - grid.y1, grid.dy) +
-            fld(mpξ3 - grid.z1, grid.dz) * grid.ncy * grid.ncx +
-            fld(mpξ1 - grid.x1, grid.dx) * grid.ncy)
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            mp.Nij[ix, iy] = T2(0.0)
-            mp.∂Nx[ix, iy] = T2(0.0)
-            mp.∂Ny[ix, iy] = T2(0.0)
-            mp.∂Nz[ix, iy] = T2(0.0)
-        end
-        viy = T1(1)
-        @KAunroll for iy in Int32(1):Int32(64)
-            # p2n index
-            p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
-            # compute distance betwe en particle and related nodes
-            Δdx = T3(mpξ1 - grid.ξ[p2n, 1])
-            Δdy = T3(mpξ2 - grid.ξ[p2n, 2])
-            Δdz = T3(mpξ3 - grid.ξ[p2n, 3])
-            # compute basis function
-            if abs(Δdx) < (T3(grid.dx) + T3(0.5) * T3(mp.dx)) &&
-               abs(Δdy) < (T3(grid.dy) + T3(0.5) * T3(mp.dy)) &&
-               abs(Δdz) < (T3(grid.dz) + T3(0.5) * T3(mp.dz))
-                Nx, dNx = uGIMPbasis(Δdx, T3(grid.dx), T3(mp.dx))
-                Ny, dNy = uGIMPbasis(Δdy, T3(grid.dy), T3(mp.dy))
-                Nz, dNz = uGIMPbasis(Δdz, T3(grid.dz), T3(mp.dz))
-                mp.Nij[ix, viy] = T2( Nx * Ny * Nz)
-                mp.∂Nx[ix, viy] = T2(dNx * Ny * Nz) # x-gradient basis function
-                mp.∂Ny[ix, viy] = T2(dNy * Nx * Nz) # y-gradient basis function
-                mp.∂Nz[ix, viy] = T2(dNz * Nx * Ny) # z-gradient basis function
-                mp.p2n[ix, viy] = p2n
-                viy += T1(1)
+        # base index in the grid
+        # note the base index needs a shift of 0.5lp (see Taichi)
+        mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
+        bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * mp.dx - grid.x1, grid.dx))
+        bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * mp.dy - grid.y1, grid.dy))
+        bnz = unsafe_trunc(T1, fld(mξz - T2(0.5) * mp.dz - grid.z1, grid.dz))
+        bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
+        gξx, gξy, gξz = grid.ξ[bid, 1], grid.ξ[bid, 2], grid.ξ[bid, 3]
+        # compute x value in the basis function N(x)
+        x1 = mξx - gξx
+        x2 = mξx - gξx - grid.dx
+        x3 = mξx - gξx - grid.dx - grid.dx
+        y1 = mξy - gξy
+        y2 = mξy - gξy - grid.dy
+        y3 = mξy - gξy - grid.dy - grid.dy
+        z1 = mξz - gξz
+        z2 = mξz - gξz - grid.dz
+        z3 = mξz - gξz - grid.dz - grid.dz
+        Nx1, Nx2, Nx3, dx1, dx2, dx3 = uGIMPbasis(x1, x2, x3, grid.dx, mp.dx)
+        Ny1, Ny2, Ny3, dy1, dy2, dy3 = uGIMPbasis(y1, y2, y3, grid.dy, mp.dy)
+        Nz1, Nz2, Nz3, dz1, dz2, dz3 = uGIMPbasis(z1, z2, z3, grid.dz, mp.dz)
+        # assign the value (in order)
+        it = Int32(1)
+        Nxs, Nys, Nzs = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3), (Nz1, Nz2, Nz3)
+        dxs, dys, dzs = (dx1, dx2, dx3), (dy1, dy2, dy3), (dz1, dz2, dz3)
+        @KAunroll for k in 1:3 # z-direction
+            for i in 1:3       # x-direction
+                for j in 1:3   # y-direction
+                    mp.p2n[ix, it] = bid +                 (j - Int32(1)) + 
+                                     grid.nny *            (i - Int32(1)) + 
+                                     grid.nny * grid.nnx * (k - Int32(1))
+                    mp.Nij[ix, it] = Nxs[i] * Nys[j] * Nzs[k]
+                    mp.∂Nx[ix, it] = dxs[i] * Nys[j] * Nzs[k]
+                    mp.∂Ny[ix, it] = Nxs[i] * dys[j] * Nzs[k]
+                    mp.∂Nz[ix, it] = Nxs[i] * Nys[j] * dzs[k]
+                    it += Int32(1)
+                end
             end
-            viy > mp.NIC && break
         end
     end
 end
@@ -435,19 +310,12 @@ end
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         # base index in the grid
-        # note the base index needs a shift of 0.5 (see Taichi)
+        # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
         bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * grid.dx - grid.x1, grid.dx))
         bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * grid.dy - grid.y1, grid.dy))
         bid = T1(grid.nny * bnx + grid.nny - bny)
         gξx, gξy = grid.ξ[bid, 1], grid.ξ[bid, 2]
-        # p2n index
-        @KAunroll for iy in 1:9
-            # p2n index
-            bac = T1(cld(iy, 3) - 1)
-            iyc = T1(iy - bac * 3)
-            mp.p2n[ix, iy] = T1(bid + bac * grid.nny - (iyc - 1))
-        end
         # compute x value in the basis function N(x)
         x1 = gdx_1 * (mξx - gξx)
         x2 = gdx_1 * (mξx - gξx - grid.dx)
@@ -458,17 +326,18 @@ end
         Nx1, Nx2, Nx3, ∂x1, ∂x2, ∂x3 = bspline2basis(x1, x2, x3, gdx_1)
         Ny1, Ny2, Ny3, ∂y1, ∂y2, ∂y3 = bspline2basis(y1, y2, y3, gdy_1)
         # assign the value (in order)
-        mp.Nij[ix, 1], mp.Nij[ix, 2], mp.Nij[ix, 3] = Nx1 * Ny1, Nx1 * Ny2, Nx1 * Ny3
-        mp.Nij[ix, 4], mp.Nij[ix, 5], mp.Nij[ix, 6] = Nx2 * Ny1, Nx2 * Ny2, Nx2 * Ny3
-        mp.Nij[ix, 7], mp.Nij[ix, 8], mp.Nij[ix, 9] = Nx3 * Ny1, Nx3 * Ny2, Nx3 * Ny3
-        # assign the x-gradient (in order)
-        mp.∂Nx[ix, 1], mp.∂Nx[ix, 2], mp.∂Nx[ix, 3] = ∂x1 * Ny1, ∂x1 * Ny2, ∂x1 * Ny3
-        mp.∂Nx[ix, 4], mp.∂Nx[ix, 5], mp.∂Nx[ix, 6] = ∂x2 * Ny1, ∂x2 * Ny2, ∂x2 * Ny3
-        mp.∂Nx[ix, 7], mp.∂Nx[ix, 8], mp.∂Nx[ix, 9] = ∂x3 * Ny1, ∂x3 * Ny2, ∂x3 * Ny3
-        # assign the y-gradient (in order)
-        mp.∂Ny[ix, 1], mp.∂Ny[ix, 2], mp.∂Ny[ix, 3] = Nx1 * ∂y1, Nx1 * ∂y2, Nx1 * ∂y3
-        mp.∂Ny[ix, 4], mp.∂Ny[ix, 5], mp.∂Ny[ix, 6] = Nx2 * ∂y1, Nx2 * ∂y2, Nx2 * ∂y3
-        mp.∂Ny[ix, 7], mp.∂Ny[ix, 8], mp.∂Ny[ix, 9] = Nx3 * ∂y1, Nx3 * ∂y2, Nx3 * ∂y3
+        it = Int32(1)
+        Nxs, Nys = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3)
+        dxs, dys = (∂x1, ∂x2, ∂x3), (∂y1, ∂y2, ∂y3)
+        @KAunroll for i in Int32(1):Int32(3)  # x-direction
+            for j in Int32(1):Int32(3)        # y-direction
+                mp.p2n[ix, it] = bid - (j - Int32(1)) + grid.nny * (i - Int32(1))
+                mp.Nij[ix, it] = Nxs[i] * Nys[j]
+                mp.∂Nx[ix, it] = dxs[i] * Nys[j]
+                mp.∂Ny[ix, it] = Nxs[i] * dys[j]
+                it += Int32(1)
+            end
+        end
     end
 end
 
@@ -486,22 +355,13 @@ end
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
         # base index in the grid
-        # note the base index needs a shift of 0.5 (see Taichi)
+        # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
         bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * grid.dx - grid.x1, grid.dx))
         bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * grid.dy - grid.y1, grid.dy))
         bnz = unsafe_trunc(T1, fld(mξz - T2(0.5) * grid.dz - grid.z1, grid.dz))
         bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
         gξx, gξy, gξz = grid.ξ[bid, 1], grid.ξ[bid, 2], grid.ξ[bid, 3]
-        # p2n index
-        @KAunroll for k in 0:2
-            for j in 0:2
-                for i in 0:2
-                    iy = 1 + i + 3*j + 9*k
-                    mp.p2n[ix, iy] = bid + i + grid.nny * j + grid.nny * grid.nnx * k
-                end
-            end
-        end
         # compute x value in the basis function N(x)
         x1 = gdx_1 * (mξx - gξx)
         x2 = gdx_1 * (mξx - gξx - grid.dx)
@@ -517,15 +377,14 @@ end
         Nz1, Nz2, Nz3, dz1, dz2, dz3 = bspline2basis(z1, z2, z3, gdz_1)
         # assign the value (in order)
         it = Int32(1)
-        Nxs = (Nx1, Nx2, Nx3)
-        Nys = (Ny1, Ny2, Ny3)
-        Nzs = (Nz1, Nz2, Nz3)
-        dxs = (dx1, dx2, dx3)
-        dys = (dy1, dy2, dy3)
-        dzs = (dz1, dz2, dz3)
-        @KAunroll for k in 1:3 # z-direction
-            for i in 1:3       # x-direction
-                for j in 1:3   # y-direction
+        Nxs, Nys, Nzs = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3), (Nz1, Nz2, Nz3)
+        dxs, dys, dzs = (dx1, dx2, dx3), (dy1, dy2, dy3), (dz1, dz2, dz3)
+        @KAunroll for k in Int32(1):Int32(3) # z-direction
+            for i in Int32(1):Int32(3)       # x-direction
+                for j in Int32(1):Int32(3)   # y-direction
+                    mp.p2n[ix, it] = bid +                 (j - Int32(1)) + 
+                                     grid.nny *            (i - Int32(1)) + 
+                                     grid.nny * grid.nnx * (k - Int32(1))
                     mp.Nij[ix, it] = Nxs[i] * Nys[j] * Nzs[k]
                     mp.∂Nx[ix, it] = dxs[i] * Nys[j] * Nzs[k]
                     mp.∂Ny[ix, it] = Nxs[i] * dys[j] * Nzs[k]
@@ -543,31 +402,56 @@ end
         ::Val{:bspline3}
 ) where {T1, T2}
     ix = @index(Global)
-    T3 = T2
     if ix ≤ mp.np
+        gdx_1, gdy_1 = inv(grid.dx), inv(grid.dy)
         # update mass and momentum
         mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
         mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        # p2c index
-        mp.p2c[ix] = unsafe_trunc(T1,
-            cld(mp.ξ[ix, 2] - grid.y1, grid.dy) +
-            fld(mp.ξ[ix, 1] - grid.x1, grid.dx) * grid.ncy)
-        @KAunroll for iy in Int32(1):Int32(16)
-            # p2n index
-            p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
-            # compute distance between particle and related nodes
-            rx = T3((mp.ξ[ix, 1] - grid.ξ[p2n, 1]) / grid.dx)
-            ry = T3((mp.ξ[ix, 2] - grid.ξ[p2n, 2]) / grid.dy)
-            # compute basis function
-            type_vx = get_type(grid.ξ[p2n, 1], grid.x1, grid.x2, grid.dx)
-            Nx, dNx = bspline3basis(rx, grid.dx, type_vx)
-            type_vy = get_type(grid.ξ[p2n, 2], grid.y1, grid.y2, grid.dy)
-            Ny, dNy = bspline3basis(ry, grid.dy, type_vy)
-            mp.Nij[ix, iy] =  Nx * Ny
-            mp.∂Nx[ix, iy] = dNx * Ny # x-gradient shape function
-            mp.∂Ny[ix, iy] = dNy * Nx # y-gradient shape function
-            mp.p2n[ix, iy] = p2n
+        # base index in the grid
+        # note the base index needs a shift of 1.0h (see Taichi)
+        mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
+        bnx = unsafe_trunc(T1, fld(mξx - grid.dx - grid.x1, grid.dx))
+        bny = unsafe_trunc(T1, fld(mξy - grid.dy - grid.y1, grid.dy))
+        bid = T1(grid.nny * bnx + grid.nny - bny)
+        gξx, gξy = grid.ξ[bid, 1], grid.ξ[bid, 2]
+        # compute x value in the basis function N(x)
+        rx1 = (mξx - gξx                              ) * gdx_1
+        rx2 = (mξx - gξx - grid.dx                    ) * gdx_1
+        rx3 = (mξx - gξx - grid.dx - grid.dx          ) * gdx_1
+        rx4 = (mξx - gξx - grid.dx - grid.dx - grid.dx) * gdx_1
+        ry1 = (mξy - gξy                              ) * gdy_1
+        ry2 = (mξy - gξy - grid.dy                    ) * gdy_1
+        ry3 = (mξy - gξy - grid.dy - grid.dy          ) * gdy_1
+        ry4 = (mξy - gξy - grid.dy - grid.dy - grid.dy) * gdy_1
+        tx1 = get_type(gξx                              , grid.x1, grid.x2, grid.dx)
+        tx2 = get_type(gξx + grid.dx                    , grid.x1, grid.x2, grid.dx)
+        tx3 = get_type(gξx + grid.dx + grid.dx          , grid.x1, grid.x2, grid.dx)
+        tx4 = get_type(gξx + grid.dx + grid.dx + grid.dx, grid.x1, grid.x2, grid.dx)
+        ty1 = get_type(gξy                              , grid.y1, grid.y2, grid.dy)
+        ty2 = get_type(gξy + grid.dy                    , grid.y1, grid.y2, grid.dy)
+        ty3 = get_type(gξy + grid.dy + grid.dy          , grid.y1, grid.y2, grid.dy)
+        ty4 = get_type(gξy + grid.dy + grid.dy + grid.dy, grid.y1, grid.y2, grid.dy)
+        Nx1, ∂x1 = bspline3basis(rx1, grid.dx, tx1)
+        Nx2, ∂x2 = bspline3basis(rx2, grid.dx, tx2)
+        Nx3, ∂x3 = bspline3basis(rx3, grid.dx, tx3)
+        Nx4, ∂x4 = bspline3basis(rx4, grid.dx, tx4)
+        Ny1, ∂y1 = bspline3basis(ry1, grid.dy, ty1)
+        Ny2, ∂y2 = bspline3basis(ry2, grid.dy, ty2)
+        Ny3, ∂y3 = bspline3basis(ry3, grid.dy, ty3)
+        Ny4, ∂y4 = bspline3basis(ry4, grid.dy, ty4)
+        # assign the value (in order)
+        it = Int32(1)
+        Nxs, Nys = (Nx1, Nx2, Nx3, Nx4), (Ny1, Ny2, Ny3, Ny4)
+        dxs, dys = (∂x1, ∂x2, ∂x3, ∂x4), (∂y1, ∂y2, ∂y3, ∂y4)
+        @KAunroll for i in Int32(1):Int32(4)  # x-direction
+            for j in Int32(1):Int32(4)        # y-direction
+                mp.p2n[ix, it] = bid - (j - Int32(1)) + grid.nny * (i - Int32(1))
+                mp.Nij[ix, it] = Nxs[i] * Nys[j]
+                mp.∂Nx[ix, it] = dxs[i] * Nys[j]
+                mp.∂Ny[ix, it] = Nxs[i] * dys[j]
+                it += Int32(1)
+            end
         end
     end
 end
@@ -578,41 +462,75 @@ end
         ::Val{:bspline3}
 ) where {T1, T2}
     ix = @index(Global)
-    T3 = T2
     if ix ≤ mp.np
-        mpξ1 = mp.ξ[ix, 1]
-        mpξ2 = mp.ξ[ix, 2]
-        mpξ3 = mp.ξ[ix, 3]
-        mpms = mp.Ω[ix] * mp.ρs[ix]
-        # update particle mass and momentum
-        mp.ms[ix]    = mpms
-        mp.ps[ix, 1] = mpms * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mpms * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mpms * mp.vs[ix, 3]
-        # p2c index
-        mp.p2c[ix] = unsafe_trunc(T1,
-            cld(mpξ2 - grid.y1, grid.dy) +
-            fld(mpξ3 - grid.z1, grid.dz) * grid.ncy * grid.ncx +
-            fld(mpξ1 - grid.x1, grid.dx) * grid.ncy)
-        @KAunroll for iy in Int32(1):Int32(64)
-            # p2n index
-            p2n = getP2N_uGIMP(grid, mp.p2c[ix], iy)
-            # compute distance betwe en particle and related nodes
-            rx = T3((mpξ1 - grid.ξ[p2n, 1]) / grid.dx)
-            ry = T3((mpξ2 - grid.ξ[p2n, 2]) / grid.dy)
-            rz = T3((mpξ3 - grid.ξ[p2n, 3]) / grid.dz)
-            # compute basis function
-            type_vx = get_type(grid.ξ[p2n, 1], grid.x1, grid.x2, grid.dx)
-            Nx, dNx = bspline3basis(rx, grid.dx, type_vx)
-            type_vy = get_type(grid.ξ[p2n, 2], grid.y1, grid.y2, grid.dy)
-            Ny, dNy = bspline3basis(ry, grid.dy, type_vy)
-            type_vz = get_type(grid.ξ[p2n, 3], grid.z1, grid.z2, grid.dz)
-            Nz, dNz = bspline3basis(rz, grid.dz, type_vz)
-            mp.Nij[ix, iy] = T2( Nx * Ny * Nz)
-            mp.∂Nx[ix, iy] = T2(dNx * Ny * Nz) # x-gradient basis function
-            mp.∂Ny[ix, iy] = T2(dNy * Nx * Nz) # y-gradient basis function
-            mp.∂Nz[ix, iy] = T2(dNz * Nx * Ny) # z-gradient basis function
-            mp.p2n[ix, iy] = p2n
+        gdx_1, gdy_1, gdz_1 = inv(grid.dx), inv(grid.dy), inv(grid.dz)
+        # update mass and momentum
+        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
+        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
+        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
+        mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
+        # base index in the grid
+        # note the base index needs a shift of 1h (see Taichi)
+        mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
+        bnx = unsafe_trunc(T1, fld(mξx - grid.dx - grid.x1, grid.dx))
+        bny = unsafe_trunc(T1, fld(mξy - grid.dy - grid.y1, grid.dy))
+        bnz = unsafe_trunc(T1, fld(mξz - grid.dz - grid.z1, grid.dz))
+        bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
+        gξx, gξy, gξz = grid.ξ[bid, 1], grid.ξ[bid, 2], grid.ξ[bid, 3]
+        # compute x value in the basis function N(x)
+        rx1 = (mξx - gξx                              ) * gdx_1
+        rx2 = (mξx - gξx - grid.dx                    ) * gdx_1
+        rx3 = (mξx - gξx - grid.dx - grid.dx          ) * gdx_1
+        rx4 = (mξx - gξx - grid.dx - grid.dx - grid.dx) * gdx_1
+        ry1 = (mξy - gξy                              ) * gdy_1
+        ry2 = (mξy - gξy - grid.dy                    ) * gdy_1
+        ry3 = (mξy - gξy - grid.dy - grid.dy          ) * gdy_1
+        ry4 = (mξy - gξy - grid.dy - grid.dy - grid.dy) * gdy_1
+        rz1 = (mξz - gξz                              ) * gdz_1
+        rz2 = (mξz - gξz - grid.dz                    ) * gdz_1
+        rz3 = (mξz - gξz - grid.dz - grid.dz          ) * gdz_1
+        rz4 = (mξz - gξz - grid.dz - grid.dz - grid.dz) * gdz_1
+        tx1 = get_type(gξx                              , grid.x1, grid.x2, grid.dx)
+        tx2 = get_type(gξx + grid.dx                    , grid.x1, grid.x2, grid.dx)
+        tx3 = get_type(gξx + grid.dx + grid.dx          , grid.x1, grid.x2, grid.dx)
+        tx4 = get_type(gξx + grid.dx + grid.dx + grid.dx, grid.x1, grid.x2, grid.dx)
+        ty1 = get_type(gξy                              , grid.y1, grid.y2, grid.dy)
+        ty2 = get_type(gξy + grid.dy                    , grid.y1, grid.y2, grid.dy)
+        ty3 = get_type(gξy + grid.dy + grid.dy          , grid.y1, grid.y2, grid.dy)
+        ty4 = get_type(gξy + grid.dy + grid.dy + grid.dy, grid.y1, grid.y2, grid.dy)
+        tz1 = get_type(gξz                              , grid.z1, grid.z2, grid.dz)
+        tz2 = get_type(gξz + grid.dz                    , grid.z1, grid.z2, grid.dz)
+        tz3 = get_type(gξz + grid.dz + grid.dz          , grid.z1, grid.z2, grid.dz)
+        tz4 = get_type(gξz + grid.dz + grid.dz + grid.dz, grid.z1, grid.z2, grid.dz)
+        Nx1, ∂x1 = bspline3basis(rx1, grid.dx, tx1)
+        Nx2, ∂x2 = bspline3basis(rx2, grid.dx, tx2)
+        Nx3, ∂x3 = bspline3basis(rx3, grid.dx, tx3)
+        Nx4, ∂x4 = bspline3basis(rx4, grid.dx, tx4)
+        Ny1, ∂y1 = bspline3basis(ry1, grid.dy, ty1)
+        Ny2, ∂y2 = bspline3basis(ry2, grid.dy, ty2)
+        Ny3, ∂y3 = bspline3basis(ry3, grid.dy, ty3)
+        Ny4, ∂y4 = bspline3basis(ry4, grid.dy, ty4)
+        Nz1, ∂z1 = bspline3basis(rz1, grid.dz, tz1)
+        Nz2, ∂z2 = bspline3basis(rz2, grid.dz, tz2)
+        Nz3, ∂z3 = bspline3basis(rz3, grid.dz, tz3)
+        Nz4, ∂z4 = bspline3basis(rz4, grid.dz, tz4)
+        # assign the value (in order)
+        it = Int32(1)
+        Nxs, Nys, Nzs = (Nx1, Nx2, Nx3, Nx4), (Ny1, Ny2, Ny3, Ny4), (Nz1, Nz2, Nz3, Nz4)
+        dxs, dys, dzs = (∂x1, ∂x2, ∂x3, ∂x4), (∂y1, ∂y2, ∂y3, ∂y4), (∂z1, ∂z2, ∂z3, ∂z4)
+        @KAunroll for k in Int32(1):Int32(4) # z-direction
+            for i in Int32(1):Int32(4)       # x-direction
+                for j in Int32(1):Int32(4)   # y-direction
+                    mp.p2n[ix, it] = bid +                 (j - Int32(1)) + 
+                                     grid.nny *            (i - Int32(1)) + 
+                                     grid.nny * grid.nnx * (k - Int32(1))
+                    mp.Nij[ix, it] = Nxs[i] * Nys[j] * Nzs[k]
+                    mp.∂Nx[ix, it] = dxs[i] * Nys[j] * Nzs[k]
+                    mp.∂Ny[ix, it] = Nxs[i] * dys[j] * Nzs[k]
+                    mp.∂Nz[ix, it] = Nxs[i] * Nys[j] * dzs[k]
+                    it += Int32(1)
+                end
+            end
         end
     end
 end
@@ -647,8 +565,8 @@ P2G procedure for scattering the mass, momentum, and forces from particles to gr
                 @KAatomic grid.ps[p2n, 1] += Ni * mppsx
                 @KAatomic grid.ps[p2n, 2] += Ni * mppsy
                 # compute nodal total force for solid
-                @KAatomic grid.fs[p2n, 1] += -vol * (∂Nx * σxx[ix, 1] + ∂Ny * σxy[ix, 4])
-                @KAatomic grid.fs[p2n, 2] += -vol * (∂Ny * σyy[ix, 2] + ∂Nx * σxy[ix, 4]) + 
+                @KAatomic grid.fs[p2n, 1] += -vol * (∂Nx * σxx + ∂Ny * σxy)
+                @KAatomic grid.fs[p2n, 2] += -vol * (∂Ny * σyy + ∂Nx * σxy) + 
                     Ni * mps * gravity
             end
         end
