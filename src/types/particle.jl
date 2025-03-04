@@ -83,7 +83,7 @@ end
 @user_struct Particle2D
 
 function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw=[0], ext=0, 
-    affine=false, mls=false)
+    affine=false, mls=false, kwargs...)
     # input check
     dx > 0 && dy > 0 || throw(ArgumentError("dx and dy should be positive"))
     # default values
@@ -139,7 +139,10 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
         ∂Ny = zeros(T2, np, NIC)
     end
     aC = affine == true ? zeros(T2, np, 4) : zeros(T2, 1, 4)
-    
+    # clean the memory
+    @mem_clean kwargs mw mi ϵq ϵk ϵv σm cfl ϵijs ϵijw sij ΔFs ΔFw p2n ps pw vs vw
+    GC.gc()
+    # instantiate the particle
     tmp = Particle2D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, 
         AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, dy, p2n, ξ, ξ0, σm, ϵq, 
         ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
@@ -223,7 +226,7 @@ end
 @user_struct Particle3D
 
 function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs, ρw=[0], 
-    affine=false, mls=false, ext=0)
+    affine=false, mls=false, ext=0, kwargs...)
     # input check
     dx > 0 && dy > 0 && dz > 0 || 
         throw(ArgumentError("dx, dy, and dz should be positive"))
@@ -280,7 +283,10 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs
         ∂Nz = zeros(T2, np, NIC)
     end
     aC = affine == true ? zeros(T2, np, 9) : zeros(T2, 1, 9)
-
+    # clean the memory
+    @mem_clean kwargs mw mi ϵq ϵk ϵv σm cfl ϵijs ϵijw sij ΔFs ΔFw p2n ps pw vs vw
+    GC.gc()
+    # instantiate the particle
     tmp = Particle3D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, 
         AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, dy, dz, p2n, ξ, ξ0, σm, 
         ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, mi, n, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
