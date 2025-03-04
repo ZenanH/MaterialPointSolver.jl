@@ -64,7 +64,7 @@ julia> ]
   - ✅ one-click switch between `FP64` and `FP32`
   - ✅ user-defined algorithms/extensions at any level
 
-## Citation ❤
+## Citation 🔥
 
 If you find `MaterialPointSolver.jl` useful or have used it in your research, please cite it as follows:
 
