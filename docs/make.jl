@@ -1,4 +1,4 @@
-using Documenter, DocumenterTools, DocumenterVitepress, MaterialPointSolver
+using Documenter, DocumenterVitepress, MaterialPointSolver
 
 makedocs(
     modules = [MaterialPointSolver],
