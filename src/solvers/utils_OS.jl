@@ -1146,7 +1146,8 @@ end
                 co += Nij * grid.σm[p2n]
             end
         end
-        Jc = sign(co) * abs(co) ^ T2(0.5)
+        Jr = mp.ΔFs[ix, 1] * mp.ΔFs[ix, 4] - mp.ΔFs[ix, 2] * mp.ΔFs[ix, 3]
+        Jc = (co / Jr) ^ T2(0.5)
         mp.ΔFs[ix, 1] *= Jc; mp.ΔFs[ix, 2] *= Jc; mp.ΔFs[ix, 3] *= Jc; mp.ΔFs[ix, 4] *= Jc
         mp.ΔFs[ix, 1] -= T2(1.0); mp.ΔFs[ix, 4] -= T2(1.0)
         dF1 = mp.ΔFs[ix, 1]; dF2 = mp.ΔFs[ix, 2]; dF3 = mp.ΔFs[ix, 3]; dF4 = mp.ΔFs[ix, 4]
@@ -1193,7 +1194,13 @@ end
                 co += Nij * grid.σm[p2n]
             end
         end
-        Jc = co ^ T2(0.333333)
+        Jr = mp.ΔFs[ix, 1] * mp.ΔFs[ix, 5] * mp.ΔFs[ix, 9] + 
+             mp.ΔFs[ix, 2] * mp.ΔFs[ix, 6] * mp.ΔFs[ix, 7] + 
+             mp.ΔFs[ix, 3] * mp.ΔFs[ix, 4] * mp.ΔFs[ix, 8] - 
+             mp.ΔFs[ix, 7] * mp.ΔFs[ix, 5] * mp.ΔFs[ix, 3] - 
+             mp.ΔFs[ix, 8] * mp.ΔFs[ix, 6] * mp.ΔFs[ix, 1] - 
+             mp.ΔFs[ix, 9] * mp.ΔFs[ix, 4] * mp.ΔFs[ix, 2]
+        Jc = (co / Jr) ^ T2(0.333333)
         mp.ΔFs[ix, 1] *= Jc; mp.ΔFs[ix, 2] *= Jc; mp.ΔFs[ix, 3] *= Jc
         mp.ΔFs[ix, 4] *= Jc; mp.ΔFs[ix, 5] *= Jc; mp.ΔFs[ix, 6] *= Jc
         mp.ΔFs[ix, 7] *= Jc; mp.ΔFs[ix, 8] *= Jc; mp.ΔFs[ix, 9] *= Jc

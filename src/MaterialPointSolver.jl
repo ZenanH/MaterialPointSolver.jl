@@ -35,6 +35,23 @@ macro KAatomic(expr)
     end)
 end
 
+macro mem_clean(kwargs, tmpvars...)
+    esc_kwargs = esc(kwargs)
+    ex = quote end
+    for var in tmpvars
+        var_sym = QuoteNode(var)
+        esc_var = esc(var)
+        push!(ex.args, quote
+            if haskey($esc_kwargs, $var_sym)
+                if get($esc_kwargs, $var_sym, true) == false
+                    $esc_var = similar($esc_var, ntuple(_ -> 1, ndims($esc_var))...)
+                end
+            end
+        end)
+    end
+    ex
+end
+
 # export functions
 export materialpointsolver!
 export @KAatomic, @KAunroll, KAsync

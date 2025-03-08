@@ -72,7 +72,7 @@ end
 
 @user_struct Grid2D
 
-function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0)
+function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0, kwargs...)
     # input check
     x1 < x2 || throw(ArgumentError("x1 should be less than x2"))
     y1 < y2 || throw(ArgumentError("y1 should be less than y2"))
@@ -120,7 +120,10 @@ function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0)
     fd  = zeros(T2, ni_new, DoF_new)
     Δus = zeros(T2, ni    , DoF    )
     Δuw = zeros(T2, ni_new, DoF_new)
-
+    # clean the memory
+    @mem_clean kwargs σm σw Ω ms mw mi ps pw vs vw vsT vwT fs fw fd Δus Δuw
+    GC.gc()
+    # instantiate the grid
     tmp = Grid2D{T1, T2, AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserGridExtra}(phase, 
         x1, x2, y1, y2, dx, dy, nnx, nny, ni, NIC, ξ, ncx, ncy, nc, σm, σw, Ω, ms, mw, mi, 
         ps, pw, vs, vw, vsT, vwT, fs, fw, fd, Δus, Δuw, ext)
@@ -198,7 +201,8 @@ end
 
 @user_struct Grid3D
 
-function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NIC=27, ext=0)
+function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NIC=27, ext=0,
+    kwargs...)
     # input check
     x1 < x2 || throw(ArgumentError("x1 should be less than x2"))
     y1 < y2 || throw(ArgumentError("y1 should be less than y2"))
@@ -258,7 +262,10 @@ function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NI
     fd  = zeros(T2, ni_new, DoF_new)
     Δus = zeros(T2, ni    , DoF    )
     Δuw = zeros(T2, ni_new, DoF_new)
-
+    # clean the memory
+    @mem_clean kwargs σm σw Ω ms mw mi ps pw vs vw vsT vwT fs fw fd Δus Δuw
+    GC.gc()
+    # instantiate the grid
     tmp = Grid3D{T1, T2, AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserGridExtra}(
         phase, x1, x2, y1, y2, z1, z2, dx, dy, dz, nnx, nny, nnz, ni, NIC, ξ, ncx, ncy, ncz, 
         nc, σm, σw, Ω, ms, mw, mi, ps, pw, vs, vw, vsT, vwT, fs, fw, fd, Δus, Δuw, ext)
