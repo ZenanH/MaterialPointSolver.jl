@@ -1,16 +1,22 @@
-using Documenter, DocumenterTools, MaterialPointSolver
+using Documenter, DocumenterTools, DocumenterVitepress, MaterialPointSolver
 
 makedocs(
     modules = [MaterialPointSolver],
-    format = Documenter.HTML(
-        assets = ["assets/favicon.ico"],
-        prettyurls = true
+    format = DocumenterVitepress.MarkdownVitepress(
+        repo = "github.com/LandslideSIM/MaterialPointSolver.jl",
+        devbranch = "main",
+        devurl = "dev"
     ),
-    clean = false,
     sitename = "MaterialPointSolver.jl",
     authors = "Zenan Huo",
     pages = [
         "Home" => "index.md",
+        "Introduction" => Any[
+            "introduction/getstarted.md",
+            "introduction/why.md",
+            "introduction/ecosystem.md",
+            "introduction/tips.md",
+        ],
         "Interface" => Any[
             "interface/structs.md",
             "interface/backendagnostic.md",
@@ -32,14 +38,16 @@ makedocs(
             "advancedtopics/customextension.md",
             "advancedtopics/customfriction.md"
         ],
-        "utils.md"
+        "utils.md",
+        "showcases.md"
     ],
     warnonly = [:missing_docs, :cross_references],
 )
 
 deploydocs(
-    repo = "github.com/LandslideSIM/MaterialPointSolver.jl.git",
+    repo = "github.com/LandslideSIM/MaterialPointSolver.jl",
     target = "build",
+    devbranch = "main",
     branch = "gh-pages",
-    versions=["stable" => "v^", "dev" => "dev"]
+    push_preview = true,
 )
