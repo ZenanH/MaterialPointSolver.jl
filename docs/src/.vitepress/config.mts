@@ -34,7 +34,7 @@ export default defineConfig({
   cleanUrls: true,
   outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
   head: [
-    ['link', { rel: 'icon', href: 'https://cdn.jsdelivr.net/gh/LandslideSIM/MaterialPointSolver.jl/docs/src/assets/favlogo.png' }],
+    ['link', { rel: 'icon', href: 'https://cdn.jsdelivr.net/gh/LandslideSIM/MaterialPointSolver.jl@main/docs/src/assets/favlogo.png' }],
     ['script', {src: `${getBaseRepository(baseTemp.base)}versions.js`}],
     // ['script', {src: '/versions.js'], for custom domains, I guess if deploy_url is available.
     ['script', {src: `${baseTemp.base}siteinfo.js`}]
