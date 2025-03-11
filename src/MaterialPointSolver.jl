@@ -13,6 +13,8 @@ module MaterialPointSolver
 using Adapt, BenchmarkTools, Dates, DelimitedFiles, HDF5, KernelAbstractions, Printf, 
       ProgressMeter, SysInfo# PrecompileTools
 
+import Serialization: serialize, deserialize
+import CodecZlib: ZlibCompressorStream, ZlibDecompressorStream
 import KernelAbstractions.synchronize as KAsync
 import KernelAbstractions.Extras: @unroll as @KAunroll
 import Suppressor.@suppress as @MPSsuppress

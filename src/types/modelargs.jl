@@ -64,7 +64,7 @@ function UserArgs2D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     T2 = ϵ=="FP32" ? Float32 : Float64
     # project default value
     folderdir = joinpath(abspath(project_path), project_name)
-    mkpath(folderdir); rm(folderdir, recursive=true, force=true); mkpath(folderdir)
+    isdir(folderdir) || mkpath(folderdir)
     cop_set = [:OS, :TS]
     bas_set = [:uGIMP, :linear, :bspline2, :bspline3]
     dev_set = [:CPU, :CUDA, :ROCm, :oneAPI, :Metal]
@@ -150,7 +150,7 @@ function UserArgs3D(; Ttol, Te=0, ΔT, time_step=:fixed, FLIP=1, PIC=0, constitu
     T2 = ϵ=="FP32" ? Float32 : Float64
     # project default value
     folderdir = joinpath(abspath(project_path), project_name)
-    mkpath(folderdir); rm(folderdir, recursive=true, force=true); mkpath(folderdir)
+    isdir(folderdir) || mkpath(folderdir)
     cop_set = [:OS, :TS]
     bas_set = [:uGIMP, :linear, :bspline2, :bspline3]
     dev_set = [:CPU, :CUDA, :ROCm, :oneAPI, :Metal]

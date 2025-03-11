@@ -6,16 +6,18 @@
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
-|  Functions  : 1. host2device  [2D & 3D]                                                  |
-|               2. device2host! [2D & 3D]                                                  |
-|               3. clean_gpu!   [2D & 3D]                                                  |
-|               4. memcpy!                                                                 |
-|               5. Tpeak                                                                   |
-|               6. getBackend                                                              |
-|               7. getArray                                                                |
+|  Functions  : 1. host2device    [2D & 3D]                                                |
+|               2. device2host_p! [2D & 3D]                                                |
+|               3. device2host!   [2D & 3D]                                                |
+|               4. clean_gpu!     [2D & 3D]                                                |
+|               5. memcpy!                                                                 |
+|               6. Tpeak                                                                   |
+|               7. getBackend                                                              |
+|               8. getArray                                                                |
 +==========================================================================================#
 
-export host2device, device2host!, clean_device!, memcpy!, Tpeak, getBackend, getArray
+export host2device, device2host_p!, device2host!, clean_device!, memcpy!, Tpeak, getBackend, 
+       getArray
 
 """
     host2device(grid::DeviceGrid{T1, T2}, mp::DeviceParticle{T1, T2}, 
@@ -37,18 +39,43 @@ end
 
 """
     device2host!(args::DeviceArgs{T1, T2}, mp::DeviceParticle{T1, T2}, 
-        dev_mp::GPUDeviceParticle{T1, T2}, ::Val{:CPU/:CUDA/...}; verbose::Bool=false)
+        dev_mp::GPUDeviceParticle{T1, T2}, ::Val{:CPU})
 
 Description:
 ---
-Transfer data from device to host. (2D & 3D)
+Transfer data partialy from device to host. (2D & 3D)
 """
 function device2host!(
     args   ::    DeviceArgs{T1, T2}, 
     mp     ::DeviceParticle{T1, T2}, 
     dev_mp ::DeviceParticle{T1, T2}, 
-           ::Val{:CPU};
-    verbose::Bool=false
+           ::Val{:CPU}
+) where {T1, T2}
+    return nothing
+end
+
+"""
+    device2host!(grid::DeviceArgs{T1, T2}, mp::DeviceParticle{T1, T2}, 
+        attr::DeviceProperty{T1, T2}, bc::DeviceVBoundary{T1, T2}, 
+        dev_grid::GPUDeviceGrid{T1, T2}, dev_mp::GPUDeviceParticle{T1, T2}, 
+        dev_attr::GPUDeviceParticle{T1, T2}, dev_bc::GPUDeviceVBoundary{T1, T2}, 
+        ::Val{:CPU}; verbose::Bool=false)
+
+Description:
+---
+Transfer full data from device to host. (2D & 3D)
+"""
+function device2host!(
+    grid    ::     DeviceGrid{T1, T2},
+    mp      :: DeviceParticle{T1, T2},
+    attr    :: DeviceProperty{T1, T2},
+    bc      ::DeviceVBoundary{T1, T2},
+    dev_grid::     DeviceGrid{T1, T2}, 
+    dev_mp  :: DeviceParticle{T1, T2}, 
+    dev_attr:: DeviceProperty{T1, T2}, 
+    dev_bc  ::DeviceVBoundary{T1, T2},
+            ::Val{:CPU};
+    verbose ::Bool=true
 ) where {T1, T2}
     return nothing
 end
