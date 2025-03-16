@@ -134,7 +134,7 @@ This function will start to run the MPM solver.
         args.end_time = time()
     end
     KAsync(getBackend(Val(args.device)))
-    device2host!(args, mp, dev_mp, Val(args.device), verbose=true)
+    device2host!(grid, mp, attr, bc, dev_grid, dev_mp, dev_attr, dev_bc, Val(args.device))
     clean_device!(dev_grid, dev_mp, dev_attr, dev_bc, Val(args.device))
     return nothing
 end

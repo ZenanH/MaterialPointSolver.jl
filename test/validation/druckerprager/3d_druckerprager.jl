@@ -8,12 +8,14 @@
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
 +==========================================================================================#
 
+using WGLMakie
 using MaterialPointSolver
 using MaterialPointGenerator
-using CairoMakie
-using CUDA
+using Metal
+WGLMakie.activate!(; resize_to=:parent)
+backend_name = :Metal
 
-MaterialPointSolver.warmup(Val(:CUDA))
+MaterialPointSolver.warmup(Val(backend_name))
 
 # 0.01000:   8000 pts
 # 0.00660:  27000 pts
@@ -21,24 +23,24 @@ MaterialPointSolver.warmup(Val(:CUDA))
 # 0.00400: 125000 pts | grid: x[-0.008, 0.808] y[-0.008, 0.056] z[-0.08, 0.108]
 # 0.00333: 216000 pts
 # 0.00250: 512000 pts
-init_grid_space_x = 0.0025
-init_grid_space_y = 0.0025
-init_grid_space_z = 0.0025
+init_grid_space_x = 0.005
+init_grid_space_y = 0.005
+init_grid_space_z = 0.005
 init_grid_range_x = [-0.02, 0.07]
 init_grid_range_y = [-0.02, 0.75]
 init_grid_range_z = [-0.02, 0.12]
 init_mp_in_space  = 2
-init_T            = 1
+init_T            = 0.6
 init_ρs           = 2650
 init_ν            = 0.3
 init_Ks           = 7e5
 init_Es           = init_Ks * (3 * (1 - 2 * init_ν))
 init_Gs           = init_Es / (2 * (1 +     init_ν))
 init_ΔT           = 0.5 * init_grid_space_x / sqrt(init_Es / init_ρs)
-init_step         = floor(init_T / init_ΔT / 50)
+init_step         = floor(init_T / init_ΔT / 100)
 init_ϕ            = deg2rad(19.8)
-init_FP           = "FP64"
-init_basis        = :uGIMP
+init_FP           = "FP32"
+init_basis        = :bspline2
 init_NIC          = 27
 
 # args setup
@@ -54,9 +56,9 @@ args = UserArgs3D(
     hdf5         = false,
     hdf5_step    = init_step,
     MVL          = false,
-    device       = :CUDA,
+    device       = backend_name,
     coupling     = :OS,
-    scheme       = :MUSL,
+    scheme       = :MLS,
     gravity      = -9.8,
     ζs           = 0,
     project_name = "3d_druckerprager",
@@ -89,14 +91,16 @@ pts = meshbuilder(0 + dx / 2 : dx : 0.05 - dx / 2,
                   0 + dz / 2 : dz : 0.10 - dz / 2)
 mpρs = ones(size(pts, 1)) * init_ρs
 mp = UserParticle3D(
-    ϵ     = init_FP,
-    phase = 1,
-    NIC   = init_NIC,
-    dx    = dx,
-    dy    = dy,
-    dz    = dz,
-    ξ     = pts,
-    ρs    = mpρs
+    ϵ      = init_FP,
+    phase  = 1,
+    NIC    = init_NIC,
+    dx     = dx,
+    dy     = dy,
+    dz     = dz,
+    ξ      = pts,
+    ρs     = mpρs,
+    affine = true,
+    mls    = true
 )
 
 # property setup
@@ -139,19 +143,30 @@ bc = UserVBoundary3D(
 )
 
 # solver setup
-materialpointsolver!(args, grid, mp, attr, bc)
+function tmpf(grid, mp, attr, bc, vid)
+    ξ0 = Array{Float32, 2}(mp.ξ0[vid, :])
+    ξ1 = Array{Float32, 2}(mp.ξ[vid, :] )
 
-let
-    figfont = MaterialPointSolver.tnr
-    fig = Figure(size=(1200, 700), fonts=(; regular=figfont, bold=figfont), fontsize=30)
-    ax = Axis3(fig[1, 1], xlabel=L"x\ (m)", ylabel=L"y\ (m)", zlabel=L"z\ (m)", 
-        aspect=:data, azimuth=0.2*π, elevation=0.1*π, xlabeloffset=60, zlabeloffset=80,
-        protrusions=100, xticks=(0:0.04:0.04), height=450, width=950)
-    pl1 = scatter!(ax, mp.ξ, color=log10.(mp.ϵq.+1), colormap=:jet, markersize=3,
-        colorrange=(0, 1))
-    Colorbar(fig[1, 1], limits=(0, 1), colormap=:jet, size=16, ticks=0:0.5:1, spinewidth=0,
-        label=L"log_{10}(\epsilon_{II}+1)", vertical=false, tellwidth=false, width=200,
-        halign=:right, valign=:top, flipaxis=false)
-    display(fig)
+    val = @. sqrt((ξ1[:, 1] - ξ0[:, 1])^2 .+ 
+                  (ξ1[:, 2] - ξ0[:, 2])^2 .+ 
+                  (ξ1[:, 3] - ξ0[:, 3])^2)
+    return val
 end
-rm(joinpath(abspath(args.project_path), args.project_name), recursive=true, force=true)
+plotconfig = DebugPlot(pointsize=1, axis=true, axfontsize=10, calculate=tmpf, cbname="disp", pointnum=1000)
+debug = DebugConfig(plotconfig)
+materialpointsolver!(args, grid, mp, attr, bc, debug)
+
+# let
+#     figfont = MaterialPointSolver.tnr
+#     fig = Figure(size=(1200, 700), fonts=(; regular=figfont, bold=figfont), fontsize=30)
+#     ax = Axis3(fig[1, 1], xlabel=L"x\ (m)", ylabel=L"y\ (m)", zlabel=L"z\ (m)", 
+#         aspect=:data, azimuth=0.2*π, elevation=0.1*π, xlabeloffset=60, zlabeloffset=80,
+#         protrusions=100, xticks=(0:0.04:0.04), height=450, width=950)
+#     pl1 = scatter!(ax, mp.ξ, color=log10.(mp.ϵq.+1), colormap=:jet, markersize=3,
+#         colorrange=(0, 1))
+#     Colorbar(fig[1, 1], limits=(0, 1), colormap=:jet, size=16, ticks=0:0.5:1, spinewidth=0,
+#         label=L"log_{10}(\epsilon_{II}+1)", vertical=false, tellwidth=false, width=200,
+#         halign=:right, valign=:top, flipaxis=false)
+#     display(fig)
+# end
+# rm(joinpath(abspath(args.project_path), args.project_name), recursive=true, force=true)
