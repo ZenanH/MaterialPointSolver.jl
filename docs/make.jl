@@ -1,4 +1,4 @@
-using Documenter, DocumenterVitepress, MaterialPointSolver
+using Documenter, DocumenterVitepress, MaterialPointSolver, WGLMakie
 
 makedocs(
     modules = [MaterialPointSolver],
@@ -23,8 +23,7 @@ makedocs(
             "interface/kernelfunctions.md",
             "interface/mpmprocess.md",
             "interface/workflow.md",
-            "interface/import.md",
-            "interface/export.md"
+            "interface/imexport.md",
         ],
         "Tutorials" => Any[
             "tutorials/example1.md",
@@ -38,8 +37,9 @@ makedocs(
             "advancedtopics/customextension.md",
             "advancedtopics/customfriction.md"
         ],
-        "utils.md",
-        "showcases.md"
+        "Useful Tools" => Any[
+            "utils/debug.md",
+        ]
     ],
     warnonly = [:missing_docs, :cross_references],
 )
