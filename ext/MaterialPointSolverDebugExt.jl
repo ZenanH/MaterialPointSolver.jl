@@ -9,7 +9,7 @@ import MaterialPointSolver: DeviceArgs, DeviceGrid, DeviceParticle, DeviceProper
                             DeviceVBoundary, DebugConfig
 import MaterialPointSolver: initmpstatus!, progressinfo, host2device, updatepb!, KAsync,
                             getBackend, clean_device!
-import StatsBase: mean
+import StatsBase: mean, sample
 
 include(joinpath(@__DIR__, "DebugExt/plotutils.jl"))
 
@@ -39,8 +39,6 @@ function materialpointsolver!(
     return nothing
 end
 
-
-
 @views function submit_work!(
     args    ::     DeviceArgs{T1, T2},
     grid    ::     DeviceGrid{T1, T2}, 
@@ -58,12 +56,13 @@ end
     ΔT = args.ΔT
     #ΔT = args.time_step==:auto ? cfl(args, grid, mp, attr, Val(args.coupling)) : args.ΔT
     dev_grid, dev_mp, dev_attr, dev_bc = host2device(grid, mp, attr, bc, Val(args.device))
-    getvattr = debug.plot.calculate(mp, debug.plot.attr)
 
     # plot setup
+    vid = mp.np > debug.plot.pointnum ? sample(1:mp.np, debug.plot.pointnum, replace=false) : (1:mp.np)
+    getvattr = debug.plot.calculate(grid, mp, attr, bc, vid)
     pdims = size(mp.ξ, 2)
     vtime = Observable(Ti)
-    vpts  = Observable(Array{Float32, 2}(mp.ξ))
+    vpts  = Observable(Array{Float32, 2}(mp.ξ[vid, :]))
     vattr = Observable(Array{Float32, 1}(getvattr))
 
     set_theme!(gettheme())
@@ -103,8 +102,8 @@ end
         args.iter_num += 1
         updatepb!(pc, Ti, args.Ttol, pb)
         if (debug_switch == args.hdf5_step) || (debug_switch == T1(0))
-            copyto!(vpts[], dev_mp.ξ)
-            copyto!(vattr[], debug.plot.calculate(dev_mp, debug.plot.attr))
+            copyto!(vpts[], dev_mp.ξ[vid, :])
+            copyto!(vattr[], debug.plot.calculate(dev_grid, dev_mp, dev_attr, dev_bc, vid))
             notify(vpts)
             notify(vattr)
             vtime[] = Ti

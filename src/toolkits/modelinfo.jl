@@ -63,6 +63,14 @@ macro memcheck(expr)
     end
 end
 
+"""
+    exportmodel(args, grid, mp, attr, bc; model_file="temp.mpm", compress=true)
+
+Description:
+---
+Export model data to a compressed or uncompressed file (.mpm). If user does not identify the
+file path, the `.mpm` file will save in the project directory with the project name.
+"""
 function exportmodel(
     args      ::     DeviceArgs{T1, T2}, 
     grid      ::     DeviceGrid{T1, T2},
@@ -111,6 +119,14 @@ function exportmodel(
     return nothing
 end
 
+"""
+    importmodel(mpm_file::String)
+
+Description:
+---
+Import model data from a compressed or uncompressed file (.mpm). This function will detect 
+wheather the model file is compressed or not, and then read the model data.
+"""
 function importmodel(mpm_file::String)
     # input file check
     isfile(mpm_file) || throw(ArgumentError("file not found: $mpm_file"))
