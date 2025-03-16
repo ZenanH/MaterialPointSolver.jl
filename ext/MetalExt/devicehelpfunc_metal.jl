@@ -11,6 +11,7 @@
 |               3. clean_gpu!   [2D & 3D]                                                  |
 |               4. Tpeak                                                                   |
 |               5. getBackend                                                              |
+|               6. getArray                                                                |
 +==========================================================================================#
 
 function host2device(
@@ -38,8 +39,7 @@ function device2host!(
     args   ::    DeviceArgs{T1, T2}, 
     mp     ::DeviceParticle{T1, T2}, 
     dev_mp ::DeviceParticle{T1, T2}, 
-           ::Val{:Metal}; 
-    verbose::Bool=false
+           ::Val{:Metal}
 ) where {T1, T2}
     copyto!(mp.σm  , dev_mp.σm  )
     copyto!(mp.vs  , dev_mp.vs  )
@@ -58,10 +58,52 @@ function device2host!(
         copyto!(mp.ϵijw, dev_mp.ϵijw);
         copyto!(mp.n   , dev_mp.n   );
     ) : nothing
-    if verbose == true
+
+    return nothing
+end
+
+function device2host!(
+    grid    ::     DeviceGrid{T1, T2},
+    mp      :: DeviceParticle{T1, T2},
+    attr    :: DeviceProperty{T1, T2},
+    bc      ::DeviceVBoundary{T1, T2},
+    dev_grid::     DeviceGrid{T1, T2}, 
+    dev_mp  :: DeviceParticle{T1, T2}, 
+    dev_attr:: DeviceProperty{T1, T2}, 
+    dev_bc  ::DeviceVBoundary{T1, T2},
+            ::Val{:Metal};
+    verbose ::Bool=true
+) where {T1, T2}
+    # download grid data from device
+    @inbounds for field in fieldnames(typeof(grid))
+        if getfield(grid, field) isa AbstractArray
+            copyto!(getfield(grid, field), getfield(dev_grid, field))
+        end
+    end
+    # download mp data from device
+    @inbounds for field in fieldnames(typeof(mp))
+        if getfield(mp, field) isa AbstractArray
+            copyto!(getfield(mp, field), getfield(dev_mp, field))
+        end
+    end
+    # download attr data from device
+    @inbounds for field in fieldnames(typeof(attr))
+        if getfield(attr, field) isa AbstractArray
+            copyto!(getfield(attr, field), getfield(dev_attr, field))
+        end
+    end
+    # download bc data from device
+    @inbounds for field in fieldnames(typeof(bc))
+        if getfield(bc, field) isa AbstractArray
+            copyto!(getfield(bc, field), getfield(dev_bc, field))
+        end
+    end
+
+    if verbose
         content = "downloading from :Metal [1] → host"
         println("\e[1;31m[▼ I/O:\e[0m \e[0;31m$(content)\e[0m")
     end
+
     return nothing
 end
 
