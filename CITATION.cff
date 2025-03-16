@@ -1,32 +1,29 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+message: "If you find MaterialPointSolver.jl useful or have used it in your research, please cite it as follows."
 authors:
-- family-names: "Huo"
-  given-names: "Zenan"
-  orcid: "https://orcid.org/0000-0000-0000-0000"
-- family-names: "Bot"
-  given-names: "Hew"
-  orcid: "https://orcid.org/0000-0000-0000-0000"
-title: "My Research Software"
-version: 2.0.4
-doi: 10.5281/zenodo.1234
-date-released: 2017-12-18
-url: "https://github.com/github-linguist/linguist"
-preferred-citation:
-  type: article
-  authors:
-  - family-names: "Lisa"
-    given-names: "Mona"
-    orcid: "https://orcid.org/0000-0000-0000-0000"
-  - family-names: "Bot"
-    given-names: "Hew"
-    orcid: "https://orcid.org/0000-0000-0000-0000"
-  doi: "10.0000/00000"
-  journal: "Journal Title"
-  month: 9
-  start: 1 # First page number
-  end: 10 # Last page number
-  title: "My awesome research software"
-  issue: 1
-  volume: 1
-  year: 2021
+  - family-names: Huo
+    given-names: Zenan
+  - family-names: Alkhimenkov
+    given-names: Yury
+  - family-names: Jaboyedoff
+    given-names: Michel
+  - family-names: Podladchikov
+    given-names: Yury
+  - family-names: Räss
+    given-names: Ludovic
+  - family-names: Wyser
+    given-names: Emmanuel
+  - family-names: Mei
+    given-names: Gang
+title: "A high-performance backend-agnostic Material Point Method solver in Julia"
+journal: "Computers and Geotechnics"
+volume: 183
+start: 107189  # 对应 pages 的起始页码
+year: 2025
+doi: "10.1016/j.compgeo.2025.107189"
+url: "https://www.sciencedirect.com/science/article/pii/S0266352X25001387"
+keywords:
+  - "MPM"
+  - "Julia language"
+  - "Heterogeneous computing"
+  - "Effective memory throughput"
