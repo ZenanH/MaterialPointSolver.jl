@@ -65,7 +65,7 @@ end
     vpts  = Observable(Array{Float32, 2}(mp.ξ[vid, :]))
     vattr = Observable(Array{Float32, 1}(getvattr))
 
-    set_theme!(gettheme())
+    Makie.set_theme!(WGLMakie=(resize_to=:body,), gettheme())
     fig = Figure()
     ax = LScene(fig[1, 1], show_axis=debug.plot.axis)
     if debug.plot.axis

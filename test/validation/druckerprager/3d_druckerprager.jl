@@ -11,9 +11,8 @@
 using WGLMakie
 using MaterialPointSolver
 using MaterialPointGenerator
-using Metal
-WGLMakie.activate!(; resize_to=:parent)
-backend_name = :Metal
+using CUDA
+backend_name = :CUDA
 
 MaterialPointSolver.warmup(Val(backend_name))
 
@@ -23,9 +22,9 @@ MaterialPointSolver.warmup(Val(backend_name))
 # 0.00400: 125000 pts | grid: x[-0.008, 0.808] y[-0.008, 0.056] z[-0.08, 0.108]
 # 0.00333: 216000 pts
 # 0.00250: 512000 pts
-init_grid_space_x = 0.005
-init_grid_space_y = 0.005
-init_grid_space_z = 0.005
+init_grid_space_x = 0.0025
+init_grid_space_y = 0.0025
+init_grid_space_z = 0.0025
 init_grid_range_x = [-0.02, 0.07]
 init_grid_range_y = [-0.02, 0.75]
 init_grid_range_z = [-0.02, 0.12]
@@ -152,7 +151,7 @@ function tmpf(grid, mp, attr, bc, vid)
                   (ξ1[:, 3] - ξ0[:, 3])^2)
     return val
 end
-plotconfig = DebugPlot(pointsize=1, axis=true, axfontsize=10, calculate=tmpf, cbname="disp", pointnum=1000)
+plotconfig = DebugPlot(pointsize=1, axis=true, axfontsize=10, calculate=tmpf, cbname="disp")
 debug = DebugConfig(plotconfig)
 materialpointsolver!(args, grid, mp, attr, bc, debug)
 
