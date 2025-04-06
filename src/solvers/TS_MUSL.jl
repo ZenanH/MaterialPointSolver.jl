@@ -23,6 +23,7 @@ function procedure!(
 ) where {T1, T2}
     Ti < args.Te ? G = args.gravity / args.Te * Ti : G = args.gravity
     dev = getBackend(Val(args.device))
+    # MPM procedure
     resetgridstatus_TS!(dev)(ndrange=grid.ni, grid)
     resetmpstatus_TS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
     P2G_TS!(dev)(ndrange=mp.np, grid, mp, attr, G)
@@ -30,25 +31,28 @@ function procedure!(
     doublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
     doublemapping2_TS!(dev)(ndrange=mp.np, grid, mp)
     doublemapping3_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT)
-    G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
+    # F-bar based volumetric locking elimination approach
+    if args.MVL == false
+        G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
+    else
+        G2Pvl1_TS!(dev)(ndrange=mp.np, grid, mp)
+        fastdiv_TS!(dev)(ndrange=grid.ni, grid)
+        G2Pvl2_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
+    end
+    # update stress status
     if args.constitutive == :hyperelastic
         hyE!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :linearelastic
         liE!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :druckerprager
         liE!(dev)(ndrange=mp.np, mp, attr)
-        if Ti ≥ args.Te
-            dpP!(dev)(ndrange=mp.np, mp, attr)
-        end
+        Ti ≥ args.Te && dpP!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :mohrcoulomb
         liE!(dev)(ndrange=mp.np, mp, attr)
-        if Ti ≥ args.Te
-            mcP!(dev)(ndrange=mp.np, mp, attr)
-        end
-    end
-    if args.MVL == true
-        vollock1_TS!(dev)(ndrange=mp.np, grid, mp)
-        vollock2_TS!(dev)(ndrange=mp.np, grid, mp)
+        Ti ≥ args.Te && mcP!(dev)(ndrange=mp.np, mp, attr)
+    elseif args.constitutive == :bingham
+        Ti < args.Te && liE!(dev)(ndrange=mp.np, mp, attr)
+        Ti ≥ args.Te && bhP!(dev)(ndrange=mp.np, mp, attr, inv(ΔT))
     end
     return nothing
 end

@@ -148,12 +148,20 @@ function procedure!(
 ) where {T1, T2}
     G = Ti < args.Te ? args.gravity / args.Te * Ti : args.gravity
     dev = getBackend(Val(args.device))
+    # MPM procedure
     resetgridstatus_TS!(dev)(ndrange=grid.ni, grid)
     resetmpstatus_TS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
     P2G_TS!(dev)(ndrange=mp.np, grid, mp, attr, G)
     solvegrid_USL_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs, args.ζw)
     doublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
-    G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
+    # F-bar based volumetric locking elimination approach
+    if args.MVL == false
+        G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
+    else
+        G2Pvl1_TS!(dev)(ndrange=mp.np, grid, mp)
+        fastdiv_TS!(dev)(ndrange=grid.ni, grid)
+        G2Pvl2_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
+    end
     if args.constitutive == :hyperelastic
         hyE!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :linearelastic
@@ -168,10 +176,6 @@ function procedure!(
         if Ti ≥ args.Te
             mcP!(dev)(ndrange=mp.np, mp, attr)
         end
-    end
-    if args.MVL == true
-        vollock1_TS!(dev)(ndrange=mp.np, grid, mp)
-        vollock2_TS!(dev)(ndrange=mp.np, grid, mp)
-    end                                  
+    end                                
     return nothing
 end

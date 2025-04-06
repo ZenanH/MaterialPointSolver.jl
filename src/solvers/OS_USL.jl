@@ -126,7 +126,7 @@ function procedure!(
         G2P_OS!(dev)(ndrange=mp.np, grid, mp, ΔT)
     else
         G2Pvl1_OS!(dev)(ndrange=mp.np, grid, mp)
-        fastdiv!(dev)(ndrange=grid.ni, grid)
+        fastdiv_OS!(dev)(ndrange=grid.ni, grid)
         G2Pvl2_OS!(dev)(ndrange=mp.np, grid, mp, ΔT)
     end
     # update stress status
