@@ -28,11 +28,10 @@
 |               20. doublemapping3_TS!  [3D]                                               |
 |               21. G2P_TS!             [2D]                                               |
 |               22. G2P_TS!             [3D]                                               |
-|               23. G2Pvl1_TS!          [2D]                                               |
-|               24. G2Pvl1_TS!          [3D]                                               |
-|               25. G2Pvl2_TS!          [2D]                                               |
-|               26. G2Pvl2_TS!          [3D]                                               |
-|               27. fastdiv_TS!         [- ]                                               |
+|               23. vollock1_TS!        [2D]                                               |
+|               24. vollock1_TS!        [3D]                                               |
+|               25. vollock2_TS!        [2D]                                               |
+|               26. vollock2_TS!        [3D]                                               |
 +==========================================================================================#
 
 export resetgridstatus_TS! 
@@ -43,9 +42,8 @@ export doublemapping1_TS!
 export doublemapping2_TS!
 export doublemapping3_TS!
 export G2P_TS! 
-export G2Pvl1_TS!
-export G2Pvl2_TS!
-export fastdiv_TS!
+export vollock1_TS!
+export vollock2_TS!
 
 """
     resetgridstatus_TS!(grid::DeviceGrid2D)
@@ -55,14 +53,16 @@ Description: [TS: two-phase single-point MPM]
 ---
 Reset grid variables.
 """
-@kernel inbounds=true function resetgridstatus_TS!(
+@kernel function resetgridstatus_TS!(
     grid::DeviceGrid2D{T1, T2}
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        grid.σm[ix]    = T2(0.0)
-        grid.σw[ix]    = T2(0.0)
-        grid.Ω[ix]     = T2(0.0)
+        if ix ≤ grid.nc
+            grid.σm[ix] = T2(0.0)
+            grid.σw[ix] = T2(0.0)
+            grid.Ω[ix]  = T2(0.0)
+        end
         grid.ms[ix]    = T2(0.0)
         grid.mi[ix]    = T2(0.0)
         grid.mw[ix]    = T2(0.0)
@@ -79,14 +79,16 @@ Reset grid variables.
     end
 end
 
-@kernel inbounds=true function resetgridstatus_TS!(
+@kernel function resetgridstatus_TS!(
     grid::DeviceGrid3D{T1, T2}
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        grid.σm[ix]    = T2(0.0)
-        grid.σw[ix]    = T2(0.0)
-        grid.Ω[ix]     = T2(0.0)
+        if ix ≤ grid.nc
+            grid.σm[ix] = T2(0.0)
+            grid.σw[ix] = T2(0.0)
+            grid.Ω[ix]  = T2(0.0)
+        end
         grid.ms[ix]    = T2(0.0)
         grid.mi[ix]    = T2(0.0)
         grid.mw[ix]    = T2(0.0)
@@ -124,7 +126,7 @@ Description: [TS: two-phase single-point MPM]
     - `:bspline3` : 3rd-order B-spline basis function
 Note that `basis_type` is a valued type, so it should be passed by `Val{:linear}` or `Val{:uGIMP}`.
 """
-@kernel inbounds=true function resetmpstatus_TS!(
+@kernel function resetmpstatus_TS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
         ::Val{:linear}
@@ -166,7 +168,7 @@ Note that `basis_type` is a valued type, so it should be passed by `Val{:linear}
     end
 end
 
-@kernel inbounds=true function resetmpstatus_TS!(
+@kernel function resetmpstatus_TS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
         ::Val{:linear}
@@ -207,7 +209,7 @@ end
     end
 end
 
-@kernel inbounds=true function resetmpstatus_TS!(
+@kernel function resetmpstatus_TS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
         ::Val{:uGIMP}
@@ -254,7 +256,7 @@ end
     end
 end
 
-@kernel inbounds=true function resetmpstatus_TS!(
+@kernel function resetmpstatus_TS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
         ::Val{:uGIMP}
@@ -313,7 +315,7 @@ end
     end
 end
 
-@kernel inbounds = true function resetmpstatus_TS!(
+@kernel function resetmpstatus_TS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
         ::Val{:bspline2}
@@ -361,7 +363,7 @@ end
     end
 end
 
-@kernel inbounds = true function resetmpstatus_TS!(
+@kernel function resetmpstatus_TS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
         ::Val{:bspline2}
@@ -421,7 +423,7 @@ end
     end
 end
 
-@kernel inbounds = true function resetmpstatus_TS!(
+@kernel function resetmpstatus_TS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
         ::Val{:bspline3}
@@ -485,7 +487,7 @@ end
     end
 end
 
-@kernel inbounds = true function resetmpstatus_TS!(
+@kernel function resetmpstatus_TS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
         ::Val{:bspline3}
@@ -577,7 +579,7 @@ Description: [TS: two-phase single-point MPM]
 ---
 `P2G` procedure for scattering the mass, momentum, and forces from particles to grid.
 """
-@kernel inbounds=true function P2G_TS!(
+@kernel function P2G_TS!(
     grid   ::    DeviceGrid2D{T1, T2},
     mp     ::DeviceParticle2D{T1, T2},
     attr   ::  DeviceProperty{T1, T2},
@@ -589,7 +591,7 @@ Description: [TS: two-phase single-point MPM]
         mps, mpw, mpi = mp.ms[ix], mp.mw[ix], mp.mi[ix]
         mppsx, mppsy, mppwx, mppwy = mp.ps[ix, 1], mp.ps[ix, 2], mp.pw[ix, 1], mp.pw[ix, 2]
         mpvsx, mpvsy, mpvwx, mpvwy = mp.vs[ix, 1], mp.vs[ix, 2], mp.vw[ix, 1], mp.vw[ix, 2]
-        drag = (n * mpw * gravity) / attr.k[attr.nid[ix]]
+        drag = (n * mpw * T2(9.8)) / attr.k[attr.nid[ix]]
         σxx, σyy, σxy = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 4]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Ni = mp.Nij[ix, iy]
@@ -619,7 +621,7 @@ Description: [TS: two-phase single-point MPM]
     end
 end
 
-@kernel inbounds=true function P2G_TS!(
+@kernel function P2G_TS!(
     grid   ::    DeviceGrid3D{T1, T2},
     mp     ::DeviceParticle3D{T1, T2},
     attr   ::  DeviceProperty{T1, T2},
@@ -633,7 +635,7 @@ end
         mppwx, mppwy, mppwz = mp.pw[ix, 1], mp.pw[ix, 2], mp.pw[ix, 3]
         mpvsx, mpvsy, mpvsz = mp.vs[ix, 1], mp.vs[ix, 2], mp.vs[ix, 3]
         mpvwx, mpvwy, mpvwz = mp.vw[ix, 1], mp.vw[ix, 2], mp.vw[ix, 3]
-        drag = (n * mpw * gravity) / attr.k[attr.nid[ix]]
+        drag = (n * mpw * T2(9.8)) / attr.k[attr.nid[ix]]
         σxx, σyy, σzz = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 3]
         σxy, σyz, σzx = mp.σij[ix, 4], mp.σij[ix, 5], mp.σij[ix, 6]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
@@ -684,7 +686,7 @@ Description: [TS: two-phase single-point MPM]
 ---
 Solve equations on the grid and apply boundary conditions.
 """
-@kernel inbounds=true function solvegrid_TS!(
+@kernel function solvegrid_TS!(
     grid::     DeviceGrid2D{T1, T2},
     bc  ::DeviceVBoundary2D{T1, T2},
     ΔT  ::T2,
@@ -704,8 +706,8 @@ Solve equations on the grid and apply boundary conditions.
         # compute nodal velocity
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
-        grid.vw[ix, 1] = grid.pw[ix, 1] * mw_denom
-        grid.vw[ix, 2] = grid.pw[ix, 2] * mw_denom
+        grid.vw[ix, 1] = grid.pw[ix, 1] * mi_denom
+        grid.vw[ix, 2] = grid.pw[ix, 2] * mi_denom
         # compute damping force
         dampvw = -ζw * sqrt( grid.fw[ix, 1] * grid.fw[ix, 1]  + 
                              grid.fw[ix, 2] * grid.fw[ix, 2] )
@@ -714,8 +716,8 @@ Solve equations on the grid and apply boundary conditions.
                             (grid.fs[ix, 2] - grid.fw[ix, 2]) * 
                             (grid.fs[ix, 2] - grid.fw[ix, 2]))
         # compute node acceleration
-        awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) + grid.fd[ix, 1])
-        awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) + grid.fd[ix, 2])
+        awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) - grid.fd[ix, 1])
+        awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) - grid.fd[ix, 2])
         asx = ms_denom * (-grid.mi[ix] * awx + grid.fs[ix, 1] + 
             dampvw * sign(grid.vw[ix, 1]) + dampvs * sign(grid.vs[ix, 1]))
         asy = ms_denom * (-grid.mi[ix] * awy + grid.fs[ix, 2] + 
@@ -738,7 +740,7 @@ Solve equations on the grid and apply boundary conditions.
     end
 end
 
-@kernel inbounds=true function solvegrid_TS!(
+@kernel function solvegrid_TS!(
     grid::     DeviceGrid3D{T1, T2},
     bc  ::DeviceVBoundary3D{T1, T2},
     ΔT  ::T2,
@@ -761,9 +763,9 @@ end
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
         grid.vs[ix, 3] = grid.ps[ix, 3] * ms_denom
-        grid.vw[ix, 1] = grid.pw[ix, 1] * mw_denom
-        grid.vw[ix, 2] = grid.pw[ix, 2] * mw_denom
-        grid.vw[ix, 3] = grid.pw[ix, 3] * mw_denom
+        grid.vw[ix, 1] = grid.pw[ix, 1] * mi_denom
+        grid.vw[ix, 2] = grid.pw[ix, 2] * mi_denom
+        grid.vw[ix, 3] = grid.pw[ix, 3] * mi_denom
         # compute damping force
         dampvw = -ζw * sqrt( grid.fw[ix, 1] * grid.fw[ix, 1]  + 
                              grid.fw[ix, 2] * grid.fw[ix, 2]  +
@@ -775,9 +777,9 @@ end
                             (grid.fs[ix, 3] - grid.fw[ix, 3]) *
                             (grid.fs[ix, 3] - grid.fw[ix, 3]))
         # compute node acceleration
-        awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) + grid.fd[ix, 1])
-        awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) + grid.fd[ix, 2])
-        awz = mw_denom * (grid.fw[ix, 3] + dampvw * sign(grid.vw[ix, 3]) + grid.fd[ix, 3])
+        awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) - grid.fd[ix, 1])
+        awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) - grid.fd[ix, 2])
+        awz = mw_denom * (grid.fw[ix, 3] + dampvw * sign(grid.vw[ix, 3]) - grid.fd[ix, 3])
         asx = ms_denom * (-grid.mi[ix] * awx + grid.fs[ix, 1] + 
             dampvw * sign(grid.vw[ix, 1]) + dampvs * sign(grid.vs[ix, 1]))
         asy = ms_denom * (-grid.mi[ix] * awy + grid.fs[ix, 2] +
@@ -818,7 +820,7 @@ Description: [TS: two-phase single-point MPM]
 ---
 Mapping results from grid to particles.
 """
-@kernel inbounds=true function doublemapping1_TS!(
+@kernel function doublemapping1_TS!(
     grid    ::    DeviceGrid2D{T1, T2},
     mp      ::DeviceParticle2D{T1, T2},
     attr    ::  DeviceProperty{T1, T2},
@@ -871,7 +873,7 @@ Mapping results from grid to particles.
     end
 end
 
-@kernel inbounds=true function doublemapping1_TS!(
+@kernel function doublemapping1_TS!(
     grid    ::    DeviceGrid3D{T1, T2},
     mp      ::DeviceParticle3D{T1, T2},
     attr    ::  DeviceProperty{T1, T2},
@@ -944,7 +946,7 @@ Description: [TS: two-phase single-point MPM]
 ---
 Scatter momentum from particles to grid.
 """
-@kernel inbounds=true function doublemapping2_TS!(
+@kernel function doublemapping2_TS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2}
 ) where {T1, T2}
@@ -964,7 +966,7 @@ Scatter momentum from particles to grid.
     end
 end
 
-@kernel inbounds=true function doublemapping2_TS!(
+@kernel function doublemapping2_TS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2}
 ) where {T1, T2}
@@ -994,7 +996,7 @@ Description: [TS: two-phase single-point MPM]
 ---
 Solve equations on grid for the updated grid momentum.
 """
-@kernel inbounds=true function doublemapping3_TS!(
+@kernel function doublemapping3_TS!(
     grid::     DeviceGrid2D{T1, T2},
     bc  ::DeviceVBoundary2D{T1, T2},
     ΔT  ::T2
@@ -1007,8 +1009,8 @@ Solve equations on grid for the updated grid momentum.
         # compute nodal velocities
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
-        grid.vw[ix, 1] = grid.pw[ix, 1] * mw_denom
-        grid.vw[ix, 2] = grid.pw[ix, 2] * mw_denom
+        grid.vw[ix, 1] = grid.pw[ix, 1] * mi_denom
+        grid.vw[ix, 2] = grid.pw[ix, 2] * mi_denom
         # fixed Dirichlet nodes
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.vs[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.vs[ix, 2] = bc.vy_s_val[ix] : nothing
@@ -1022,7 +1024,7 @@ Solve equations on grid for the updated grid momentum.
     end
 end
 
-@kernel inbounds=true function doublemapping3_TS!(
+@kernel function doublemapping3_TS!(
     grid::     DeviceGrid3D{T1, T2},
     bc  ::DeviceVBoundary3D{T1, T2},
     ΔT  ::T2
@@ -1036,9 +1038,9 @@ end
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
         grid.vs[ix, 3] = grid.ps[ix, 3] * ms_denom
-        grid.vw[ix, 1] = grid.pw[ix, 1] * mw_denom
-        grid.vw[ix, 2] = grid.pw[ix, 2] * mw_denom
-        grid.vw[ix, 3] = grid.pw[ix, 3] * mw_denom
+        grid.vw[ix, 1] = grid.pw[ix, 1] * mi_denom
+        grid.vw[ix, 2] = grid.pw[ix, 2] * mi_denom
+        grid.vw[ix, 3] = grid.pw[ix, 3] * mi_denom
         # fixed Dirichlet nodes
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.vs[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.vs[ix, 2] = bc.vy_s_val[ix] : nothing
@@ -1064,7 +1066,7 @@ Description: [TS: two-phase single-point MPM]
 ---
 Update particle information.
 """
-@kernel inbounds=true function G2P_TS!(
+@kernel function G2P_TS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
     attr::  DeviceProperty{T1, T2},
@@ -1119,7 +1121,7 @@ Update particle information.
         mp.F[ix, 2] = (dfs1 + T2(1.0)) * F2 + dfs2 * F4
         mp.F[ix, 3] = (dfs4 + T2(1.0)) * F3 + dfs3 * F1
         mp.F[ix, 4] = (dfs4 + T2(1.0)) * F4 + dfs3 * F2
-        # update jacobian value and particle Ωume
+        # update jacobian value and particle volume
         J         = mp.F[ix, 1] * mp.F[ix, 4] - mp.F[ix, 2] * mp.F[ix, 3]
         ΔJ        = J * mp.Ω0[ix] / mp.Ω[ix]
         mp.Ω[ix]  = J * mp.Ω0[ix]
@@ -1133,7 +1135,7 @@ Update particle information.
     end
 end
 
-@kernel inbounds=true function G2P_TS!(
+@kernel function G2P_TS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
     attr::  DeviceProperty{T1, T2},
@@ -1230,312 +1232,97 @@ end
 end
 
 """
-    G2Pvl1_TS!(grid::DeviceGrid2D, mp::DeviceParticle2D)
-    G2Pvl1_TS!(grid::DeviceGrid3D, mp::DeviceParticle3D)
+    vollock1_TS!(grid::DeviceGrid2D, mp::DeviceParticle2D)
+    vollock1_TS!(grid::DeviceGrid3D, mp::DeviceParticle3D)
 
 Description: [TS: two-phase single-point MPM]
 ---
-This kernel is the first part to implement the F̄-based method for eliminating the volumetric 
-locking problem. It is combined with kernel `fastdiv_TS!` and `G2Pvl2_TS!`.
+Map the stress and pressure from particles to grid.
 """
-@kernel inbounds = true function G2Pvl1_TS!(
+@kernel function vollock1_TS!(
     grid::    DeviceGrid2D{T1, T2},
-    mp  ::DeviceParticle2D{T1, T2},
+    mp  ::DeviceParticle2D{T1, T2}
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        dfs1 = dfs2 = dfs3 = dfs4 = dfw1 = dfw2 = dfw3 = dfw4 = T2(0.0)
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            if mp.Nij[ix, iy] ≠ T2(0.0)
-                p2n = mp.p2n[ix, iy]
-                ∂Nx = mp.∂Nx[ix, iy]
-                ∂Ny = mp.∂Ny[ix, iy]
-                # compute solid incremental deformation gradient
-                dfs1 += grid.Δus[p2n, 1] * ∂Nx
-                dfs2 += grid.Δus[p2n, 1] * ∂Ny
-                dfs3 += grid.Δus[p2n, 2] * ∂Nx
-                dfs4 += grid.Δus[p2n, 2] * ∂Ny
-                dfw1 += grid.Δuw[p2n, 1] * ∂Nx
-                dfw2 += grid.Δuw[p2n, 1] * ∂Ny
-                dfw3 += grid.Δuw[p2n, 2] * ∂Nx
-                dfw4 += grid.Δuw[p2n, 2] * ∂Ny
-            end
-        end
-        dfs1 += T2(1.0); dfs4 += T2(1.0)
-        mp.ΔFs[ix, 1] = dfs1; mp.ΔFs[ix, 2] = dfs2
-        mp.ΔFs[ix, 3] = dfs3; mp.ΔFs[ix, 4] = dfs4
-        mp.ΔFw[ix, 1] = dfw1; mp.ΔFw[ix, 2] = dfw2
-        mp.ΔFw[ix, 3] = dfw3; mp.ΔFw[ix, 4] = dfw4
-        # compute ΔJₚ in the current time step
-        ΔJs = dfs1 * dfs4 - dfs2 * dfs3
-        ΔJw = dfs1 * dfs4 - dfs2 * dfs3
-        # map this value from particle to grid cell
+        p2c = grid.nny * floor(T1, (mp.ξ[ix, 1] - grid.x1) / grid.dx) +
+                          ceil(T1, (mp.ξ[ix, 2] - grid.y1) / grid.dy)
         vol = mp.Ω[ix]
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            NiV = mp.Nij[ix, iy] * vol
-            if NiV ≠ T2(0.0)
-                p2n = mp.p2n[ix, iy]
-                @KAatomic grid.σm[p2n] += NiV * ΔJs
-                @KAatomic grid.σw[p2n] += NiV * ΔJw
-                @KAatomic grid.Ω[p2n] += NiV
-            end
-        end
+        @KAatomic grid.σm[p2c] += vol * mp.σm[ix]
+        @KAatomic grid.σw[p2c] += vol * mp.σw[ix]
+        @KAatomic grid.Ω[p2c]  += vol
     end
-end
+end 
 
-@kernel inbounds = true function G2Pvl1_TS!(
+@kernel function vollock1_TS!(
     grid::    DeviceGrid3D{T1, T2},
-    mp  ::DeviceParticle3D{T1, T2},
+    mp  ::DeviceParticle3D{T1, T2}
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        dfs1 = dfs2 = dfs3 = dfs4 = dfs5 = dfs6 = dfs7 = dfs8 = dfs9 = T2(0.0)
-        dfw1 = dfw2 = dfw3 = dfw4 = dfw5 = dfw6 = dfw7 = dfw8 = dfw9 = T2(0.0)
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            if mp.Nij[ix, iy] ≠ T2(0.0)
-                p2n = mp.p2n[ix, iy]
-                ∂Nx = mp.∂Nx[ix, iy]; ds1 = grid.Δus[p2n, 1]; dw1 = grid.Δuw[p2n, 1]
-                ∂Ny = mp.∂Ny[ix, iy]; ds2 = grid.Δus[p2n, 2]; dw2 = grid.Δuw[p2n, 2]
-                ∂Nz = mp.∂Nz[ix, iy]; ds3 = grid.Δus[p2n, 3]; dw3 = grid.Δuw[p2n, 3]
-                # compute incremental deformation gradient
-                dfs1 += ds1 * ∂Nx; dfs2 += ds1 * ∂Ny; dfs3 += ds1 * ∂Nz
-                dfs4 += ds2 * ∂Nx; dfs5 += ds2 * ∂Ny; dfs6 += ds2 * ∂Nz
-                dfs7 += ds3 * ∂Nx; dfs8 += ds3 * ∂Ny; dfs9 += ds3 * ∂Nz
-                dfw1 += dw1 * ∂Nx; dfw2 += dw1 * ∂Ny; dfw3 += dw1 * ∂Nz
-                dfw4 += dw2 * ∂Nx; dfw5 += dw2 * ∂Ny; dfw6 += dw2 * ∂Nz
-                dfw7 += dw3 * ∂Nx; dfw8 += dw3 * ∂Ny; dfw9 += dw3 * ∂Nz
-            end
-        end
-        dfs1 += T2(1.0); dfs5 += T2(1.0); dfs9 += T2(1.0)
-        dfs4 += T2(1.0); dfs8 += T2(1.0); dfs7 += T2(1.0)
-        mp.ΔFs[ix, 1] = dfs1; mp.ΔFs[ix, 2] = dfs2; mp.ΔFs[ix, 3] = dfs3
-        mp.ΔFs[ix, 4] = dfs4; mp.ΔFs[ix, 5] = dfs5; mp.ΔFs[ix, 6] = dfs6
-        mp.ΔFs[ix, 7] = dfs7; mp.ΔFs[ix, 8] = dfs8; mp.ΔFs[ix, 9] = dfs9
-        mp.ΔFw[ix, 1] = dfw1; mp.ΔFw[ix, 2] = dfw2; mp.ΔFw[ix, 3] = dfw3
-        mp.ΔFw[ix, 4] = dfw4; mp.ΔFw[ix, 5] = dfw5; mp.ΔFw[ix, 6] = dfw6
-        mp.ΔFw[ix, 7] = dfw7; mp.ΔFw[ix, 8] = dfw8; mp.ΔFw[ix, 9] = dfw9
-        # compute ΔJₚ in the current time step
-        ΔJw = dfs1 * dfs5 * dfs9 + dfs2 * dfs6 * dfs7 + dfs3 * dfs4 * dfs8 - 
-              dfs7 * dfs5 * dfs3 - dfs8 * dfs6 * dfs1 - dfs9 * dfs4 * dfs2
-        ΔJs = dfw1 * dfw5 * dfw9 + dfw2 * dfw6 * dfw7 + dfw3 * dfw4 * dfw8 - 
-              dfw7 * dfw5 * dfw3 - dfw8 * dfw6 * dfw1 - dfw9 * dfw4 * dfw2
-        # map this value from particle to grid cell
+        p2c = floor(T1, (mp.ξ[ix, 3] - grid.z1) / grid.dz) * grid.nnx * grid.nny + 
+              floor(T1, (mp.ξ[ix, 1] - grid.x1) / grid.dx) * grid.nny + 
+               ceil(T1, (mp.ξ[ix, 2] - grid.y1) / grid.dy)
         vol = mp.Ω[ix]
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            NiV = mp.Nij[ix, iy] * vol
-            if NiV ≠ T2(0.0)
-                p2n = mp.p2n[ix, iy]
-                @KAatomic grid.σm[p2n] += NiV * ΔJs
-                @KAatomic grid.σw[p2n] += NiV * ΔJw
-                @KAatomic grid.Ω[p2n] += NiV
-            end
-        end
+        @KAatomic grid.σm[p2c] += vol * mp.σm[ix]
+        @KAatomic grid.σw[p2c] += vol * mp.σw[ix]
+        @KAatomic grid.Ω[p2c]  += vol
     end
 end
 
 """
-    G2Pvl2_TS!(grid::DeviceGrid2D, mp::DeviceParticle2D, attr::DeviceProperty, ΔT)
-    G2Pvl2_TS!(grid::DeviceGrid3D, mp::DeviceParticle3D, attr::DeviceProperty, ΔT)
+    vollock2_TS!(grid::DeviceGrid2D, mp::DeviceParticle2D)
+    vollock2_TS!(grid::DeviceGrid3D, mp::DeviceParticle3D)
 
 Description: [TS: two-phase single-point MPM]
 ---
-This kernel is the third part to implement the F̄-based method for eliminating the volumetric 
-locking problem. It is combined with kernel `fastdiv_TS!` and `G2Pvl1_TS!`.
+Update the averaged stress tensor on the particles.
 """
-@kernel inbounds = true function G2Pvl2_TS!(
+@kernel function vollock2_TS!(
     grid::    DeviceGrid2D{T1, T2},
-    mp  ::DeviceParticle2D{T1, T2},
-    attr::  DeviceProperty{T1, T2},
-    ΔT  ::T2
+    mp  ::DeviceParticle2D{T1, T2}
 ) where {T1, T2}
     ix = @index(Global)
-    ΔT_1 = inv(ΔT)
     if ix ≤ mp.np
-        cos = cow = T2(0.0)
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            Nij = mp.Nij[ix, iy]
-            if Nij ≠ T2(0.0)
-                p2n = mp.p2n[ix, iy]
-                cos += Nij * grid.σm[p2n]
-                cow += Nij * grid.σw[p2n]
-            end
-        end
-        Jrs = mp.ΔFs[ix, 1] * mp.ΔFs[ix, 4] - mp.ΔFs[ix, 2] * mp.ΔFs[ix, 3]
-        Jrw = mp.ΔFw[ix, 1] * mp.ΔFw[ix, 4] - mp.ΔFw[ix, 2] * mp.ΔFw[ix, 3]
-        Jcs = (cos / Jrs) ^ T2(0.5)
-        Jcw = (cow / Jrw) ^ T2(0.5)
-        mp.ΔFs[ix, 1] *= Jcs; mp.ΔFs[ix, 2] *= Jcs
-        mp.ΔFs[ix, 3] *= Jcs; mp.ΔFs[ix, 4] *= Jcs
-        mp.ΔFw[ix, 1] *= Jcw; mp.ΔFw[ix, 2] *= Jcw
-        mp.ΔFw[ix, 3] *= Jcw; mp.ΔFw[ix, 4] *= Jcw
-        mp.ΔFs[ix, 1] -= T2(1.0); mp.ΔFs[ix, 4] -= T2(1.0)
-        mp.ΔFw[ix, 1] -= T2(1.0); mp.ΔFw[ix, 4] -= T2(1.0)
-        dfs1 = mp.ΔFs[ix, 1]; dfs2 = mp.ΔFs[ix, 2]
-        dfs3 = mp.ΔFs[ix, 3]; dfs4 = mp.ΔFs[ix, 4]
-        dfw1 = mp.ΔFw[ix, 1]; dfw2 = mp.ΔFw[ix, 2]
-        dfw3 = mp.ΔFw[ix, 3]; dfw4 = mp.ΔFw[ix, 4]
-        # strain rate (Second Invariant of Strain Rate Tensor)
-        dϵxx = dfs1 * ΔT_1
-        dϵyy = dfs4 * ΔT_1
-        dϵxy = T2(0.5) * (dfs2 + dfs3) * ΔT_1
-        mp.ϵv[ix] = sqrt(dϵxx * dϵxx + dϵyy * dϵyy + T2(2.0) * dϵxy * dϵxy)
-        # compute strain increment 
-        mp.Δϵijs[ix, 1] = dfs1
-        mp.Δϵijs[ix, 2] = dfs4
-        mp.Δϵijs[ix, 4] = dfs2 + dfs3
-        mp.Δϵijw[ix, 1] = dfw1
-        mp.Δϵijw[ix, 2] = dfw4
-        mp.Δϵijw[ix, 4] = dfw2 + dfw3
-        # update strain tensor
-        mp.ϵijs[ix, 1] += dfs1
-        mp.ϵijs[ix, 2] += dfs4
-        mp.ϵijs[ix, 4] += dfs2 + dfs3
-        mp.ϵijw[ix, 1] += dfw1
-        mp.ϵijw[ix, 2] += dfw4
-        mp.ϵijw[ix, 4] += dfw2 + dfw3
-        # deformation gradient matrix
-        F1 = mp.F[ix, 1]; F2 = mp.F[ix, 2]; F3 = mp.F[ix, 3]; F4 = mp.F[ix, 4]      
-        mp.F[ix, 1] = (dfs1 + T2(1.0)) * F1 + dfs2 * F3
-        mp.F[ix, 2] = (dfs1 + T2(1.0)) * F2 + dfs2 * F4
-        mp.F[ix, 3] = (dfs4 + T2(1.0)) * F3 + dfs3 * F1
-        mp.F[ix, 4] = (dfs4 + T2(1.0)) * F4 + dfs3 * F2
-        # update jacobian value and particle Ωume
-        J         = mp.F[ix, 1] * mp.F[ix, 4] - mp.F[ix, 2] * mp.F[ix, 3]
-        ΔJ        = J * mp.Ω0[ix] / mp.Ω[ix]
-        mp.Ω[ix]  = J * mp.Ω0[ix]
-        mp.ρs[ix] = mp.ρs0[ix] / J
-        mp.ρw[ix] = mp.ρw0[ix] / J
-        # update pore pressure and n
-        mp.σw[ix] += (attr.Kw[attr.nid[ix]] / mp.n[ix]) * (
-            (T2(1.0) - mp.n[ix]) * (dfs1 + dfs4) + 
-                    mp.n[ix]  * (dfw1 + dfw4))
-        mp.n[ix] = clamp(T2(1.0) - (T2(1.0) - mp.n[ix]) / ΔJ, T2(0.0), T2(1.0))
+        p2c = grid.nny * floor(T1, (mp.ξ[ix, 1] - grid.x1) / grid.dx) +
+                          ceil(T1, (mp.ξ[ix, 2] - grid.y1) / grid.dy)
+        σm = grid.σm[p2c] / grid.Ω[p2c]
+        σw = grid.σw[p2c] / grid.Ω[p2c]
+        mp.σij[ix, 1] = mp.sij[ix, 1] + σm
+        mp.σij[ix, 2] = mp.sij[ix, 2] + σm
+        mp.σij[ix, 3] = mp.sij[ix, 3] + σm
+        # update mean stress tensor
+        σm = (mp.σij[ix, 1] + mp.σij[ix, 2] + mp.σij[ix, 3]) * T2(0.333333)
+        mp.σm[ix] = σm
+        mp.σw[ix] = σw
+        # update deviatoric stress tensor
+        mp.sij[ix, 1] = mp.σij[ix, 1] - σm
+        mp.sij[ix, 2] = mp.σij[ix, 2] - σm
+        mp.sij[ix, 3] = mp.σij[ix, 3] - σm
     end
 end
 
-@kernel inbounds = true function G2Pvl2_TS!(
+@kernel function vollock2_TS!(
     grid::    DeviceGrid3D{T1, T2},
-    mp  ::DeviceParticle3D{T1, T2},
-    attr::  DeviceProperty{T1, T2},
-    ΔT  ::T2
+    mp  ::DeviceParticle3D{T1, T2}
 ) where {T1, T2}
     ix = @index(Global)
-    ΔT_1 = inv(ΔT)
     if ix ≤ mp.np
-        cos = cow = T2(0.0)
-        @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            Nij = mp.Nij[ix, iy]
-            if Nij ≠ T2(0.0)
-                p2n = mp.p2n[ix, iy]
-                cos += Nij * grid.σm[p2n]
-                cow += Nij * grid.σw[p2n]
-            end
-        end
-        Jrs = mp.ΔFs[ix, 1] * mp.ΔFs[ix, 5] * mp.ΔFs[ix, 9] + 
-              mp.ΔFs[ix, 2] * mp.ΔFs[ix, 6] * mp.ΔFs[ix, 7] + 
-              mp.ΔFs[ix, 3] * mp.ΔFs[ix, 4] * mp.ΔFs[ix, 8] - 
-              mp.ΔFs[ix, 7] * mp.ΔFs[ix, 5] * mp.ΔFs[ix, 3] - 
-              mp.ΔFs[ix, 8] * mp.ΔFs[ix, 6] * mp.ΔFs[ix, 1] - 
-              mp.ΔFs[ix, 9] * mp.ΔFs[ix, 4] * mp.ΔFs[ix, 2]
-        Jrw = mp.ΔFw[ix, 1] * mp.ΔFw[ix, 5] * mp.ΔFw[ix, 9] + 
-              mp.ΔFw[ix, 2] * mp.ΔFw[ix, 6] * mp.ΔFw[ix, 7] + 
-              mp.ΔFw[ix, 3] * mp.ΔFw[ix, 4] * mp.ΔFw[ix, 8] - 
-              mp.ΔFw[ix, 7] * mp.ΔFw[ix, 5] * mp.ΔFw[ix, 3] - 
-              mp.ΔFw[ix, 8] * mp.ΔFw[ix, 6] * mp.ΔFw[ix, 1] - 
-              mp.ΔFw[ix, 9] * mp.ΔFw[ix, 4] * mp.ΔFw[ix, 2]
-        Jcs = (cos / Jrs) ^ T2(0.333333)
-        Jcw = (cow / Jrw) ^ T2(0.333333)
-        mp.ΔFs[ix, 1] *= Jcs; mp.ΔFs[ix, 2] *= Jcs; mp.ΔFs[ix, 3] *= Jcs
-        mp.ΔFs[ix, 4] *= Jcs; mp.ΔFs[ix, 5] *= Jcs; mp.ΔFs[ix, 6] *= Jcs
-        mp.ΔFs[ix, 7] *= Jcs; mp.ΔFs[ix, 8] *= Jcs; mp.ΔFs[ix, 9] *= Jcs
-        mp.ΔFw[ix, 1] *= Jcw; mp.ΔFs[ix, 2] *= Jcw; mp.ΔFs[ix, 3] *= Jcw
-        mp.ΔFw[ix, 4] *= Jcw; mp.ΔFs[ix, 5] *= Jcw; mp.ΔFs[ix, 6] *= Jcw
-        mp.ΔFw[ix, 7] *= Jcw; mp.ΔFs[ix, 8] *= Jcw; mp.ΔFs[ix, 9] *= Jcw
-        mp.ΔFs[ix, 1] -= T2(1.0); mp.ΔFs[ix, 5] -= T2(1.0); mp.ΔFs[ix, 9] -= T2(1.0)
-        mp.ΔFw[ix, 1] -= T2(1.0); mp.ΔFw[ix, 5] -= T2(1.0); mp.ΔFw[ix, 9] -= T2(1.0)
-        dfs1 = mp.ΔFs[ix, 1]; dfs2 = mp.ΔFs[ix, 2]; dfs3 = mp.ΔFs[ix, 3]
-        dfs4 = mp.ΔFs[ix, 4]; dfs5 = mp.ΔFs[ix, 5]; dfs6 = mp.ΔFs[ix, 6]
-        dfs7 = mp.ΔFs[ix, 7]; dfs8 = mp.ΔFs[ix, 8]; dfs9 = mp.ΔFs[ix, 9]
-        # strain rate (Second Invariant of Strain Rate Tensor)
-        dϵxx = dfs1 * ΔT_1
-        dϵyy = dfs5 * ΔT_1
-        dϵzz = dfs9 * ΔT_1
-        dϵxy = T2(0.5) * (dfs2 + dfs4) * ΔT_1
-        dϵyz = T2(0.5) * (dfs6 + dfs8) * ΔT_1
-        dϵxz = T2(0.5) * (dfs3 + dfs7) * ΔT_1
-        mp.ϵv[ix] = sqrt(dϵxx * dϵxx + dϵyy * dϵyy + dϵzz * dϵzz + 
-            T2(2.0) * (dϵxy * dϵxy + dϵyz * dϵyz + dϵxz * dϵxz))
-        # compute strain increment
-        mp.Δϵijs[ix, 1] = dfs1
-        mp.Δϵijs[ix, 2] = dfs5
-        mp.Δϵijs[ix, 3] = dfs9
-        mp.Δϵijs[ix, 4] = dfs2 + dfs4
-        mp.Δϵijs[ix, 5] = dfs6 + dfs8
-        mp.Δϵijs[ix, 6] = dfs3 + dfs7
-        mp.Δϵijw[ix, 1] = dfw1
-        mp.Δϵijw[ix, 2] = dfw5
-        mp.Δϵijw[ix, 3] = dfw9 
-        mp.Δϵijw[ix, 4] = dfw2 + dfw4
-        mp.Δϵijw[ix, 5] = dfw6 + dfw8
-        mp.Δϵijw[ix, 6] = dfw3 + dfw7
-        # update strain tensor
-        mp.ϵijs[ix, 1] += dfs1
-        mp.ϵijs[ix, 2] += dfs5
-        mp.ϵijs[ix, 3] += dfs9
-        mp.ϵijs[ix, 4] += dfs2 + dfs4
-        mp.ϵijs[ix, 5] += dfs6 + dfs8
-        mp.ϵijs[ix, 6] += dfs3 + dfs7
-        mp.ϵijw[ix, 1] += dfs1
-        mp.ϵijw[ix, 2] += dfs5
-        mp.ϵijw[ix, 3] += dfs9
-        mp.ϵijw[ix, 4] += dfs2 + dfs4
-        mp.ϵijw[ix, 5] += dfs6 + dfs8
-        mp.ϵijw[ix, 6] += dfs3 + dfs7
-        # deformation gradient matrix
-        F1 = mp.F[ix, 1]; F2 = mp.F[ix, 2]; F3 = mp.F[ix, 3]
-        F4 = mp.F[ix, 4]; F5 = mp.F[ix, 5]; F6 = mp.F[ix, 6]
-        F7 = mp.F[ix, 7]; F8 = mp.F[ix, 8]; F9 = mp.F[ix, 9]        
-        mp.F[ix, 1] = (dfs1 + T2(1.0)) * F1 + dfs2 * F4 + dfs3 * F7
-        mp.F[ix, 2] = (dfs1 + T2(1.0)) * F2 + dfs2 * F5 + dfs3 * F8
-        mp.F[ix, 3] = (dfs1 + T2(1.0)) * F3 + dfs2 * F6 + dfs3 * F9
-        mp.F[ix, 4] = (dfs5 + T2(1.0)) * F4 + dfs4 * F1 + dfs6 * F7
-        mp.F[ix, 5] = (dfs5 + T2(1.0)) * F5 + dfs4 * F2 + dfs6 * F8
-        mp.F[ix, 6] = (dfs5 + T2(1.0)) * F6 + dfs4 * F3 + dfs6 * F9
-        mp.F[ix, 7] = (dfs9 + T2(1.0)) * F7 + dfs8 * F4 + dfs7 * F1
-        mp.F[ix, 8] = (dfs9 + T2(1.0)) * F8 + dfs8 * F5 + dfs7 * F2
-        mp.F[ix, 9] = (dfs9 + T2(1.0)) * F9 + dfs8 * F6 + dfs7 * F3
-        # update jacobian value and particle Ωume
-        J = mp.F[ix, 1] * mp.F[ix, 5] * mp.F[ix, 9] + 
-            mp.F[ix, 2] * mp.F[ix, 6] * mp.F[ix, 7] +
-            mp.F[ix, 3] * mp.F[ix, 4] * mp.F[ix, 8] - 
-            mp.F[ix, 7] * mp.F[ix, 5] * mp.F[ix, 3] -
-            mp.F[ix, 8] * mp.F[ix, 6] * mp.F[ix, 1] - 
-            mp.F[ix, 9] * mp.F[ix, 4] * mp.F[ix, 2]
-        ΔJ        = J * mp.Ω0[ix] / mp.Ω[ix]
-        mp.Ω[ix]  = J * mp.Ω0[ix]
-        mp.ρs[ix] = mp.ρs0[ix] / J
-        mp.ρw[ix] = mp.ρw0[ix] / J
-        # update pore pressure and n
-        mp.σw[ix] += (attr.Kw[attr.nid[ix]] / mp.n[ix]) * (
-            (T2(1.0) - mp.n[ix]) * (dfs1 + dfs5 + dfs9) + 
-                       mp.n[ix]  * (dfw1 + dfw5 + dfw9))
-        mp.n[ix] = clamp(T2(1.0) - (T2(1.0) - mp.n[ix]) / ΔJ, T2(0.0), T2(1.0))
-    end
-end
-
-"""
-    fastdiv_TS!(grid::DeviceGrid)
-
-Description: [TS: two-phase single-point MPM]
----
-This kernel is the second part to implement the F̄-based method for eliminating the 
-volumetric locking problem. It is combined with kernel `G2Pvl1_OS!` and `G2Pvl2_OS!`.
-"""
-@kernel inbounds = true function fastdiv_TS!(grid::DeviceGrid{T1, T2}) where {T1, T2}
-    ix = @index(Global)
-    if ix ≤ grid.ni
-        Ω = grid.Ω[ix] == T2(0.0) ? T2(0.0) : inv(grid.Ω[ix])
-        grid.σm[ix] *= Ω
-        grid.σw[ix] *= Ω
+        p2c = floor(T1, (mp.ξ[ix, 3] - grid.z1) / grid.dz) * grid.nnx * grid.nny + 
+              floor(T1, (mp.ξ[ix, 1] - grid.x1) / grid.dx) * grid.nny + 
+               ceil(T1, (mp.ξ[ix, 2] - grid.y1) / grid.dy)
+        σm = grid.σm[p2c] / grid.Ω[p2c]
+        σw = grid.σw[p2c] / grid.Ω[p2c]
+        mp.σij[ix, 1] = mp.sij[ix, 1] + σm
+        mp.σij[ix, 2] = mp.sij[ix, 2] + σm
+        mp.σij[ix, 3] = mp.sij[ix, 3] + σm
+        # update mean stress tensor
+        σm = (mp.σij[ix, 1] + mp.σij[ix, 2] + mp.σij[ix, 3]) * T2(0.333333)
+        mp.σm[ix] = σm
+        mp.σw[ix] = σw
+        # update deviatoric stress tensor
+        mp.sij[ix, 1] = mp.σij[ix, 1] - σm
+        mp.sij[ix, 2] = mp.σij[ix, 2] - σm
+        mp.sij[ix, 3] = mp.σij[ix, 3] - σm
     end
 end

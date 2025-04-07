@@ -31,14 +31,7 @@ function procedure!(
     doublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
     doublemapping2_TS!(dev)(ndrange=mp.np, grid, mp)
     doublemapping3_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT)
-    # F-bar based volumetric locking elimination approach
-    if args.MVL == false
-        G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
-    else
-        G2Pvl1_TS!(dev)(ndrange=mp.np, grid, mp)
-        fastdiv_TS!(dev)(ndrange=grid.ni, grid)
-        G2Pvl2_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
-    end
+    G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
     # update stress status
     if args.constitutive == :hyperelastic
         hyE!(dev)(ndrange=mp.np, mp, attr)
@@ -53,6 +46,11 @@ function procedure!(
     elseif args.constitutive == :bingham
         Ti < args.Te && liE!(dev)(ndrange=mp.np, mp, attr)
         Ti ≥ args.Te && bhP!(dev)(ndrange=mp.np, mp, attr, inv(ΔT))
+    end
+    # cell-averaged volumetric locking elimination
+    if args.MVL == true
+        vollock1_TS!(dev)(ndrange=mp.np, grid, mp)
+        vollock2_TS!(dev)(ndrange=mp.np, grid, mp)
     end
     return nothing
 end

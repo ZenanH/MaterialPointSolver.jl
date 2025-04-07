@@ -88,9 +88,9 @@ end
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
         grid.vs[ix, 3] = grid.ps[ix, 3] * ms_denom
-        grid.vw[ix, 1] = grid.pw[ix, 1] * mw_denom
-        grid.vw[ix, 2] = grid.pw[ix, 2] * mw_denom
-        grid.vw[ix, 3] = grid.pw[ix, 3] * mw_denom
+        grid.vw[ix, 1] = grid.pw[ix, 1] * mi_denom
+        grid.vw[ix, 2] = grid.pw[ix, 2] * mi_denom
+        grid.vw[ix, 3] = grid.pw[ix, 3] * mi_denom
         # compute damping force
         dampvw = -ζw * sqrt( grid.fw[ix, 1] * grid.fw[ix, 1]  + 
                              grid.fw[ix, 2] * grid.fw[ix, 2]  +
@@ -102,9 +102,9 @@ end
                             (grid.fs[ix, 3] - grid.fw[ix, 3]) *
                             (grid.fs[ix, 3] - grid.fw[ix, 3]))
         # compute node acceleration
-        awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) + grid.fd[ix, 1])
-        awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) + grid.fd[ix, 2])
-        awz = mw_denom * (grid.fw[ix, 3] + dampvw * sign(grid.vw[ix, 3]) + grid.fd[ix, 3])
+        awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) - grid.fd[ix, 1])
+        awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) - grid.fd[ix, 2])
+        awz = mw_denom * (grid.fw[ix, 3] + dampvw * sign(grid.vw[ix, 3]) - grid.fd[ix, 3])
         asx = ms_denom * (-grid.mi[ix] * awx + grid.fs[ix, 1] + 
             dampvw * sign(grid.vw[ix, 1]) + dampvs * sign(grid.vs[ix, 1]))
         asy = ms_denom * (-grid.mi[ix] * awy + grid.fs[ix, 2] +
@@ -154,14 +154,8 @@ function procedure!(
     P2G_TS!(dev)(ndrange=mp.np, grid, mp, attr, G)
     solvegrid_USL_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs, args.ζw)
     doublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
-    # F-bar based volumetric locking elimination approach
-    if args.MVL == false
-        G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
-    else
-        G2Pvl1_TS!(dev)(ndrange=mp.np, grid, mp)
-        fastdiv_TS!(dev)(ndrange=grid.ni, grid)
-        G2Pvl2_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
-    end
+    G2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
+    # update stress status
     if args.constitutive == :hyperelastic
         hyE!(dev)(ndrange=mp.np, mp, attr)
     elseif args.constitutive == :linearelastic
@@ -176,6 +170,11 @@ function procedure!(
         if Ti ≥ args.Te
             mcP!(dev)(ndrange=mp.np, mp, attr)
         end
-    end                                
+    end
+    # cell-averaged volumetric locking elimination
+    if args.MVL == true
+        vollock1_TS!(dev)(ndrange=mp.np, grid, mp)
+        vollock2_TS!(dev)(ndrange=mp.np, grid, mp)
+    end
     return nothing
 end
