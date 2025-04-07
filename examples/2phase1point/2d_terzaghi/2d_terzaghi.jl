@@ -14,14 +14,14 @@
 
 using MaterialPointGenerator
 using MaterialPointSolver
+using MaterialPointVisualizer
 using HDF5
 using CairoMakie
 using Printf
-device_type = :CPU
 
 include(joinpath(@__DIR__, "2d_funcs.jl"))
 
-MaterialPointSolver.warmup(Val(device_type))
+MaterialPointSolver.warmup(Val(:CPU))
 
 # model configuration
 init_grid_space_x = 0.05
@@ -32,20 +32,20 @@ init_mp_in_space  = 2
 init_ρs           = 2650
 init_ρw           = 1000
 init_n            = 0.3
-init_k            = 1e-4
+init_k            = 1e-3
 init_ν            = 0
-init_Es           = 1e6
+init_Es           = 1e7
 init_Gs           = init_Es / (2 * (1 +     init_ν))
 init_Ks           = init_Es / (3 * (1 - 2 * init_ν))
 init_Kw           = 2.2e9
-init_T            = 70.0
+init_T            = 2.0
 init_Te           = 0.0
-init_ΔT           = 1e-6
+init_ΔT           = 1e-5
 init_step         = floor(init_T / init_ΔT / 150)
-init_basis        = :linear
-init_NIC          = 4
+init_basis        = :bspline2
+init_NIC          = 9
 init_phase        = 2
-init_σw           = -1e3
+init_σw           = -1e4
 init_ϵ            = "FP64"
 
 # parameters setup
@@ -58,8 +58,8 @@ args = UserArgs2D(
     basis        = init_basis,
     hdf5         = true,
     hdf5_step    = init_step,
-    MVL          = false,
-    device       = device_type,
+    MVL          = true,
+    device       = :CPU,
     coupling     = :TS,
     scheme       = :MUSL,
     gravity      = 0,
@@ -136,24 +136,16 @@ bc = UserVBoundary2D(
     ext      = ext
 )
 
-#cv = init_k / (9800 * (1 / init_Es + init_n / init_Kw))
-#t = 0.1 / cv
+
 
 # MPM solver
 materialpointsolver!(args, grid, mp, attr, bc, workflow=Tprocedure!)
 
 # post-processing
-# let 
-#     fig = Figure(size=(250, 500))
-#     ax = Axis(fig[1, 1], aspect=DataAspect())
-#     scatter!(ax, mp.ξ, marker=:rect)
-#     scatter!(ax, grid.ξ, marker=:xcross)
-#     scatter!(ax, grid.ξ[findall(bc.vy_w_idx.==1), :], marker=:xcross, color=:red)
-#     limits!(ax, -0.2, 0.3, -0.2, 1.3)
-#     display(fig)
-# end
-
+animation(args)
 begin
+    # cv = init_k / (9800 * (1 / init_Es + init_n / init_Kw))
+    # t = 0.1 / cv
     # helper functions =====================================================================
     function terzaghi(p0, Tv)
         num = 100
@@ -161,8 +153,6 @@ begin
         Z = range(0, 1, length=num)
         data = zeros(num, 2)
         data[:, 2] .= Z
-        # Cv = init_k/(1e4*(1/init_E+init_porosity/init_Kw))
-        # Tv = (Cv*Ttol)/H^2
         @inbounds for i in 1:num
             p = 0.0
             for m in 1:2:1e4
@@ -204,9 +194,9 @@ begin
     ylabel="Normalized depth 𝐻 [-]", xticks=0:0.2:1, yticks=0:0.2:1, 
     title="Excess pore pressure isochrones", aspect=1)
     ax2 = Axis(gd2, aspect=DataAspect(), xlabel=L"x\ (m)", ylabel=L"y\ (m)", 
-        xticks=0:0.2:0.2, yticks=0:0.2:1.2, title="Pore pressure distribution")
+        xticks=0:0.1:0.1, yticks=0:0.2:1.2, title="Pore pressure distribution")
     ax3 = Axis(gd3, aspect=DataAspect(), xlabel=L"x\ (m)", ylabel=L"y\ (m)", 
-        xticks=0:0.2:0.2, yticks=0:0.2:1.2, title="Total stress distribution")
+        xticks=0:0.1:0.1, yticks=0:0.2:1.2, title="Isotropic stress distribution")
     limits!(ax1, -0.1, 1.1, -0.1, 1.1)
     limits!(ax2, -0.1, 0.3, -0.1, 1.3)
     limits!(ax3, -0.1, 0.3, -0.1, 1.3)
@@ -220,7 +210,12 @@ begin
     fid = h5open(joinpath(prj, "$(args.project_name).h5"), "r")
     num = mp.np/length(unique(mp.ξ0[:, 1])) |> Int
     mp_rst = zeros(num, 2, 4)
-    timeset = [22, 64, 106, 148]
+
+    cv = init_k / (9800 * (1 / init_Es + init_n / init_Kw))
+    tv = [0.1, 0.3, 0.5, 0.7]
+    t  = tv ./ cv
+    timeset = @. round(Int, t / (init_step * init_ΔT))
+    timeset = [8, 23, 38, 53]
     for i in eachindex(timeset)
         c_pp = fid["group$(timeset[i])/pressure_w"] |> read
         mp_rst[:, 1, i] .= reverse(c_pp[1:num])./init_σw
@@ -237,11 +232,13 @@ begin
         marker=:star8, strokewidth=0)
     axislegend(ax1, merge=true, labelsize=14, padding=(10, 6, 0, 0))
     #---------------------------------------------------------------------------------------
-    p21 = scatter!(ax2, mp.ξ, color=mp.σw./1000 , markersize=18, marker=:rect, 
-        colormap=:coolwarm, colorrange=(-1, 0))
+    p21 = scatter!(ax2, mp.ξ, color=mp.σw./1000 , markersize=10, marker=:rect, 
+        colormap=:viridis, colorrange=(-1, 0))
+    limits!(ax2, -0.05, 0.15, -0.05, 1.10)
     #---------------------------------------------------------------------------------------
-    p31 = scatter!(ax3, mp.ξ, color=mp.σm, markersize=18, marker=:rect, 
-        colormap=:coolwarm)
+    p31 = scatter!(ax3, mp.ξ, color=mp.vs[:, 2], markersize=10, marker=:rect, 
+        colormap=:viridis )
+    limits!(ax3, -0.05, 0.15, -0.05, 1.10)
     # colorbar setup =======================================================================
     Colorbar(cb1, p21, label=L"\sigma_w\ \text{(kPa)}", size=5, spinewidth=0, vertical=true, 
         height=Relative(1/1.5))
