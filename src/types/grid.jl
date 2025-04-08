@@ -104,9 +104,9 @@ function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0, 
     phase == 1 ? (nc_new = 1 ; ni_new = 1 ; DoF_new = 1  ) : 
     phase == 2 ? (nc_new = nc; ni_new = ni; DoF_new = DoF) : nothing
     if phase == 2
-        σm  = zeros(T2, ni)
-        σw  = zeros(T2, ni)
-        Ω   = zeros(T2, ni)
+        σm  = zeros(T2, nc)
+        σw  = zeros(T2, nc)
+        Ω   = zeros(T2, nc)
     elseif phase == 1
         σm  = zeros(T2, ni)
         σw  = zeros(T2, 1 )
