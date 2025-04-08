@@ -1,18 +1,24 @@
 #==========================================================================================+
 |           MaterialPointSolver.jl: High-performance MPM Solver for Geomechanics           |
 +------------------------------------------------------------------------------------------+
-|  File Name  : MaterialPointSolver.jl                                                     |
-|  Description: Some helper functions for MPMSolver.jl                                     |
+|  File Name  : timestep.jl                                                                |
+|  Description: Adaptive time step algorithms in MaterialPointSolver.jl                    |
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
+|  License    : MIT License                                                                |
 +==========================================================================================#
 
-include(joinpath(@__DIR__, "toolkits/devicehelpfunc.jl"))
-include(joinpath(@__DIR__, "toolkits/mpbasisfunc.jl"   ))
-include(joinpath(@__DIR__, "toolkits/terminaltxt.jl"   ))
-include(joinpath(@__DIR__, "toolkits/modelinfo.jl"     ))
-include(joinpath(@__DIR__, "toolkits/warmup.jl"        ))
-include(joinpath(@__DIR__, "toolkits/hardwareinfo.jl"  ))
-include(joinpath(@__DIR__, "toolkits/randomfield.jl"   ))
-include(joinpath(@__DIR__, "toolkits/timestep.jl"      ))
+export Δtu, Δtl
+
+function Δtu(Gs, Ks, Kw, ρs, ρw, n, dx)
+    Ec = Ks + inv((n/Kw) + ((1-n)/Ks)) + 4/3*Gs
+    ωu = 2/dx * sqrt((Ec + Kw/n)/((1-n)*ρs + n*ρw))
+    return 2/ωu
+end
+
+function Δtl(Kw, k, ρw, n, μ, dx)
+    ωl = 2/dx * sqrt(Kw/ρw)
+    ξl = ((n*μ) / (2*k*ωl)) * inv(ρw)
+    return 2/ωl * (sqrt(ξl^2 + 1) - ξl)
+end
