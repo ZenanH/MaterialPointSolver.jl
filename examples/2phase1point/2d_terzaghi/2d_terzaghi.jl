@@ -26,11 +26,11 @@ MaterialPointSolver.warmup(Val(:CPU))
 # model configuration
 init_grid_space_x = 0.05
 init_grid_space_y = 0.05
-init_grid_range_x = [0-init_grid_space_x, 0.1+init_grid_space_x]
-init_grid_range_y = [0-init_grid_space_y, 1.0+init_grid_space_y]
+init_grid_range_x = [0-init_grid_space_x*2, 0.1+init_grid_space_x*2]
+init_grid_range_y = [0-init_grid_space_y*2, 1.0+init_grid_space_y*2]
 init_mp_in_space  = 2
-init_ρs           = 2650
-init_ρw           = 1000
+init_ρs           = 2650.0
+init_ρw           = 1000.0
 init_n            = 0.3
 init_k            = 1e-3
 init_ν            = 0
@@ -38,12 +38,13 @@ init_Es           = 1e7
 init_Gs           = init_Es / (2 * (1 +     init_ν))
 init_Ks           = init_Es / (3 * (1 - 2 * init_ν))
 init_Kw           = 2.2e9
+init_ΔT           = satΔt(init_Gs, init_Ks, init_Kw, init_ρs, init_ρw, init_n, init_k, init_grid_space_x)
 init_T            = 2.0
 init_Te           = 0.0
 init_ΔT           = 1e-5
-init_step         = floor(init_T / init_ΔT / 150)
-init_basis        = :bspline2
-init_NIC          = 9
+init_step         = floor(init_T / init_ΔT / 200)
+init_basis        = :linear
+init_NIC          = 16
 init_phase        = 2
 init_σw           = -1e4
 init_ϵ            = "FP64"
@@ -121,7 +122,7 @@ tmp_idx = findall(i -> grid.ξ[i, 1] ≤ 0 || grid.ξ[i, 1] ≥ 0.1 ||
 tmp_idy = findall(i -> grid.ξ[i, 2] ≤ 0, 1:grid.ni)
 vx_idx[tmp_idx] .= 1
 vy_idx[tmp_idy] .= 1
-idx = findall(i -> 0 ≤ grid.ξ[i, 1] ≤ 0.11 && grid.ξ[i, 2] == 1.0, 1:grid.ni)
+idx = findall(i -> 0 ≤ grid.ξ[i, 1] ≤ 0.11 && grid.ξ[i, 2] ≈ 1.0, 1:grid.ni)
 ext = TractionBoundary(idx)
 user_adapt(Array, ext)
 bc = UserVBoundary2D(
@@ -136,7 +137,8 @@ bc = UserVBoundary2D(
     ext      = ext
 )
 
-
+#cv = init_k / (9800 * (1 / init_Es + init_n / init_Kw))
+#t = 0.1 / cv
 
 # MPM solver
 materialpointsolver!(args, grid, mp, attr, bc, workflow=Tprocedure!)
@@ -215,7 +217,10 @@ begin
     tv = [0.1, 0.3, 0.5, 0.7]
     t  = tv ./ cv
     timeset = @. round(Int, t / (init_step * init_ΔT))
-    timeset = [8, 23, 38, 53]
+
+    timeset = [11, 30, 51, 70]
+
+    #timeset = [8, 23, 38, 53]
     for i in eachindex(timeset)
         c_pp = fid["group$(timeset[i])/pressure_w"] |> read
         mp_rst[:, 1, i] .= reverse(c_pp[1:num])./init_σw
