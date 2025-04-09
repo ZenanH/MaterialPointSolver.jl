@@ -57,7 +57,7 @@ end
 ) where T2
     # Δtc Mieremet
     λc = S/(λ + S/Kw) # λ=∂S/∂s (S: degree of saturation, s: suction ↣ ∂S/∂p (pore pressure))
-    ρm = (1-n)*ρs + n*ρw
+    ρm = (1-n)*ρs + n*S*ρw
     Ec = Ks + 4/3 * Gs
 
     # parameters
