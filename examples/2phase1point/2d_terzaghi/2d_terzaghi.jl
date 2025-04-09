@@ -43,8 +43,8 @@ init_T            = 2.0
 init_Te           = 0.0
 init_ΔT           = 1e-5
 init_step         = floor(init_T / init_ΔT / 200)
-init_basis        = :linear
-init_NIC          = 16
+init_basis        = :uGIMP
+init_NIC          = 9
 init_phase        = 2
 init_σw           = -1e4
 init_ϵ            = "FP64"
@@ -137,120 +137,101 @@ bc = UserVBoundary2D(
     ext      = ext
 )
 
-#cv = init_k / (9800 * (1 / init_Es + init_n / init_Kw))
-#t = 0.1 / cv
-
 # MPM solver
 materialpointsolver!(args, grid, mp, attr, bc, workflow=Tprocedure!)
 
 # post-processing
 animation(args)
-begin
-    # cv = init_k / (9800 * (1 / init_Es + init_n / init_Kw))
-    # t = 0.1 / cv
-    # helper functions =====================================================================
-    function terzaghi(p0, Tv)
-        num = 100
-        H = 1
-        Z = range(0, 1, length=num)
-        data = zeros(num, 2)
-        data[:, 2] .= Z
-        @inbounds for i in 1:num
-            p = 0.0
-            for m in 1:2:1e4
-                p += 4*p0/π*(1/m)*sin((m*π*data[i, 2])/(2*H))*exp((-m^2)*((π/2)^2)*Tv)
-            end
-            data[num+1-i, 1] = p/p0
-        end
-        return data
-    end
 
-    function consolidation()
-        num = 1000
-        dat = zeros(num, 2)    
-        dat[:, 1] .= collect(range(0, 10, length=num))
-        @inbounds for i in 1:num
-            tmp = 0.0
-            for m in 1:2:1e4
-                tmp += (8/π^2)*(1/m^2)*exp(-(m*π/2)^2*dat[i, 1]) 
-            end
-            dat[i, 2] = 1-tmp
-        end
-        return dat
-    end
+let 
     # figure setup =========================================================================
     figfont = MaterialPointSolver.tnr
-    fig = Figure(size=(1000, 450), fontsize=15, fonts=(; regular=figfont, bold=figfont))
-    titlay = fig[0, :] = GridLayout()
-    Label(titlay[1, :], "Two-phase single-point MPM (𝑣-𝑤)\n2D Terzaghi Consolidation Test", 
-        fontsize=20, tellwidth=false, halign=:center, justification=:center, lineheight=1.2)
-    layout = fig[1, 1] = GridLayout()
-    gd1 = layout[1, 1]
-    gd2 = layout[1, 2]
-    gd3 = layout[1, 4]
-    cb1 = layout[1, 3]
-    cb2 = layout[1, 5]
-    colsize!(layout, 1, 348)
-    # axis setup ===========================================================================
-    ax1 = Axis(gd1, xlabel="Normalized pore pressure 𝑝 [-]", 
-    ylabel="Normalized depth 𝐻 [-]", xticks=0:0.2:1, yticks=0:0.2:1, 
-    title="Excess pore pressure isochrones", aspect=1)
-    ax2 = Axis(gd2, aspect=DataAspect(), xlabel=L"x\ (m)", ylabel=L"y\ (m)", 
-        xticks=0:0.1:0.1, yticks=0:0.2:1.2, title="Pore pressure distribution")
-    ax3 = Axis(gd3, aspect=DataAspect(), xlabel=L"x\ (m)", ylabel=L"y\ (m)", 
-        xticks=0:0.1:0.1, yticks=0:0.2:1.2, title="Isotropic stress distribution")
-    limits!(ax1, -0.1, 1.1, -0.1, 1.1)
-    limits!(ax2, -0.1, 0.3, -0.1, 1.3)
-    limits!(ax3, -0.1, 0.3, -0.1, 1.3)
-    # plot setup ===========================================================================
-    p11 = lines!(ax1, terzaghi(init_σw, 0.1), color=:black, linewidth=1, 
-        label="Analytical solution")
-    p12 = lines!(ax1, terzaghi(init_σw, 0.3), color=:black, linewidth=1)
-    p13 = lines!(ax1, terzaghi(init_σw, 0.5), color=:black, linewidth=1)
-    p14 = lines!(ax1, terzaghi(init_σw, 0.7), color=:black, linewidth=1)
-    prj = joinpath(args.project_path, args.project_name)
-    fid = h5open(joinpath(prj, "$(args.project_name).h5"), "r")
+    fig = Figure(size=(800, 350), fontsize=12, fonts=(; regular=figfont, bold=figfont))
+    ax1 = Axis(fig[1, 1], aspect=1, xlabel="Normalized pore pressure 𝑝 [-]", 
+        ylabel="Normalized depth 𝐻 [-]", xticks=(0:0.2:1), yticks=(0:0.2:1))
+    text!(0.42, 0.75, text=L"T_v = 0.1")
+    text!(0.55, 0.30, text=L"T_v = 0.3")
+    text!(0.37, 0.10, text=L"T_v = 0.5")
+    text!(0.00, 0.10, text=L"T_v = 0.7")
+    ax2 = Axis(fig[1, 2], aspect=DataAspect(), ylabel=L"y\ (m)",
+        xticks=(11:12),yticks=(0:0.2:1.0), ytrimspine=true, xlabel=L"T_v = 0.1",
+        xgridvisible=false, ygridvisible=false, rightspinevisible=false,
+        topspinevisible=false, bottomspinevisible=false)
+    ax3 = Axis(fig[1, 3], aspect=DataAspect(), xlabel=L"T_v = 0.3",
+        xticks=(11:12), xgridvisible=false, ygridvisible=false, rightspinevisible=false,
+        topspinevisible=false, leftspinevisible=false, bottomspinevisible=false)
+    ax4 = Axis(fig[1, 4], aspect=DataAspect(), xlabel=L"T_v = 0.5",
+        xticks=(11:12), xgridvisible=false, ygridvisible=false, rightspinevisible=false,
+        topspinevisible=false, leftspinevisible=false, bottomspinevisible=false)
+    ax5 = Axis(fig[1, 5], aspect=DataAspect(), xlabel=L"T_v = 0.7",
+        xticks=(11:12), xgridvisible=false, ygridvisible=false, rightspinevisible=false,
+        topspinevisible=false, leftspinevisible=false, bottomspinevisible=false)
+    limits!(ax1, -0.10, 1.1, -0.1, 1.1)
+    limits!(ax2, -0.05, 0.1, -0.1, 1.1)
+    limits!(ax3, -0.00, 0.1, -0.1, 1.1)
+    limits!(ax4, -0.00, 0.1, -0.1, 1.1)
+    limits!(ax5, -0.00, 0.1, -0.1, 1.1)
+    colsize!(fig.layout, 1, Relative(0.4))
+    colgap!(fig.layout, 2, 0)
+    colgap!(fig.layout, 3, 0)
+    colgap!(fig.layout, 4, 0)
+    hideydecorations!(ax3, grid=false)
+    hideydecorations!(ax4, grid=false)
+    hideydecorations!(ax5, grid=false)
+
+    # load data ============================================================================
+    fid = h5open(joinpath(args.project_path, args.project_name, "$(args.project_name).h5"), "r")
     num = mp.np/length(unique(mp.ξ0[:, 1])) |> Int
     mp_rst = zeros(num, 2, 4)
-
-    cv = init_k / (9800 * (1 / init_Es + init_n / init_Kw))
-    tv = [0.1, 0.3, 0.5, 0.7]
-    t  = tv ./ cv
-    timeset = @. round(Int, t / (init_step * init_ΔT))
-
-    timeset = [11, 30, 51, 70]
-
-    #timeset = [8, 23, 38, 53]
+    timeset = [11, 30, 50, 70]
     for i in eachindex(timeset)
         c_pp = fid["group$(timeset[i])/pressure_w"] |> read
         mp_rst[:, 1, i] .= reverse(c_pp[1:num])./init_σw
         mp_rst[:, 2, i] .= reverse(mp.ξ0[1:num, 2])
     end
+    ξ1 = fid["group$(timeset[1])/coords"] |> read
+    ξ2 = fid["group$(timeset[2])/coords"] |> read
+    ξ3 = fid["group$(timeset[3])/coords"] |> read
+    ξ4 = fid["group$(timeset[4])/coords"] |> read
+    cvalue1 = (fid["group$(timeset[1])/pressure_w"] |> read) * 1e-3
+    cvalue2 = (fid["group$(timeset[2])/pressure_w"] |> read) * 1e-3
+    cvalue3 = (fid["group$(timeset[3])/pressure_w"] |> read) * 1e-3
+    cvalue4 = (fid["group$(timeset[4])/pressure_w"] |> read) * 1e-3
     close(fid)
-    p15 = scatterlines!(ax1, mp_rst[:, :, 1], linewidth=0.5, markersize=6, color=:red, 
+
+    # plot setup ===========================================================================
+    p11 = lines!(ax1, terzaghi(init_σw, 0.1), color=:black, linewidth=1, 
+        label="Analytical solution")
+        
+    p12 = lines!(ax1, terzaghi(init_σw, 0.3), color=:black, linewidth=1)
+    p13 = lines!(ax1, terzaghi(init_σw, 0.5), color=:black, linewidth=1)
+    p14 = lines!(ax1, terzaghi(init_σw, 0.7), color=:black, linewidth=1)
+    p15 = scatterlines!(ax1, mp_rst[:, :, 1], linewidth=0.5, markersize=4, color=:red, 
         marker=:star8, strokewidth=0, label="MPM solution")
-    p16 = scatterlines!(ax1, mp_rst[:, :, 2], linewidth=0.5, markersize=6, color=:red, 
+    p16 = scatterlines!(ax1, mp_rst[:, :, 2], linewidth=0.5, markersize=4, color=:red, 
         marker=:star8, strokewidth=0)
-    p17 = scatterlines!(ax1, mp_rst[:, :, 3], linewidth=0.5, markersize=6, color=:red, 
+    p17 = scatterlines!(ax1, mp_rst[:, :, 3], linewidth=0.5, markersize=4, color=:red, 
         marker=:star8, strokewidth=0)
-    p18 = scatterlines!(ax1, mp_rst[:, :, 4], linewidth=0.5, markersize=6, color=:red, 
+    p18 = scatterlines!(ax1, mp_rst[:, :, 4], linewidth=0.5, markersize=4, color=:red, 
         marker=:star8, strokewidth=0)
-    axislegend(ax1, merge=true, labelsize=14, padding=(10, 6, 0, 0))
-    #---------------------------------------------------------------------------------------
-    p21 = scatter!(ax2, mp.ξ, color=mp.σw./1000 , markersize=10, marker=:rect, 
-        colormap=:viridis, colorrange=(-1, 0))
-    limits!(ax2, -0.05, 0.15, -0.05, 1.10)
-    #---------------------------------------------------------------------------------------
-    p31 = scatter!(ax3, mp.ξ, color=mp.vs[:, 2], markersize=10, marker=:rect, 
-        colormap=:viridis )
-    limits!(ax3, -0.05, 0.15, -0.05, 1.10)
-    # colorbar setup =======================================================================
-    Colorbar(cb1, p21, label=L"\sigma_w\ \text{(kPa)}", size=5, spinewidth=0, vertical=true, 
-        height=Relative(1/1.5))
-    Colorbar(cb2, p31, label=L"\sigma\ \text{(Pa)}", size=5, spinewidth=0, vertical=true, 
-        height=Relative(1/1.5))
-    # save figure ==========================================================================
+    axislegend(ax1, merge=true, padding=(10, 6, 0, 0))
+
+    plt1 = scatter!(ax2, ξ1, color=cvalue1, markersize=10, marker=:rect, colormap=:viridis, 
+        colorrange=(-10, 0))
+    plt2 = scatter!(ax3, ξ2, color=cvalue2, markersize=10, marker=:rect, colormap=:viridis, 
+        colorrange=(-10, 0))
+    plt3 = scatter!(ax4, ξ3, color=cvalue3, markersize=10, marker=:rect, colormap=:viridis, 
+        colorrange=(-10, 0))
+    plt4 = scatter!(ax5, ξ4, color=cvalue4, markersize=10, marker=:rect, colormap=:viridis, 
+        colorrange=(-10, 0))
+
+    Colorbar(fig[1, 6], plt4, label=L"p\ \text{(kPa)}", size=5, spinewidth=0, vertical=true, 
+        height=Relative(1/2.5))
+
+    Label(fig[1, 1, Bottom()], "(a) Excess pore pressure isochrones", 
+        halign=:center, padding=(0,0,-40,0))
+    Label(fig[1, 2:6, Bottom()], "(b) Pore pressure distribution", 
+        halign=:center, padding=(0,0,-40,0))
     display(fig)
-    save(joinpath(prj, "$(args.project_name).png"), fig)
-    @info "Figure saved in project path"
+    save(joinpath(args.project_path, args.project_name, "$(args.project_name).pdf"), fig)
 end

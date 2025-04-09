@@ -43,3 +43,36 @@ function Tprocedure!(
     end
     return nothing
 end
+
+# cv = init_k / (9800 * (1 / init_Es + init_n / init_Kw))
+# t = 0.1 / cv
+# helper functions =====================================================================
+function terzaghi(p0, Tv)
+    num = 100
+    H = 1
+    Z = range(0, 1, length=num)
+    data = zeros(num, 2)
+    data[:, 2] .= Z
+    @inbounds for i in 1:num
+        p = 0.0
+        for m in 1:2:1e4
+            p += 4*p0/π*(1/m)*sin((m*π*data[i, 2])/(2*H))*exp((-m^2)*((π/2)^2)*Tv)
+        end
+        data[num+1-i, 1] = p/p0
+    end
+    return data
+end
+
+function consolidation()
+    num = 1000
+    dat = zeros(num, 2)    
+    dat[:, 1] .= collect(range(0, 10, length=num))
+    @inbounds for i in 1:num
+        tmp = 0.0
+        for m in 1:2:1e4
+            tmp += (8/π^2)*(1/m^2)*exp(-(m*π/2)^2*dat[i, 1]) 
+        end
+        dat[i, 2] = 1-tmp
+    end
+    return dat
+end
