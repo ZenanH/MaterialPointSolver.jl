@@ -22,7 +22,7 @@ export solvegrid_USL_TS!
     if ix ≤ grid.ni
         ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
         mi_denom = grid.mi[ix] < eps(T2) ? T2(0.0) : inv(grid.mi[ix])
-        mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix]).
+        mw_denom = grid.mw[ix] < eps(T2) ? T2(0.0) : inv(grid.mw[ix])
         # boundary condition
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
@@ -31,8 +31,8 @@ export solvegrid_USL_TS!
         # compute nodal velocity
         grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
         grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
-        grid.vw[ix, 1] = grid.pw[ix, 1] * mw_denom
-        grid.vw[ix, 2] = grid.pw[ix, 2] * mw_denom
+        grid.vw[ix, 1] = grid.pw[ix, 1] * mi_denom
+        grid.vw[ix, 2] = grid.pw[ix, 2] * mi_denom
         # compute damping force
         dampvw = -ζw * sqrt( grid.fw[ix, 1] * grid.fw[ix, 1]  + 
                              grid.fw[ix, 2] * grid.fw[ix, 2] )
@@ -41,8 +41,8 @@ export solvegrid_USL_TS!
                             (grid.fs[ix, 2] - grid.fw[ix, 2]) * 
                             (grid.fs[ix, 2] - grid.fw[ix, 2]))
         # compute node acceleration
-        awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) + grid.fd[ix, 1])
-        awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) + grid.fd[ix, 2])
+        awx = mw_denom * (grid.fw[ix, 1] + dampvw * sign(grid.vw[ix, 1]) - grid.fd[ix, 1])
+        awy = mw_denom * (grid.fw[ix, 2] + dampvw * sign(grid.vw[ix, 2]) - grid.fd[ix, 2])
         asx = ms_denom * (-grid.mi[ix] * awx + grid.fs[ix, 1] + 
             dampvw * sign(grid.vw[ix, 1]) + dampvs * sign(grid.vs[ix, 1]))
         asy = ms_denom * (-grid.mi[ix] * awy + grid.fs[ix, 2] + 
