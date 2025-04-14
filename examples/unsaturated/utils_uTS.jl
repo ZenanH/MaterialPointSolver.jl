@@ -45,6 +45,31 @@ export G2P_TS!
 export vollock1_TS!
 export vollock2_TS!
 
+
+
+@inline function SWCC(S_min, S_max, Pw, p_ref, λ)
+    return S_min + (S_max - S_min) * (1.0 + (Pw/p_ref)^inv(1-λ))^(-λ)
+end
+
+let 
+    S_min = 0.125
+    S_max = 1
+    p_ref = 3e3
+    λ     = 0.7
+    Pw    = 2000
+    # 生成压力范围，从 1 Pa 到 10^4 = 10000 Pa，采用对数分布
+    Pw_values = [10.0^(x) for x in range(2, stop=5, length=100)]
+    # 对应的饱和度
+    S_values = [SWCC(S_min, S_max, Pw, p_ref, λ) for Pw in Pw_values]
+    fig = Figure(size=(600, 400))
+    ax = Axis(fig[1, 1], xscale=log10)
+    p1 = lines!(ax, hcat(Pw_values, S_values), color=S_values, colormap=:berlin25, 
+        linewidth=4, label="SWCC")
+    axislegend(ax, merge=true, padding=(10, 6, 0, 0))
+    display(fig)
+end
+
+
 """
     resetgridstatus_TS!(grid::DeviceGrid2D)
     resetgridstatus_TS!(grid::DeviceGrid3D)
