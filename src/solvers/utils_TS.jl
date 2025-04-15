@@ -582,7 +582,6 @@ Description: [TS: two-phase single-point MPM]
 @kernel function P2G_TS!(
     grid   ::    DeviceGrid2D{T1, T2},
     mp     ::DeviceParticle2D{T1, T2},
-    attr   ::  DeviceProperty{T1, T2},
     gravity::T2
 ) where {T1, T2}
     ix = @index(Global)
@@ -591,7 +590,7 @@ Description: [TS: two-phase single-point MPM]
         mps, mpw, mpm = mp.ms[ix], mp.mw[ix], mp.ms[ix] * ns + mp.mw[ix] * nl
         mppsx, mppsy, mppwx, mppwy = mp.ps[ix, 1], mp.ps[ix, 2], mp.pw[ix, 1], mp.pw[ix, 2]
         mpvsx, mpvsy, mpvwx, mpvwy = mp.vs[ix, 1], mp.vs[ix, 2], mp.vw[ix, 1], mp.vw[ix, 2]
-        drag = (nl * mpw * T2(9.8)) / attr.k[attr.nid[ix]]
+        drag = (nl * mpw * T2(9.8)) / mp.k[ix]
         σxx, σyy, σxy = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 4]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Nij = mp.Nij[ix, iy]
@@ -626,7 +625,6 @@ end
 @kernel function P2G_TS!(
     grid   ::    DeviceGrid3D{T1, T2},
     mp     ::DeviceParticle3D{T1, T2},
-    attr   ::  DeviceProperty{T1, T2},
     gravity::T2
 ) where {T1, T2}
     ix = @index(Global)
@@ -637,7 +635,7 @@ end
         mppwx, mppwy, mppwz = mp.pw[ix, 1], mp.pw[ix, 2], mp.pw[ix, 3]
         mpvsx, mpvsy, mpvsz = mp.vs[ix, 1], mp.vs[ix, 2], mp.vs[ix, 3]
         mpvwx, mpvwy, mpvwz = mp.vw[ix, 1], mp.vw[ix, 2], mp.vw[ix, 3]
-        drag = (n * mpw * T2(9.8)) / attr.k[attr.nid[ix]]
+        drag = (n * mpw * T2(9.8)) / mp.k[ix]
         σxx, σyy, σzz = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 3]
         σxy, σyz, σzx = mp.σij[ix, 4], mp.σij[ix, 5], mp.σij[ix, 6]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)

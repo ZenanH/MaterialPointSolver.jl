@@ -41,7 +41,6 @@ struct Property{T1, T2,
     Gs   :: T4
     Ks   :: T4
     Kw   :: T4
-    k    :: T4
     σt   :: T4
     ϕ    :: T4
     ϕr   :: T4
@@ -57,8 +56,8 @@ end
 
 @user_struct Property
 
-function UserProperty(; ϵ="FP64", nid, ν, Es, Gs, Ks, Kw=[0], k=[0], σt=[0], ϕ=[0], ϕr=[0], 
-    ψ=[0], c=[0], cr=[0], Hp=[0], μd=[0], τy=[0], ηmax=[0], ext=0)
+function UserProperty(; ϵ="FP64", nid, ν, Es, Gs, Ks, Kw=[0], σt=[0], ϕ=[0], ϕr=[0], ψ=[0], 
+    c=[0], cr=[0], Hp=[0], μd=[0], τy=[0], ηmax=[0], ext=0)
     # input check
     length(Es) == length(Gs) == length(Ks) == length(ν) || 
         throw(ArgumentError("The length of Es, Gs, Ks, and ν must be the same."))
@@ -70,7 +69,7 @@ function UserProperty(; ϵ="FP64", nid, ν, Es, Gs, Ks, Kw=[0], k=[0], σt=[0], 
     T2 = ϵ == "FP64" ? Float64 : Float32
     ext = ext == 0 ? TempPropertyExtra(rand(T2, 2)) : ext
     tmp = Property{T1, T2, AbstractArray{T1, 1}, AbstractArray{T2, 1}, UserPropertyExtra}(
-        0, 0.0, nid, ν, Es, Gs, Ks, Kw, k, σt, ϕ, ϕr, ψ, c, cr, Hp, μd, τy, ηmax, ext)
+        0, 0.0, nid, ν, Es, Gs, Ks, Kw, σt, ϕ, ϕr, ψ, c, cr, Hp, μd, τy, ηmax, ext)
     return user_adapt(Array, tmp)
 end
 

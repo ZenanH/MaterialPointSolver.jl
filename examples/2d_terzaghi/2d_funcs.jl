@@ -24,7 +24,7 @@ function Tprocedure!(
 
     resetgridstatus_TS!(dev)(ndrange=grid.ni, grid)
     resetmpstatus_TS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
-    P2G_TS!(dev)(ndrange=mp.np, grid, mp, attr, G)
+    P2G_TS!(dev)(ndrange=mp.np, grid, mp, G)
 
     traction = T2(-1e3) / length(bc.ext.id)
     grid.fs[bc.ext.id, 2] .+= traction

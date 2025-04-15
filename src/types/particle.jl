@@ -53,6 +53,8 @@ struct Particle2D{T1, T2,
     ms    :: T4
     mw    :: T4
     n     :: T4
+    k     :: T4
+    S     :: T4
     ρs    :: T4
     ρs0   :: T4
     ρw    :: T4
@@ -81,8 +83,8 @@ end
 
 @user_struct Particle2D
 
-function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw=[0], ext=0, 
-    affine=false, mls=false, kwargs...)
+function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], k=[0], S=[0], ρs, 
+    ρw=[0], ext=0, affine=false, mls=false, kwargs...)
     # input check
     dx > 0 && dy > 0 || throw(ArgumentError("dx and dy should be positive"))
     # default values
@@ -127,10 +129,8 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
     vw    = zeros(T2, np_new, DoF_new)
     Nij   = zeros(T2, np    , NIC    )
     if mls
-        # ∂Nx = zeros(T2, 1, 2)
-        # ∂Ny = zeros(T2, 1, 2)
-        ∂Nx = zeros(T2, np, NIC)
-        ∂Ny = zeros(T2, np, NIC)
+        ∂Nx = zeros(T2, 1, 2)
+        ∂Ny = zeros(T2, 1, 2)
         affine = true
     else
         ∂Nx = zeros(T2, np, NIC)
@@ -143,8 +143,8 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], ρs, ρw
     # instantiate the particle
     tmp = Particle2D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, 
         AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, dy, p2n, ξ, ξ0, σm, ϵq, 
-        ϵk, ϵv, Ω, Ω0, ms, mw, n, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, Δϵijw, 
-        sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ΔFs, ΔFw, F, aC, ext)
+        ϵk, ϵv, Ω, Ω0, ms, mw, n, k, S, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
+        Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ΔFs, ΔFw, F, aC, ext)
 
     return user_adapt(Array, tmp)
 end
@@ -193,6 +193,8 @@ struct Particle3D{T1, T2,
     ms    :: T4
     mw    :: T4
     n     :: T4
+    k     :: T4
+    S     :: T4
     ρs    :: T4
     ρs0   :: T4
     ρw    :: T4
@@ -222,8 +224,8 @@ end
 
 @user_struct Particle3D
 
-function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs, ρw=[0], 
-    affine=false, mls=false, ext=0, kwargs...)
+function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], k=[0], S=[0], ρs, 
+    ρw=[0], affine=false, mls=false, ext=0, kwargs...)
     # input check
     dx > 0 && dy > 0 && dz > 0 || 
         throw(ArgumentError("dx, dy, and dz should be positive"))
@@ -285,7 +287,7 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], ρs
     # instantiate the particle
     tmp = Particle3D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, 
         AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, dy, dz, p2n, ξ, ξ0, σm, 
-        ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, n, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
+        ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, n, k, S, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
         Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ∂Nz, ΔFs, ΔFw, F, aC, ext)
         
     return user_adapt(Array, tmp)

@@ -100,6 +100,7 @@ mp = UserParticle2D(
     ρs    = ones(size(ξ0, 1)) .* init_ρs,
     ρw    = ones(size(ξ0, 1)) .* init_ρw,
     n     = ones(size(ξ0, 1)) .* init_n,
+    k     = ones(size(ξ0, 1)) .* init_k
 )
 mp.σw .= init_σw
 
@@ -112,8 +113,7 @@ attr = UserProperty(
     Es  = [init_Es],
     Gs  = [init_Gs],
     Ks  = [init_Ks],
-    Kw  = [init_Kw],
-    k   = [init_k]
+    Kw  = [init_Kw]
 )
 
 # boundary condition nodes index
