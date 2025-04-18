@@ -86,6 +86,7 @@ This function will start to run the MPM solver.
                         g["strain_w"  ] = mp.ϵijw
                         g["velocity_w"] = mp.vw
                         g["porosity"  ] = mp.n
+                        g["saturation"] = mp.S
                     end
                     hdf5_switch = T1(0); hdf5_id += T1(1)
                 end
