@@ -169,40 +169,42 @@ end
         #==================================================================================+
         | Infiltration boundary for rainfall                                               |
         ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓=#
-        # if ix in bc.ext.id
-        #     # liquid volumetric fraction, infiltration velocity, and unit external normal 
-        #     # vector
-        #     nl, Ŵy, nx, ny = grid.ext.nl[ix], attr.ext.Ŵy, T2(0.0), T2(1.0)
-        #     # net infiltration discharge
-        #     Q_net_x = (nl * (grid.vwT[ix, 1] - grid.vsT[ix, 1]) - Ŵy) * nx
-        #     Q_net_y = (nl * (grid.vwT[ix, 2] - grid.vsT[ix, 2]) - Ŵy) * ny
-        #     # velocity correction on x direction
-        #     # if Q_net_x ≥ T2(0.0)
-        #     #     awx = (grid.fs[ix, 1] * ΔT - grid.ms[ix] * (
-        #     #         grid.vw[ix, 1] - grid.vs[ix, 1] - grid.vwT[ix, 1] + grid.vsT[ix, 1])
-        #     #         ) / ((grid.mi[ix] + grid.ms[ix]) * ΔT)
-        #     #     asx = (grid.fs[ix, 1] - grid.mi[ix] * awx) / grid.ms[ix]
-        #     #     # update nodal temp velocity
-        #     #     grid.vwT[ix, 1] = grid.vw[ix, 1] + awx * ΔT
-        #     #     grid.vsT[ix, 1] = grid.vs[ix, 1] + asx * ΔT
-        #     # end
-        #     # velocity correction on y direction
-        #     if Q_net_y ≥ T2(0.0)
-        #         @info "test Qnet = $Q_net_y"
-        #         awy = (grid.fs[ix, 2] * ΔT - grid.ms[ix] * (
-        #             grid.vw[ix, 2] - grid.vs[ix, 2] - grid.vwT[ix, 2] + grid.vsT[ix, 2])
-        #             ) * mt_denom
-        #         asy = (grid.fs[ix, 2] - grid.mi[ix] * awy) * ms_denom
-        #         # update nodal temp velocity
-        #         grid.vwT[ix, 2] = grid.vw[ix, 2] + awy * ΔT
-        #         grid.vsT[ix, 2] = grid.vs[ix, 2] + asy * ΔT
-        #     end
-        #     # apply boundary condition
-        #     bc.vx_w_idx[ix] ≠ T1(0) ? grid.vwT[ix, 1] = bc.vx_w_val[ix] : nothing
-        #     bc.vy_w_idx[ix] ≠ T1(0) ? grid.vwT[ix, 2] = bc.vy_w_val[ix] : nothing
-        #     bc.vx_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 1] = bc.vx_s_val[ix] : nothing
-        #     bc.vy_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 2] = bc.vy_s_val[ix] : nothing
-        # end
+        if ix in bc.ext.id
+            # liquid volumetric fraction, infiltration velocity, and unit external normal 
+            # vector
+            nl, Ŵy, nx, ny = grid.ext.nl[ix], attr.ext.Ŵy, T2(0.0), T2(1.0)
+            # net infiltration discharge
+            Q_net_x = (nl * (grid.vwT[ix, 1] - grid.vsT[ix, 1]) - Ŵy) * nx
+            Q_net_y = (nl * (grid.vwT[ix, 2] - grid.vsT[ix, 2]) - Ŵy) * ny
+            # velocity correction on x direction
+            # if Q_net_x ≥ T2(0.0)
+            #     awx = (grid.fs[ix, 1] * ΔT - grid.ms[ix] * (
+            #         grid.vw[ix, 1] - grid.vs[ix, 1] - grid.vwT[ix, 1] + grid.vsT[ix, 1])
+            #         ) / ((grid.mi[ix] + grid.ms[ix]) * ΔT)
+            #     asx = (grid.fs[ix, 1] - grid.mi[ix] * awx) / grid.ms[ix]
+            #     # update nodal temp velocity
+            #     grid.vwT[ix, 1] = grid.vw[ix, 1] + awx * ΔT
+            #     #grid.vsT[ix, 1] = grid.vs[ix, 1] + asx * ΔT
+            # end
+            # velocity correction on y direction
+            if Q_net_y ≤ T2(0.0)
+                # @info "Q_net is $(Q_net_y)"
+                # awy = (grid.fs[ix, 2] * ΔT - grid.ms[ix] * (
+                #     grid.vw[ix, 2] - grid.vs[ix, 2] - grid.vwT[ix, 2] + grid.vsT[ix, 2])
+                #     ) * mt_denom
+                # asy = (grid.fs[ix, 2] - grid.mi[ix] * awy) * ms_denom
+                # # update nodal temp velocity
+                # grid.vwT[ix, 2] = grid.vw[ix, 2] + awy * ΔT
+                # grid.vsT[ix, 2] = grid.vs[ix, 2] + asy * ΔT
+                grid.vwT[ix, 2] += Q_net_y * ny
+                
+            end
+            # apply boundary condition
+            bc.vx_w_idx[ix] ≠ T1(0) ? grid.vwT[ix, 1] = bc.vx_w_val[ix] : nothing
+            bc.vy_w_idx[ix] ≠ T1(0) ? grid.vwT[ix, 2] = bc.vy_w_val[ix] : nothing
+            bc.vx_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 1] = bc.vx_s_val[ix] : nothing
+            bc.vy_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 2] = bc.vy_s_val[ix] : nothing
+        end
         #↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑#
 
         # reset grid momentum
@@ -400,7 +402,7 @@ function Tprocedure!(
     tP2G_TS!(dev)(ndrange=mp.np, grid, mp, G)
     tsolvegrid_TS!(dev)(ndrange=grid.ni, grid, attr, bc, ΔT, args.ζs, args.ζw)
 
-    grid.vwT[bc.ext.id, 2] .= attr.ext.Ŵy
+    #grid.vwT[bc.ext.id, 2] .= attr.ext.Ŵy
 
     tdoublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
     tdoublemapping2_TS!(dev)(ndrange=mp.np, grid, mp)

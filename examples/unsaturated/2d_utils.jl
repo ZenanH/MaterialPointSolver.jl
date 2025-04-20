@@ -108,3 +108,30 @@ using WriteVTK
     vtk_grid(nds_path, grid_ξ', vtp_cls, ascii=false) do vtk end
     close(fid)
 end
+
+function plotresult(hdf5_file)
+    fid = h5open(hdf5_file, "r")
+    timeset = [1, 2, 3, 4, 5, 6]
+    init_ξ = fid["mp_coords0"] |> read
+    np = size(init_ξ, 1)
+    σw = zeros(np, 6)
+    S  = zeros(np, 6)
+    ξ  = zeros(np, 2, 6)
+    for i in axes(timeset, 1)
+        σw[:, i] .= vec(fid["group$(timeset[i])/pressure_w"] |> read)
+        S[:, i]  .= vec(fid["group$(timeset[i])/saturation"] |> read)
+        ξ[:, :, i] .= fid["group$(timeset[i])/coords"    ] |> read
+    end
+    close(fid)
+
+    fig = Figure()
+    ax1 = Axis(fig[1, 1], aspect=1)
+    ax2 = Axis(fig[1, 2], aspect=DataAspect())
+    ax3 = Axis(fig[2, 1], aspect=1)
+    ax4 = Axis(fig[2, 2], aspect=DataAspect())
+
+    
+
+    display(fig)
+    return nothing
+end

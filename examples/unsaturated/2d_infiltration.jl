@@ -45,14 +45,6 @@ init_Es           = 5e7
 init_Gs           = init_Es / (2 * (1 +     init_ν))
 init_Ks           = init_Es / (3 * (1 - 2 * init_ν))
 init_Kw           = 8e7
-init_ΔT           = satΔt(init_Gs, init_Ks, init_Kw, init_ρs, init_ρw, init_n, init_k, init_grid_space_x)
-
-# λ = ∂SWCC(init_S_min, init_S_max, 0.0, init_P_ref, init_λ)
-# κ = init_k* (init_ρw*9.8)/1e-3
-# ω = sqrt((init_S/(λ+init_S/init_Kw)) * (inv(init_ρw)+inv(init_ρs)*(inv(init_n)-init_S)) + (init_Es/(init_ρs*(1-init_n)))/init_grid_space_x)
-# ξ = ((init_S*init_n*1e-3)/(2*κ*ω)) * ((init_S*init_n/(1-init_n)*init_ρs) + inv(init_ρw))
-# init_ΔT = 2*inv(ω) * sqrt(-ξ+sqrt(ξ^2 + 1))
-
 init_T            = 600
 init_Te           = 0.0
 init_ΔT           = 1e-5
