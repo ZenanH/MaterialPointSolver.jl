@@ -635,7 +635,7 @@ end
         mppwx, mppwy, mppwz = mp.pw[ix, 1], mp.pw[ix, 2], mp.pw[ix, 3]
         mpvsx, mpvsy, mpvsz = mp.vs[ix, 1], mp.vs[ix, 2], mp.vs[ix, 3]
         mpvwx, mpvwy, mpvwz = mp.vw[ix, 1], mp.vw[ix, 2], mp.vw[ix, 3]
-        drag = (n * mpw * T2(9.8)) / mp.k[ix]
+        drag = (nl * mpw * T2(9.8)) / mp.k[ix]
         σxx, σyy, σzz = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 3]
         σxy, σyz, σzx = mp.σij[ix, 4], mp.σij[ix, 5], mp.σij[ix, 6]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
@@ -679,7 +679,6 @@ end
         end
     end
 end
-
 
 """
     solvegrid_TS!(grid::DeviceGrid2D, bc::DeviceVBoundary2D, ΔT, ζs, ζw)
@@ -1166,9 +1165,9 @@ end
                 dfw7 += dw3 * ∂Nx; dfw8 += dw3 * ∂Ny; dfw9 += dw3 * ∂Nz
             end
         end
-        mp.ΔFs[ix, 1] = dfs1; mp.Δfs[ix, 2] = dfs2; mp.Δfs[ix, 3] = dfs3
-        mp.ΔFs[ix, 4] = dfs4; mp.Δfs[ix, 5] = dfs5; mp.Δfs[ix, 6] = dfs6
-        mp.ΔFs[ix, 7] = dfs7; mp.Δfs[ix, 8] = dfs8; mp.Δfs[ix, 9] = dfs9
+        mp.ΔFs[ix, 1] = dfs1; mp.ΔFs[ix, 2] = dfs2; mp.ΔFs[ix, 3] = dfs3
+        mp.ΔFs[ix, 4] = dfs4; mp.ΔFs[ix, 5] = dfs5; mp.ΔFs[ix, 6] = dfs6
+        mp.ΔFs[ix, 7] = dfs7; mp.ΔFs[ix, 8] = dfs8; mp.ΔFs[ix, 9] = dfs9
         # strain rate (Second Invariant of Strain Rate Tensor)
         ϵvxx = dfs1 * ΔT_1
         ϵvyy = dfs5 * ΔT_1
