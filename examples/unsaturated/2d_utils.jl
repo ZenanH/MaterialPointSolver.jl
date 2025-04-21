@@ -23,7 +23,7 @@ struct NEWProperty{T2} <: UserPropertyExtra
     Ŵy   ::T2 # infiltration velocity
 end
 
-@user_struct NEWGrid
+@user_struct NEWProperty
 #==========================================================================================#
 
 using HDF5
