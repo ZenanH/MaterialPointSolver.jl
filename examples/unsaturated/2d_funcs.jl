@@ -371,8 +371,8 @@ end
         nl, ni = mp.n[ix] * mp.S[ix], mp.S[ix] * (T2(1.0) - mp.n[ix])
         # update pore pressure
         ∂S∂s = ∂SWCC(attr.ext.S_min, attr.ext.S_max, -mp.σw[ix], attr.ext.P_ref, attr.ext.λ)
-        mp.σw[ix] += inv(mp.n[ix] * -∂S∂s - nl * inv(attr.Kw[attr.nid[ix]])) * (
-            nl * (dfs1 + dfs4) + ni * (dfw1 + dfw4))
+        mp.σw[ix] += inv(mp.n[ix] * ∂S∂s + nl * inv(attr.Kw[attr.nid[ix]])) * (
+            nl * (dfw1 + dfw4) + ni * (dfs1 + dfs4))
         # update saturation by SWCC
         mp.S[ix] = SWCC(attr.ext.S_min, attr.ext.S_max, -mp.σw[ix], attr.ext.P_ref, 
             attr.ext.λ)
