@@ -23,7 +23,7 @@ using KernelAbstractions
         grid.fw[ix, 2]  = T2(0.0)
         grid.fd[ix, 1]  = T2(0.0)
         grid.fd[ix, 2]  = T2(0.0)
-        grid.ext.nl[ix] = T2(0.0)
+        #grid.ext.nl[ix] = T2(0.0)
     end
 end
 
@@ -67,7 +67,7 @@ end
                 @KAatomic grid.fd[p2n, 1] += Nij * drag * (mpvwx - mpvsx)
                 @KAatomic grid.fd[p2n, 2] += Nij * drag * (mpvwy - mpvsy)
                 # compute nodel nl, e.i., liquid volume fraction
-                @KAatomic grid.ext.nl[p2n] += Nij * nl
+                #@KAatomic grid.ext.nl[p2n] += Nij * nl
             end
         end
     end
@@ -326,16 +326,16 @@ end
         # get volumetric fraction parameters
         nl, ni = mp.n[ix] * mp.S[ix], mp.S[ix] * (T2(1.0) - mp.n[ix])
         # update pore pressure
-        ∂S∂s = ∂SWCC(attr.ext.S_min, attr.ext.S_max, -mp.σw[ix], attr.ext.P_ref, attr.ext.λ)
+        σw = mp.σw[ix] < 0 ? -mp.σw[ix] : mp.σw[ix]
+        Pc = clamp(σw, T2(0.0), T2(18154.0))
+    
+        ∂S∂s = T2(-5.0241518982722e-11)*Pc^T2(1.4279)
         mp.σw[ix] += inv(mp.n[ix] * -∂S∂s + nl * inv(attr.Kw[attr.nid[ix]])) * (
             nl * (dfw1 + dfw4) + ni * (dfs1 + dfs4))
         # update saturation by SWCC
-        mp.S[ix] = SWCC(attr.ext.S_min, attr.ext.S_max, -mp.σw[ix], attr.ext.P_ref, 
-            attr.ext.λ)
-
-        # mp.S[ix] ≈ T2(0.0) && mp.ξ0[ix, 2] ≈ T2(0.9875) ? (mp.σw[ix] = T2(0.0)) : nothing
-        # # update hydraulic conductivity by HCC
-        # mp.k[ix] = mp.k[ix]
+        mp.S[ix] = T2(1.0) - T2(0.10152) * (Pc * T2(0.000102))^T2(2.4279)
+        # update hydraulic conductivity by HCC
+        mp.k[ix] = (T2(1.0) - T2(2.207) * (T2(1.0) - mp.S[ix])) * T2(4.41e-6)
         # update porosity
         # mp.n[ix] = clamp(T2(1.0) - (T2(1.0) - mp.n[ix]) / ΔJ, T2(0.0), T2(1.0))
     end
