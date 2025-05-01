@@ -56,7 +56,7 @@ Description: [OS: one-phase single-point MPM]
 ---
 Reset grid variables.
 """
-@kernel inbounds = true function resetgridstatus_OS!(
+@kernel function resetgridstatus_OS!(
     grid::DeviceGrid2D{T1, T2}
 ) where {T1, T2}
     ix = @index(Global)
@@ -71,7 +71,7 @@ Reset grid variables.
     end
 end
 
-@kernel inbounds = true function resetgridstatus_OS!(
+@kernel function resetgridstatus_OS!(
     grid::DeviceGrid3D{T1, T2}
 ) where {T1, T2}
     ix = @index(Global)
@@ -104,7 +104,7 @@ Description: [OS: one-phase single-point MPM]
     - `:bspline3` : 3rd-order B-spline basis function
 Note that `basis_type` is a valued type, so it should be passed by `Val{:linear}` or `Val{:uGIMP}`.
 """
-@kernel inbounds = true function resetmpstatus_OS!(
+@kernel function resetmpstatus_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
         ::Val{:linear}
@@ -142,7 +142,7 @@ Note that `basis_type` is a valued type, so it should be passed by `Val{:linear}
     end
 end
 
-@kernel inbounds = true function resetmpstatus_OS!(
+@kernel function resetmpstatus_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
         ::Val{:linear}
@@ -188,7 +188,7 @@ end
     end
 end
 
-@kernel inbounds = true function resetmpstatus_OS!(
+@kernel function resetmpstatus_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
         ::Val{:uGIMP}
@@ -231,7 +231,7 @@ end
     end
 end
 
-@kernel inbounds = true function resetmpstatus_OS!(
+@kernel function resetmpstatus_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
         ::Val{:uGIMP}
@@ -286,7 +286,7 @@ end
     end
 end
 
-@kernel inbounds = true function resetmpstatus_OS!(
+@kernel function resetmpstatus_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
         ::Val{:bspline2}
@@ -330,7 +330,7 @@ end
     end
 end
 
-@kernel inbounds = true function resetmpstatus_OS!(
+@kernel function resetmpstatus_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
         ::Val{:bspline2}
@@ -385,7 +385,7 @@ end
     end
 end
 
-@kernel inbounds = true function resetmpstatus_OS!(
+@kernel function resetmpstatus_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
         ::Val{:bspline3}
@@ -445,7 +445,7 @@ end
     end
 end
 
-@kernel inbounds = true function resetmpstatus_OS!(
+@kernel function resetmpstatus_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
         ::Val{:bspline3}
@@ -532,7 +532,7 @@ Description: [OS: one-phase single-point MPM]
 ---
 `P2G` procedure for scattering the mass, momentum, and forces from particles to grid.
 """
-@kernel inbounds = true function P2G_OS!(
+@kernel function P2G_OS!(
     grid   ::    DeviceGrid2D{T1, T2},
     mp     ::DeviceParticle2D{T1, T2},
     gravity::T2
@@ -563,7 +563,7 @@ Description: [OS: one-phase single-point MPM]
     end
 end
 
-@kernel inbounds = true function P2G_OS!(
+@kernel function P2G_OS!(
     grid   ::    DeviceGrid3D{T1, T2},
     mp     ::DeviceParticle3D{T1, T2},
     gravity::T2
@@ -606,7 +606,7 @@ Description: [OS: one-phase single-point MPM]
 ---
 Solve equations on the grid and apply boundary conditions.
 """
-@kernel inbounds = true function solvegrid_OS!(
+@kernel function solvegrid_OS!(
     grid::     DeviceGrid2D{T1, T2},
     bc  ::DeviceVBoundary2D{T1, T2},
     ΔT  ::T2,
@@ -639,7 +639,7 @@ Solve equations on the grid and apply boundary conditions.
     end
 end
 
-@kernel inbounds = true function solvegrid_OS!(
+@kernel function solvegrid_OS!(
     grid::     DeviceGrid3D{T1, T2},
     bc  ::DeviceVBoundary3D{T1, T2},
     ΔT  ::T2,
@@ -689,7 +689,7 @@ Description: [OS: one-phase single-point MPM]
 ---
 Mapping results from grid to particles.
 """
-@kernel inbounds = true function doublemapping1_OS!(
+@kernel function doublemapping1_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
     attr::  DeviceProperty{T1, T2},
@@ -729,7 +729,7 @@ Mapping results from grid to particles.
     end
 end
 
-@kernel inbounds = true function doublemapping1_OS!(
+@kernel function doublemapping1_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
     attr::  DeviceProperty{T1, T2},
@@ -783,7 +783,7 @@ Description: [OS: one-phase single-point MPM]
 ---
 Scatter momentum from particles to grid.
 """
-@kernel inbounds = true function doublemapping2_OS!(
+@kernel function doublemapping2_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2}
 ) where {T1, T2}
@@ -801,7 +801,7 @@ Scatter momentum from particles to grid.
     end
 end
 
-@kernel inbounds = true function doublemapping2_OS!(
+@kernel function doublemapping2_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2}
 ) where {T1, T2}
@@ -828,7 +828,7 @@ Description: [OS: one-phase single-point MPM]
 ---
 Solve equations on grid for the updated grid momentum.
 """
-@kernel inbounds = true function doublemapping3_OS!(
+@kernel function doublemapping3_OS!(
     grid::     DeviceGrid2D{T1, T2},
     bc  ::DeviceVBoundary2D{T1, T2},
     ΔT  ::T2
@@ -848,7 +848,7 @@ Solve equations on grid for the updated grid momentum.
     end
 end
 
-@kernel inbounds = true function doublemapping3_OS!(
+@kernel function doublemapping3_OS!(
     grid::     DeviceGrid3D{T1, T2},
     bc  ::DeviceVBoundary3D{T1, T2},
     ΔT  ::T2
@@ -879,7 +879,7 @@ Description: [OS: one-phase single-point MPM]
 ---
 Update particle information.
 """
-@kernel inbounds = true function G2P_OS!(
+@kernel function G2P_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
     ΔT  ::T2
@@ -930,7 +930,7 @@ Update particle information.
     end
 end
 
-@kernel inbounds = true function G2P_OS!(
+@kernel function G2P_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
     ΔT  ::T2
@@ -1011,7 +1011,7 @@ Description: [OS: one-phase single-point MPM]
 This kernel is the first part to implement the F̄-based method for eliminating the volumetric 
 locking problem. It is combined with kernel `fastdiv_OS!` and `G2Pvl2_OS!`.
 """
-@kernel inbounds = true function G2Pvl1_OS!(
+@kernel function G2Pvl1_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
 ) where {T1, T2}
@@ -1047,7 +1047,7 @@ locking problem. It is combined with kernel `fastdiv_OS!` and `G2Pvl2_OS!`.
     end
 end
 
-@kernel inbounds = true function G2Pvl1_OS!(
+@kernel function G2Pvl1_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
 ) where {T1, T2}
@@ -1095,7 +1095,7 @@ Description: [OS: one-phase single-point MPM]
 This kernel is the third part to implement the F̄-based method for eliminating the volumetric 
 locking problem. It is combined with kernel `fastdiv_OS!` and `G2Pvl1_OS!`.
 """
-@kernel inbounds = true function G2Pvl2_OS!(
+@kernel function G2Pvl2_OS!(
     grid::    DeviceGrid2D{T1, T2},
     mp  ::DeviceParticle2D{T1, T2},
     ΔT  ::T2
@@ -1142,7 +1142,7 @@ locking problem. It is combined with kernel `fastdiv_OS!` and `G2Pvl1_OS!`.
     end
 end
 
-@kernel inbounds = true function G2Pvl2_OS!(
+@kernel function G2Pvl2_OS!(
     grid::    DeviceGrid3D{T1, T2},
     mp  ::DeviceParticle3D{T1, T2},
     ΔT  ::T2
@@ -1228,7 +1228,7 @@ Description: [OS: one-phase single-point MPM]
 This kernel is the second part to implement the F̄-based method for eliminating the 
 volumetric locking problem. It is combined with kernel `G2Pvl1_OS!` and `G2Pvl2_OS!`.
 """
-@kernel inbounds = true function fastdiv_OS!(grid::DeviceGrid{T1, T2}) where {T1, T2}
+@kernel function fastdiv_OS!(grid::DeviceGrid{T1, T2}) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
         Ω = grid.Ω[ix] == T2(0.0) ? T2(0.0) : inv(grid.Ω[ix])
