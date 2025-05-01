@@ -1,6 +1,12 @@
 #==========================================================================================+
 | Extension struct for the traction boundary                                               |
 +==========================================================================================#
+struct TractionBoundary{T<:AbstractArray} <: UserBoundaryExtra
+    id::T
+end
+
+@user_struct TractionBoundary
+
 struct NEWGrid{T<:AbstractArray} <: UserGridExtra
     nl::T
 end

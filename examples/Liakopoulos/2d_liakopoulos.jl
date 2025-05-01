@@ -26,8 +26,8 @@ MaterialPointSolver.warmup(Val(:CPU))
 # model configuration
 init_grid_space_x = 0.04
 init_grid_space_y = 0.04
-init_grid_range_x = [0-init_grid_space_x*8, 0.04+init_grid_space_x*8]
-init_grid_range_y = [0-init_grid_space_y*8, 1.00+init_grid_space_y*8]
+init_grid_range_x = [0-init_grid_space_x*2, 0.04+init_grid_space_x*2]
+init_grid_range_y = [0-init_grid_space_y*2, 1.00+init_grid_space_y*2]
 init_mp_in_space  = 2
 init_ρs           = 2e3
 init_ρw           = 1e3
@@ -45,7 +45,7 @@ init_Es           = 1.3e6
 init_Gs           = init_Es / (2 * (1 +     init_ν))
 init_Ks           = init_Es / (3 * (1 - 2 * init_ν))
 init_Kw           = 2e9
-init_T            = 600#7200
+init_T            = 20#7200
 init_Te           = 0.0
 init_ΔT           = 1e-5
 init_step         = floor(init_T / init_ΔT / 200)
@@ -71,7 +71,7 @@ args = UserArgs2D(
     device       = :CPU,
     coupling     = :TS,
     scheme       = :MUSL,
-    gravity      = -9.8,
+    gravity      = -0.98,
     ζs           = 0.,
     ζw           = 0.,
     project_name = "2d_liakopoulos",
@@ -122,7 +122,7 @@ mp = UserParticle2D(
     n     = ones(size(ξ0, 1)) .* init_n,
     S     = ones(size(ξ0, 1)) .* init_S,
     k     = ones(size(ξ0, 1)) .* init_k
-)
+); # @. mp.σij[:, 2] = 9800 * (mp.ξ0[:, 2] - 1)
 
 # particle property setup
 nid  = ones(mp.np)
@@ -150,13 +150,13 @@ attr = UserProperty(
 # boundary condition nodes index
 vx_idx  = zeros(grid.ni)
 vy_idx  = zeros(grid.ni)
+vy_idw  = zeros(grid.ni)
 tmp_idx = findall(i -> grid.ξ[i, 1] ≤ 0 || grid.ξ[i, 1] ≥ 0.04, 1:grid.ni)
 tmp_idy = findall(i -> grid.ξ[i, 2] ≤ 0, 1:grid.ni)
+tmp_idw = findall(i -> grid.ξ[i, 2] ≥ 1.0, 1:grid.ni)
 vx_idx[tmp_idx] .= 1
 vy_idx[tmp_idy] .= 1
-idx = findall(i -> 0 ≤ grid.ξ[i, 1] ≤ 0.11 && grid.ξ[i, 2] ≈ 1.0, 1:grid.ni)
-ext = TractionBoundary(idx)
-user_adapt(Array, ext)
+vy_idw[tmp_idw] .= 1
 bc = UserVBoundary2D(
     vx_s_idx = copy(vx_idx),
     vx_s_val = zeros(grid.ni),
@@ -164,9 +164,8 @@ bc = UserVBoundary2D(
     vy_s_val = zeros(grid.ni),
     vx_w_idx = copy(vx_idx),
     vx_w_val = zeros(grid.ni),
-    vy_w_idx = zeros(grid.ni),
-    vy_w_val = zeros(grid.ni),
-    ext      = ext
+    vy_w_idx = copy(vy_idw),
+    vy_w_val = zeros(grid.ni)
 )
 
 # MPM solver

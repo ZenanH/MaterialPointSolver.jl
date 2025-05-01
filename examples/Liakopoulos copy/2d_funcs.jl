@@ -323,25 +323,44 @@ end
         mp.Ω[ix]  = J * mp.Ω0[ix]
         mp.ρs[ix] = mp.ρs0[ix] / J
         mp.ρw[ix] = mp.ρw0[ix] / J
-        # get volumetric fraction parameters
-        nl, ni = mp.n[ix] * mp.S[ix], mp.S[ix] * (T2(1.0) - mp.n[ix])
+
+
+        # update pore pressure and n
+        # mp.σw[ix] += (attr.Kw[attr.nid[ix]] / mp.n[ix]) * (
+        #     (T2(1.0) - mp.n[ix]) * (dfs1 + dfs4) + 
+        #                mp.n[ix]  * (dfw1 + dfw4))
+
+
         # update pore pressure
+        nl, ni = mp.n[ix] * mp.S[ix], mp.S[ix] * (T2(1.0) - mp.n[ix])
         Pc = -mp.σw[ix]
         Pc = Pc < T2(0.0) ? T2(0.0) : Pc
-        Pc = clamp(Pc, T2(0.0), T2(1e4))
 
-        ∂S∂s = T2(-5.03e-11) * Pc^T2(1.4279)
+        ∂S∂s = T2(0.0)#T2(-5.03e-11) * Pc^T2(1.4279)
         mp.σw[ix] += inv(mp.n[ix] * -∂S∂s + nl * inv(attr.Kw[attr.nid[ix]])) * (
             nl * (dfw1 + dfw4) + ni * (dfs1 + dfs4))
-        # update saturation by SWCC
-        Pc = -mp.σw[ix]
-        Pc = Pc < T2(0.0) ? T2(0.0) : Pc
-        Pc = clamp(Pc, T2(0.0), T2(1e4))
-        mp.S[ix] = T2(1.0) - T2(0.10152) * (Pc * T2(0.000102))^T2(2.4279)
-        # update hydraulic conductivity by HCC
-        mp.k[ix] = (T2(1.0) - T2(2.207) * (T2(1.0) - mp.S[ix])) * T2(4.41e-6)
-        # update porosity
         mp.n[ix] = clamp(T2(1.0) - (T2(1.0) - mp.n[ix]) / ΔJ, T2(0.0), T2(1.0))
+
+
+        # # get volumetric fraction parameters
+        # nl, ni = mp.n[ix] * mp.S[ix], mp.S[ix] * (T2(1.0) - mp.n[ix])
+        # # update pore pressure
+        # Pc = -mp.σw[ix]
+        # Pc = Pc < T2(0.0) ? T2(0.0) : Pc
+        # Pc = clamp(Pc, T2(0.0), T2(1e4))
+
+        # ∂S∂s = T2(-5.03e-11) * Pc^T2(1.4279)
+        # mp.σw[ix] += inv(mp.n[ix] * -∂S∂s + nl * inv(attr.Kw[attr.nid[ix]])) * (
+        #     nl * (dfw1 + dfw4) + ni * (dfs1 + dfs4))
+        # # update saturation by SWCC
+        # Pc = -mp.σw[ix]
+        # Pc = Pc < T2(0.0) ? T2(0.0) : Pc
+        # Pc = clamp(Pc, T2(0.0), T2(1e4))
+        # #mp.S[ix] = T2(1.0) - T2(0.10152) * (Pc * T2(0.000102))^T2(2.4279)
+        # # update hydraulic conductivity by HCC
+        # mp.k[ix] = (T2(1.0) - T2(2.207) * (T2(1.0) - mp.S[ix])) * T2(4.41e-6)
+        # # update porosity
+        # mp.n[ix] = clamp(T2(1.0) - (T2(1.0) - mp.n[ix]) / ΔJ, T2(0.0), T2(1.0))
     end
 end
 
@@ -362,8 +381,13 @@ function Tprocedure!(
     tresetgridstatus_TS!(dev)(ndrange=grid.ni, grid)
     resetmpstatus_TS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
     tP2G_TS!(dev)(ndrange=mp.np, grid, mp, G)
+
+    traction = T2(-1e3) / length(bc.ext.id)
+    grid.fs[bc.ext.id, 2] .+= traction
+
     tsolvegrid_TS!(dev)(ndrange=grid.ni, grid, attr, bc, ΔT, args.ζs, args.ζw)
     tdoublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
+    resetmpstatus_TS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
     tdoublemapping2_TS!(dev)(ndrange=mp.np, grid, mp)
     tdoublemapping3_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT)
     tG2P_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT)
