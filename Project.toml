@@ -19,8 +19,8 @@ Suppressor = "fd094767-a336-5f1f-9728-57cf17d0bbfb"
 SysInfo = "90a7ee08-a23f-48b9-9006-0e0e2a9e4608"
 
 [compat]
-Adapt = "4.0"
-BenchmarkTools = "1.5"
+Adapt = "4.3"
+BenchmarkTools = "1.6"
 CodecZlib = "0.7"
 DelimitedFiles = "1.9"
 HDF5 = "0.17"
