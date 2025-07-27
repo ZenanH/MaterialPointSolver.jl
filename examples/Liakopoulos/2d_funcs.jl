@@ -19,7 +19,7 @@ end
         mps, mpw, mpm = mp.ms[ix], mp.mw[ix], mp.ms[ix] * ns + mp.mw[ix] * nl
         mppsx, mppsy, mppwx, mppwy = mp.ps[ix, 1], mp.ps[ix, 2], mp.pw[ix, 1], mp.pw[ix, 2]
         mpvsx, mpvsy, mpvwx, mpvwy = mp.vs[ix, 1], mp.vs[ix, 2], mp.vw[ix, 1], mp.vw[ix, 2]
-        drag = (nl * mpw * T2(9.8)) / mp.k[ix]
+        drag = (nl * mpw * T2(9.8)) / (mp.k[ix] * 4.41e-6)
         σxx, σyy, σxy = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 4]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Nij = mp.Nij[ix, iy]
@@ -257,11 +257,25 @@ end
         mp.Ω[ix]  = J * mp.Ω0[ix]
         mp.ρs[ix] = mp.ρs0[ix] / J
         mp.ρw[ix] = mp.ρw0[ix] / J
-        # update pore pressure and n
-        mp.σw[ix] += (attr.Kw[attr.nid[ix]] / mp.n[ix]) * (
-            (T2(1.0) - mp.n[ix]) * (dfs1 + dfs4) + 
-                       mp.n[ix]  * (dfw1 + dfw4))
+
         mp.n[ix] = clamp(T2(1.0) - (T2(1.0) - mp.n[ix]) / ΔJ, T2(0.0), T2(1.0))
+
+        # update pore pressure
+        suction = -mp.σw[ix]
+        if suction ≥ T2(0.0)
+            mp.σw[ix] += (attr.Kw[attr.nid[ix]] / mp.n[ix]) * (
+                (T2(1.0) - mp.n[ix]) * (dfs1 + dfs4) + 
+                           mp.n[ix]  * (dfw1 + dfw4))
+
+            mp.S[ix] = T2(1 - 0.10152 * (suction / 9800)^2.4279)
+            mp.k[ix] = T2(1 - 2.207 * (1 - mp.S[ix]))
+            Cs
+        else
+            mp.σw[ix] += inv(Cs + mp.n[ix] * mp.S[ix]/attr.Kw[attr.nid[ix]]) * (
+                (T2(1.0) - mp.n[ix]) * mp.S[ix] * (dfs1 + dfs4) + 
+                           mp.n[ix]  * mp.S[ix] * (dfw1 + dfw4))
+        end
+        suction = -mp.σw[ix]
     end
 end
 
@@ -283,8 +297,8 @@ function Tprocedure!(
     resetmpstatus_TS!(dev)(ndrange=mp.np, grid, mp, Val(args.basis))
     tP2G_TS!(dev)(ndrange=mp.np, grid, mp, G)
 
-    traction = T2(-1e3) / length(bc.ext.id)
-    grid.fs[bc.ext.id, 2] .+= traction
+    # traction = T2(-1e3) / length(bc.ext.id)
+    # grid.fs[bc.ext.id, 2] .+= traction
 
     tsolvegrid_TS!(dev)(ndrange=grid.ni, grid, bc, ΔT, args.ζs, args.ζw)
     tdoublemapping1_TS!(dev)(ndrange=mp.np, grid, mp, attr, ΔT, args.FLIP, args.PIC)
