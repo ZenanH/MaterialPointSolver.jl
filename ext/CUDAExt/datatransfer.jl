@@ -1,18 +1,13 @@
 #==========================================================================================+
-|                OpenMPM.jl: High-performance MPM Solver for Geomechanics                  |
+|           MaterialPointSolver.jl: High-performance MPM Solver for Geomechanics           |
 +------------------------------------------------------------------------------------------+
-|  Description: CUDA extension for OpenMPM.jl                                              |
+|  Description: Datatransfer on Nvidia GPU                                                 |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, ISTE, Université de Lausanne                                   |
 |  Maintainer : Zenan Huo                                                                  |
 +==========================================================================================#
 
-module MaterialPointSolverCUDAExt
+dev_backend(::Val{:cuda}) = CUDABackend()
 
-using BenchmarkTools, CUDA, KernelAbstractions, Printf, MaterialPointSolver
-
-import MaterialPointSolver: dev_backend, host2device
-
-include(joinpath(@__DIR__, "CUDAExt/datatransfer.jl"))
-
-end
+@inline host2device(::CUDABackend, host::NamedTuple) = KAupload(CuArray, host)
+@inline host2device(::CUDABackend, host::NamedTuple, hosts::NamedTuple...) = (KAupload(CuArray, host), map(nt -> KAupload(CuArray, nt), hosts)...)
