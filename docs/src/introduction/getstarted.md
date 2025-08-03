@@ -45,21 +45,21 @@ If you find ***MaterialPointSolver.jl*** useful or have used it in your research
 
 ```bib
 @article{HUO2025107189,
-title = {A high-performance backend-agnostic Material Point Method solver in Julia},
-journal = {Computers and Geotechnics},
-volume = {183},
-pages = {107189},
-year = {2025},
-issn = {0266-352X},
-doi = {https://doi.org/10.1016/j.compgeo.2025.107189},
-url = {https://www.sciencedirect.com/science/article/pii/S0266352X25001387},
-author = {Zenan Huo and Yury Alkhimenkov and Michel Jaboyedoff and Yury Podladchikov and Ludovic Räss and Emmanuel Wyser and Gang Mei},
-keywords = {MPM, Julia language, Heterogeneous computing, Effective memory throughput}
+    title = {A high-performance backend-agnostic Material Point Method solver in Julia},
+    journal = {Computers and Geotechnics},
+    volume = {183},
+    pages = {107189},
+    year = {2025},
+    issn = {0266-352X},
+    doi = {https://doi.org/10.1016/j.compgeo.2025.107189},
+    url = {https://www.sciencedirect.com/science/article/pii/S0266352X25001387},
+    author = {Zenan Huo and Yury Alkhimenkov and Michel Jaboyedoff and Yury Podladchikov and Ludovic Räss and Emmanuel Wyser and Gang Mei},
+    keywords = {MPM, Julia language, Heterogeneous computing, Effective memory throughput}
 ```
 
 ::: warning
-    
-This is the latest version of ***MaterialPointSover.jl***, if you want to see the examples in the paper, please move to [https://github.com/LandslideSIM/Archive_MaterialPointSolver.jl_paper](https://github.com/LandslideSIM/Archive_MaterialPointSolver.jl_paper).
+
+This repo is the LATEST version of ***MaterialPointSover.jl***. After the article was published, we released many new features and achieved significant performance improvements. Please move to [https://github.com/LandslideSIM/Archive_MaterialPointSolver.jl_paper](https://github.com/LandslideSIM/Archive_MaterialPointSolver.jl_paper) for the code used in the paper.
 
 :::
 
