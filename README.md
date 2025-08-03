@@ -52,8 +52,7 @@ keywords = {MPM, Julia language, Heterogeneous computing, Effective memory throu
 }
 ```
 > [!CAUTION]
-> This is the latest version of `MaterialPointSover.jl`, After the article was published, we released many new features and achieved significant performance improvements. We are currently actively working on completing the documentation. If possible, you can directly review the source code. 
-> If you want to see the examples in the paper, please move to [https://github.com/LandslideSIM/Archive_MaterialPointSolver.jl_paper](https://github.com/LandslideSIM/Archive_MaterialPointSolver.jl_paper).
+> This repo is the LATEST version of `MaterialPointSover.jl`. After the article was published, we released many new features and achieved significant performance improvements. Please move to [https://github.com/LandslideSIM/Archive_MaterialPointSolver.jl_paper](https://github.com/LandslideSIM/Archive_MaterialPointSolver.jl_paper) for the code used in the paper.
 
 ## Acknowledgement 👍
 
