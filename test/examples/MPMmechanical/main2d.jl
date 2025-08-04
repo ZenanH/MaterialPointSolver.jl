@@ -1,9 +1,8 @@
-using OpenMPM
-using OpenMPM.Preprocessing
-using OpenMPM.Postprocessing
+using MaterialPointGenerator
+using MaterialPointSolver
+using MaterialPointVisualizer
 using Metal
-#using CUDA
-include(joinpath(@__DIR__, "mechanical.jl"))
+using MPMmechanical
 
 init_h     = 0.0025
 init_ϵ     = set_precision(:single)
@@ -84,8 +83,8 @@ mpts = generate_fields(init_ϵ,
     NIC  = conf.NIC,
 )
 
-mpmsolver!(Mechanical.procedure!, conf, grid, mpts)
+mpmsolver!(MPMmechanical.procedure!, conf, grid, mpts)
 
 animation(conf)
 
-rm(conf.prjdst, force=true, recursive=true) # clean up project directory
+#rm(conf.prjdst, force=true, recursive=true) # clean up project directory
