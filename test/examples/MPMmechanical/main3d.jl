@@ -7,7 +7,7 @@ using Metal
 init_h     = 0.0025
 init_ϵ     = set_precision(:single)
 init_basis = Linear()
-init_dim   = Dim2D()
+init_dim   = Dim3D()
 init_FLIP  = 1.0
 init_G     = -9.8
 init_ρs    = 2650
@@ -27,30 +27,34 @@ init_h5    = hasHDF5(interval=floor(Int, init_T / init_ΔT / 200), varnames=(:ξ
 
 # args setup
 conf = generate_config(init_ϵ, init_dim, init_basis, init_dev, init_h5, t_tol=init_T, 
-    Δt=init_ΔT, prjpath=@__DIR__, prjname="2D_example")
+    Δt=init_ΔT, prjpath=@__DIR__, prjname="3D_example")
 
 # grid and boundary conditions setup
-bg      = gridbuilder(-0.025:init_h:0.82, -0.025:init_h:0.12)
-tmp_idx = findall(i -> bg.ξ[1, i]≤0.0||bg.ξ[1, i]≥0.8||bg.ξ[2, i]≤0, 1:bg.ni)
-tmp_idy = findall(i -> bg.ξ[2, i]≤0.0, 1:bg.ni)
+bg      = gridbuilder(-0.02:init_h:0.07, -0.02:init_h:0.75, -0.02:init_h:0.12)
+tmp_idx = findall(i -> bg.ξ[1, i]≤0||bg.ξ[1, i]≥0.05||bg.ξ[3, i]≤0||bg.ξ[2, i]≤0, 1:bg.ni)
+tmp_idy = findall(i -> bg.ξ[2, i]≤0||bg.ξ[3, i]≤0.00, 1:bg.ni)
+tmp_idz = findall(i -> bg.ξ[3, i]≤0, 1:bg.ni)
 vx_idx  = zeros(Int, bg.ni); vx_idx[tmp_idx] .= 1
-vy_idx  = zeros(Int, bg.ni); vy_idx[tmp_idy] .= 1 
-grid    = generate_fields(init_ϵ, -0.025:init_h:0.82, -0.025:init_h:0.12, 
+vy_idx  = zeros(Int, bg.ni); vy_idx[tmp_idy] .= 1
+vz_idx  = zeros(Int, bg.ni); vz_idx[tmp_idz] .= 1 
+grid    = generate_fields(init_ϵ, -0.02:init_h:0.07, -0.02:init_h:0.75, -0.02:init_h:0.12, 
     ms       = zeros(bg.ni),
     Ω        = zeros(bg.ni),
-    vs       = zeros(2, bg.ni),
-    ps       = zeros(2, bg.ni),
-    fs       = zeros(2, bg.ni),
-    vsT      = zeros(2, bg.ni),
+    vs       = zeros(3, bg.ni),
+    ps       = zeros(3, bg.ni),
+    fs       = zeros(3, bg.ni),
+    vsT      = zeros(3, bg.ni),
     vx_s_idx = vx_idx,
     vx_s_val = zeros(bg.ni),
     vy_s_idx = vy_idx,
-    vy_s_val = zeros(bg.ni)
+    vy_s_val = zeros(bg.ni),
+    vz_s_idx = vz_idx,
+    vz_s_val = zeros(bg.ni)
 )
 
 # material point setup
 mh = grid.h * 0.5
-ξ0 = meshbuilder(mh*0.5 : mh : 0.2-mh*0.5, mh*0.5 : mh : 0.1-mh*0.5) # xrange: 0:0.2, yrange: 0:0.1
+ξ0 = meshbuilder(mh*0.5 : mh : 0.05-mh*0.5, mh*0.5 : mh : 0.2-mh*0.5, mh*0.5 : mh : 0.1-mh*0.5) # xrange: 0:0.05, yrange: 0:0.2, zrange: 0:0.1
 np = size(ξ0, 2)
 mpts = generate_fields(init_ϵ,
     ξ0   = ξ0,
@@ -59,9 +63,9 @@ mpts = generate_fields(init_ϵ,
     ρs0  = ones(np) .* init_ρs,
     Ω    = ones(np) .* mh^2,
     Ω0   = ones(np) .* mh^2,
-    vs   = zeros(2, np),
-    σij  = zeros(4, np),
-    F    = repeat(float.([1, 0, 0, 1]), 1, np),
+    vs   = zeros(3, np),
+    σij  = zeros(6, np),
+    F    = repeat(float.([1, 0, 0, 0, 1, 0, 0, 0, 1]), 1, np),
     ϵq   = zeros(np),
     ϵk   = zeros(np),
     np   = np,
@@ -69,6 +73,7 @@ mpts = generate_fields(init_ϵ,
     Nij  = zeros(conf.NIC, np),
     ∂Nx  = zeros(conf.NIC, np),
     ∂Ny  = zeros(conf.NIC, np),
+    ∂Nz  = zeros(conf.NIC, np),
     nid  = ones(Int, np),
     FLIP = init_FLIP,
     G    = init_G,

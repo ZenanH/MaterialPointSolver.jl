@@ -5,11 +5,9 @@ using HDF5
 using Printf
 using MaterialPointSolver
 
-export procedure!
-export test
+# export procedure!
 
 include(joinpath(@__DIR__, "kernels.jl"))
 include(joinpath(@__DIR__, "solver.jl"))
 
-test() = @info "sad"
 end
