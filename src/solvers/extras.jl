@@ -26,10 +26,6 @@ This function will setup the particle to node and particle to cell index for 2D 
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        # update momentum and mass
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         # base index in the grid
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
         bnx = unsafe_trunc(T1, floor((mξx - grid.x1) / grid.dx)) # column
@@ -73,11 +69,6 @@ This function will setup the particle to node and particle to cell index for 3D 
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        # update momentum and mass
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
         # base index in the grid
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
         bnx = unsafe_trunc(T1, fld(mξx - grid.x1, grid.dx))
@@ -129,10 +120,6 @@ This function will setup the particle to node and particle to cell index for 2D 
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         # base index in the grid
         # note the base index needs a shift of 0.5 (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
@@ -184,12 +171,6 @@ This function will setup the particle to node and particle to cell index for 3D 
     ix = @index(Global)
     T3 = T2
     if ix ≤ mp.np
-        mpms = mp.Ω[ix] * mp.ρs[ix]
-        # update particle mass and momentum
-        mp.ms[ix]    = mpms
-        mp.ps[ix, 1] = mpms * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mpms * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mpms * mp.vs[ix, 3]
         # base index in the grid
         # note the base index needs a shift of 0.5 (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
@@ -245,11 +226,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1 = inv(grid.dx), inv(grid.dy)
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
+        gdx_1, gdy_1 = 1/grid.dx, 1/grid.dy
         # base index in the grid
         # note the base index needs a shift of 0.5 (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
@@ -294,12 +271,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1, gdz_1 = inv(grid.dx), inv(grid.dy), inv(grid.dz)
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
+        gdx_1, gdy_1, gdz_1 = 1/grid.dx, 1/grid.dy, 1/grid.dz
         # base index in the grid
         # note the base index needs a shift of 0.5 (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
@@ -357,11 +329,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1 = inv(grid.dx), inv(grid.dy)
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
+        gdx_1, gdy_1 = 1/grid.dx, 1/grid.dy
         # base index in the grid
         # note the base index needs a shift of 1.0h (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
@@ -418,12 +386,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1, gdz_1 = inv(grid.dx), inv(grid.dy), inv(grid.dz)
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
+        gdx_1, gdy_1, gdz_1 = 1/grid.dx, 1/grid.dy, 1/grid.dz
         # base index in the grid
         # note the base index needs a shift of 1h (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]

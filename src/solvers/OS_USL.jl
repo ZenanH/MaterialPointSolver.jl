@@ -28,7 +28,7 @@ Description:
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : 1/grid.ms[ix]
         # boundary condition
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
@@ -48,8 +48,8 @@ Description:
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 2] = bc.vy_s_val[ix] : nothing
         # compute nodal displacement
-        grid.Δus[ix, 1] = grid.vsT[ix, 1] * ΔT
-        grid.Δus[ix, 2] = grid.vsT[ix, 2] * ΔT
+        grid.ps[ix, 1] = grid.vsT[ix, 1] * ΔT
+        grid.ps[ix, 2] = grid.vsT[ix, 2] * ΔT
     end
 end
 
@@ -96,9 +96,9 @@ Description:
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 2] = bc.vy_s_val[ix] : nothing
         bc.vz_s_idx[ix] ≠ T1(0) ? grid.vsT[ix, 3] = bc.vz_s_val[ix] : nothing
         # compute nodal displacement
-        grid.Δus[ix, 1] = grid.vsT[ix, 1] * ΔT
-        grid.Δus[ix, 2] = grid.vsT[ix, 2] * ΔT
-        grid.Δus[ix, 3] = grid.vsT[ix, 3] * ΔT
+        grid.ps[ix, 1] = grid.vsT[ix, 1] * ΔT
+        grid.ps[ix, 2] = grid.vsT[ix, 2] * ΔT
+        grid.ps[ix, 3] = grid.vsT[ix, 3] * ΔT
     end
 end
 

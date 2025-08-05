@@ -13,7 +13,7 @@ using MaterialPointGenerator
 using CUDA
 backend_name = :CUDA
 
-MaterialPointSolver.warmup(Val(backend_name))
+#MaterialPointSolver.warmup(Val(backend_name))
 
 # 0.01000:   8000 pts
 # 0.00660:  27000 pts
@@ -38,8 +38,8 @@ init_ΔT           = 0.5 * init_grid_space_x / sqrt(init_Es / init_ρs)
 init_step         = floor(init_T / init_ΔT / 100)
 init_ϕ            = deg2rad(19.8)
 init_FP           = "FP64"
-init_basis        = :linear
-init_NIC          = 8
+init_basis        = :bspline2
+init_NIC          = 27
 
 # args setup
 args = UserArgs3D(
@@ -120,13 +120,16 @@ attr = UserProperty(
 )
 
 # boundary setup
+bg = meshbuilder(grid.x1:grid.dx:grid.x2, 
+                 grid.y1:grid.dy:grid.y2, 
+                 grid.z1:grid.dz:grid.z2)
 vx_idx  = zeros(grid.ni)
 vy_idx  = zeros(grid.ni)
 vz_idx  = zeros(grid.ni)
-tmp_idx = findall(i -> grid.ξ[i, 1] ≤ 0 || grid.ξ[i, 1] ≥ 0.05 ||
-                       grid.ξ[i, 3] ≤ 0 || grid.ξ[i, 2] ≤ 0, 1:grid.ni)
-tmp_idy = findall(i -> grid.ξ[i, 2] ≤ 0 || grid.ξ[i, 3] ≤ 0, 1:grid.ni)
-tmp_idz = findall(i -> grid.ξ[i, 3] ≤ 0, 1:grid.ni)
+tmp_idx = findall(i -> bg[i, 1] ≤ 0 || bg[i, 1] ≥ 0.05 ||
+                       bg[i, 3] ≤ 0 || bg[i, 2] ≤ 0, 1:grid.ni)
+tmp_idy = findall(i -> bg[i, 2] ≤ 0 || bg[i, 3] ≤ 0, 1:grid.ni)
+tmp_idz = findall(i -> bg[i, 3] ≤ 0, 1:grid.ni)
 vx_idx[tmp_idx] .= 1
 vy_idx[tmp_idy] .= 1
 vz_idx[tmp_idz] .= 1

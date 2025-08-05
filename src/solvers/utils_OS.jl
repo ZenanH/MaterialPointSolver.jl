@@ -94,10 +94,9 @@ end
 
 Description: [OS: one-phase single-point MPM]
 ---
-1) Update particle mass and momentum.
-2) Get topology between particle and grid.
-3) Compute basis function N(x) and gradient ∂N(x) by `basis_type`.
-4) `basis_type` can be:
+1) Get topology between particle and grid.
+2) Compute basis function N(x) and gradient ∂N(x) by `basis_type`.
+3) `basis_type` can be:
     - `:linear`   : linear basis function
     - `:uGIMP`    : uGIMP basis function
     - `:bspline2` : 2nd-order B-spline basis function
@@ -111,10 +110,6 @@ Note that `basis_type` is a valued type, so it should be passed by `Val{:linear}
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        # update momentum and mass
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         # base index in the grid
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
         bnx = unsafe_trunc(T1, floor((mξx - grid.x1) / grid.dx)) # column
@@ -150,11 +145,6 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        # update momentum and mass
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
         # base index in the grid
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
         bnx = unsafe_trunc(T1, fld(mξx - grid.x1, grid.dx))
@@ -198,10 +188,6 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         # base index in the grid
         # note the base index needs a shift of 0.5lp (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
@@ -242,12 +228,6 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        mpms = mp.Ω[ix] * mp.ρs[ix]
-        # update particle mass and momentum
-        mp.ms[ix]    = mpms
-        mp.ps[ix, 1] = mpms * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mpms * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mpms * mp.vs[ix, 3]
         # base index in the grid
         # note the base index needs a shift of 0.5lp (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
@@ -299,11 +279,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1 = inv(grid.dx), inv(grid.dy)
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
+        gdx_1, gdy_1 = 1/grid.dx, 1/grid.dy
         # base index in the grid
         # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
@@ -344,12 +320,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1, gdz_1 = inv(grid.dx), inv(grid.dy), inv(grid.dz)
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
+        gdx_1, gdy_1, gdz_1 = 1/grid.dx, 1/grid.dy, 1/grid.dz
         # base index in the grid
         # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
@@ -401,11 +372,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1 = inv(grid.dx), inv(grid.dy)
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
+        gdx_1, gdy_1 = 1/grid.dx, 1/grid.dy
         # base index in the grid
         # note the base index needs a shift of 1.0h (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
@@ -462,12 +429,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1, gdz_1 = inv(grid.dx), inv(grid.dy), inv(grid.dz)
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
+        gdx_1, gdy_1, gdz_1 = 1/grid.dx, 1/grid.dy, 1/grid.dz
         # base index in the grid
         # note the base index needs a shift of 1h (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
@@ -551,25 +513,24 @@ Description: [OS: one-phase single-point MPM]
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        vol = mp.Ω[ix]
-        mps = mp.ms[ix]
-        mppsx, mppsy = mp.ps[ix, 1], mp.ps[ix, 2]
+        vol, ρs, vx, vy = mp.Ω[ix], mp.ρs[ix], mp.vs[ix, 1], mp.vs[ix, 2]
+        ms = vol * ρs; msG = ms * gravity
+        psx, psy = ms * vx, ms * vy
         σxx, σyy, σxy = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 4]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            Ni = mp.Nij[ix, iy]
-            if Ni ≠ T2(0.0)
+            Nij = mp.Nij[ix, iy]
+            if Nij ≠ T2(0.0)
                 ∂Nx = mp.∂Nx[ix, iy]
                 ∂Ny = mp.∂Ny[ix, iy]
                 p2n = mp.p2n[ix, iy]
                 # compute nodal mass
-                @KAatomic grid.ms[p2n] += Ni * mps
+                @Σ grid.ms[p2n] += Nij * ms 
                 # compute nodal momentum
-                @KAatomic grid.ps[p2n, 1] += Ni * mppsx
-                @KAatomic grid.ps[p2n, 2] += Ni * mppsy
+                @Σ grid.ps[p2n, 1] += Nij * psx
+                @Σ grid.ps[p2n, 2] += Nij * psy
                 # compute nodal total force for solid
-                @KAatomic grid.fs[p2n, 1] += -vol * (∂Nx * σxx + ∂Ny * σxy)
-                @KAatomic grid.fs[p2n, 2] += -vol * (∂Ny * σyy + ∂Nx * σxy) + 
-                                               Ni * mps * gravity
+                @Σ grid.fs[p2n, 1] += -vol * (∂Nx * σxx + ∂Ny * σxy)
+                @Σ grid.fs[p2n, 2] += -vol * (∂Ny * σyy + ∂Nx * σxy) + Nij * msG
             end
         end
     end
@@ -582,29 +543,28 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        vol = mp.Ω[ix]
-        mps = mp.ms[ix]
-        mppsx, mppsy, mppsz = mp.ps[ix, 1], mp.ps[ix, 2], mp.ps[ix, 3]
+        vol, ρs, vx, vy, vz = mp.Ω[ix], mp.ρs[ix], mp.vs[ix, 1], mp.vs[ix, 2], mp.vs[ix, 3]
+        ms = vol * ρs; msG = ms * gravity
+        psx, psy, psz = ms * vx, ms * vy, ms * vz
         σxx, σyy, σzz = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 3]
         σxy, σyz, σzx = mp.σij[ix, 4], mp.σij[ix, 5], mp.σij[ix, 6]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            Ni = mp.Nij[ix, iy]
-            if Ni ≠ T2(0.0)
+            Nij = mp.Nij[ix, iy]
+            if Nij ≠ T2(0.0)
                 ∂Nx = mp.∂Nx[ix, iy]
                 ∂Ny = mp.∂Ny[ix, iy]
                 ∂Nz = mp.∂Nz[ix, iy]
                 p2n = mp.p2n[ix, iy]
                 # compute nodal mass
-                @KAatomic grid.ms[p2n] += Ni * mps
+                @Σ grid.ms[p2n] += Nij * ms
                 # compute nodal momentum
-                @KAatomic grid.ps[p2n, 1] += Ni * mppsx
-                @KAatomic grid.ps[p2n, 2] += Ni * mppsy
-                @KAatomic grid.ps[p2n, 3] += Ni * mppsz
+                @Σ grid.ps[p2n, 1] += Nij * psx
+                @Σ grid.ps[p2n, 2] += Nij * psy
+                @Σ grid.ps[p2n, 3] += Nij * psz
                 # compute nodal total force for solid
-                @KAatomic grid.fs[p2n, 1] += -vol * (∂Nx * σxx + ∂Ny * σxy + ∂Nz * σzx)
-                @KAatomic grid.fs[p2n, 2] += -vol * (∂Ny * σyy + ∂Nx * σxy + ∂Nz * σyz)
-                @KAatomic grid.fs[p2n, 3] += -vol * (∂Nz * σzz + ∂Nx * σzx + ∂Ny * σyz) + 
-                                               Ni * mps * gravity
+                @Σ grid.fs[p2n, 1] += -vol * (∂Nx * σxx + ∂Ny * σxy + ∂Nz * σzx)
+                @Σ grid.fs[p2n, 2] += -vol * (∂Nx * σxy + ∂Ny * σyy + ∂Nz * σyz)
+                @Σ grid.fs[p2n, 3] += -vol * (∂Nx * σzx + ∂Ny * σyz + ∂Nz * σzz) + Nij * msG
             end
         end
     end
@@ -626,7 +586,7 @@ Solve equations on the grid and apply boundary conditions.
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : 1/grid.ms[ix]
         # boundary condition
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
@@ -659,7 +619,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : 1/grid.ms[ix]
         # boundary condition
         bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
         bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
@@ -713,13 +673,13 @@ Mapping results from grid to particles.
     if ix ≤ mp.np
         ξx = ξy = vx = vy = T2(0.0)
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            Ni = mp.Nij[ix, iy]
-            if Ni ≠ T2(0.0)
+            Nij = mp.Nij[ix, iy]
+            if Nij ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                ξx += Ni *  grid.vsT[p2n, 1]
-                ξy += Ni *  grid.vsT[p2n, 2]
-                vx += Ni * (grid.vsT[p2n, 1] - grid.vs[p2n, 1])
-                vy += Ni * (grid.vsT[p2n, 2] - grid.vs[p2n, 2])
+                ξx += Nij *  grid.vsT[p2n, 1]
+                ξy += Nij *  grid.vsT[p2n, 2]
+                vx += Nij * (grid.vsT[p2n, 1] - grid.vs[p2n, 1])
+                vy += Nij * (grid.vsT[p2n, 2] - grid.vs[p2n, 2])
             end
         end
         # update particle position
@@ -728,9 +688,6 @@ Mapping results from grid to particles.
         # update particle velocity
         mp.vs[ix, 1] = FLIP * (mp.vs[ix, 1] + vx) + PIC * ξx
         mp.vs[ix, 2] = FLIP * (mp.vs[ix, 2] + vy) + PIC * ξy
-        # update particle momentum
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         # update CFL conditions
         nid = attr.nid[ix]
         Ks  = attr.Ks[nid]
@@ -753,15 +710,15 @@ end
     if ix ≤ mp.np
         ξx = ξy = ξz = vx = vy = vz = T2(0.0)
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            Ni = mp.Nij[ix, iy]
-            if Ni ≠ T2(0.0)
+            Nij = mp.Nij[ix, iy]
+            if Nij ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                ξx += Ni *  grid.vsT[p2n, 1]
-                ξy += Ni *  grid.vsT[p2n, 2]
-                ξz += Ni *  grid.vsT[p2n, 3]
-                vx += Ni * (grid.vsT[p2n, 1] - grid.vs[p2n, 1])
-                vy += Ni * (grid.vsT[p2n, 2] - grid.vs[p2n, 2])
-                vz += Ni * (grid.vsT[p2n, 3] - grid.vs[p2n, 3])
+                ξx += Nij *  grid.vsT[p2n, 1]
+                ξy += Nij *  grid.vsT[p2n, 2]
+                ξz += Nij *  grid.vsT[p2n, 3]
+                vx += Nij * (grid.vsT[p2n, 1] - grid.vs[p2n, 1])
+                vy += Nij * (grid.vsT[p2n, 2] - grid.vs[p2n, 2])
+                vz += Nij * (grid.vsT[p2n, 3] - grid.vs[p2n, 3])
             end
         end
         # update particle position
@@ -772,10 +729,6 @@ end
         mp.vs[ix, 1] = FLIP * (mp.vs[ix, 1] + vx) + PIC * ξx
         mp.vs[ix, 2] = FLIP * (mp.vs[ix, 2] + vy) + PIC * ξy
         mp.vs[ix, 3] = FLIP * (mp.vs[ix, 3] + vz) + PIC * ξz
-        # update particle momentum
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
         # update CFL conditions
         nid = attr.nid[ix]
         Ks  = attr.Ks[nid]
@@ -802,12 +755,15 @@ Scatter momentum from particles to grid.
     ix = @index(Global)
     if ix ≤ mp.np
         # update particle position & velocity
+        ms = mp.ρs[ix] * mp.Ω[ix]
+        psx = ms * mp.vs[ix, 1]
+        psy = ms * mp.vs[ix, 2]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            Ni = mp.Nij[ix, iy]
-            if Ni ≠ T2(0.0)
+            Nij = mp.Nij[ix, iy]
+            if Nij ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                @KAatomic grid.ps[p2n, 1] += mp.ps[ix, 1] * Ni
-                @KAatomic grid.ps[p2n, 2] += mp.ps[ix, 2] * Ni
+                @Σ grid.ps[p2n, 1] += psx * Nij
+                @Σ grid.ps[p2n, 2] += psy * Nij
             end
         end
     end
@@ -820,13 +776,17 @@ end
     ix = @index(Global)
     if ix ≤ mp.np
         # update particle position & velocity
+        ms = mp.ρs[ix] * mp.Ω[ix]
+        psx = ms * mp.vs[ix, 1]
+        psy = ms * mp.vs[ix, 2]
+        psz = ms * mp.vs[ix, 3]
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
-            Ni = mp.Nij[ix, iy]
-            if Ni ≠ T2(0.0)
+            Nij = mp.Nij[ix, iy]
+            if Nij ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                @KAatomic grid.ps[p2n, 1] += mp.ps[ix, 1] * Ni
-                @KAatomic grid.ps[p2n, 2] += mp.ps[ix, 2] * Ni
-                @KAatomic grid.ps[p2n, 3] += mp.ps[ix, 3] * Ni
+                @Σ grid.ps[p2n, 1] += psx * Nij
+                @Σ grid.ps[p2n, 2] += psy * Nij
+                @Σ grid.ps[p2n, 3] += psz * Nij
             end
         end
     end
@@ -847,16 +807,13 @@ Solve equations on grid for the updated grid momentum.
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : 1/grid.ms[ix]
         # compute nodal velocities
-        grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
-        grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
+        grid.ps[ix, 1] = grid.ps[ix, 1] * ms_denom * ΔT
+        grid.ps[ix, 2] = grid.ps[ix, 2] * ms_denom * ΔT
         # fixed Dirichlet nodes
-        bc.vx_s_idx[ix] ≠ T1(0) ? grid.vs[ix, 1] = bc.vx_s_val[ix] : nothing
-        bc.vy_s_idx[ix] ≠ T1(0) ? grid.vs[ix, 2] = bc.vy_s_val[ix] : nothing
-        # compute nodal displacement
-        grid.Δus[ix, 1] = grid.vs[ix, 1] * ΔT
-        grid.Δus[ix, 2] = grid.vs[ix, 2] * ΔT
+        bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
+        bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
     end
 end
 
@@ -867,19 +824,15 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : 1/grid.ms[ix]
         # compute nodal velocities
-        grid.vs[ix, 1] = grid.ps[ix, 1] * ms_denom
-        grid.vs[ix, 2] = grid.ps[ix, 2] * ms_denom
-        grid.vs[ix, 3] = grid.ps[ix, 3] * ms_denom
+        grid.ps[ix, 1] = grid.ps[ix, 1] * ms_denom * ΔT
+        grid.ps[ix, 2] = grid.ps[ix, 2] * ms_denom * ΔT
+        grid.ps[ix, 3] = grid.ps[ix, 3] * ms_denom * ΔT
         # fixed Dirichlet nodes
-        bc.vx_s_idx[ix] ≠ T1(0) ? grid.vs[ix, 1] = bc.vx_s_val[ix] : nothing
-        bc.vy_s_idx[ix] ≠ T1(0) ? grid.vs[ix, 2] = bc.vy_s_val[ix] : nothing
-        bc.vz_s_idx[ix] ≠ T1(0) ? grid.vs[ix, 3] = bc.vz_s_val[ix] : nothing
-        # compute nodal displacement
-        grid.Δus[ix, 1] = grid.vs[ix, 1] * ΔT
-        grid.Δus[ix, 2] = grid.vs[ix, 2] * ΔT
-        grid.Δus[ix, 3] = grid.vs[ix, 3] * ΔT
+        bc.vx_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 1] = bc.vx_s_val[ix] : nothing
+        bc.vy_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 2] = bc.vy_s_val[ix] : nothing
+        bc.vz_s_idx[ix] ≠ T1(0) ? grid.ps[ix, 3] = bc.vz_s_val[ix] : nothing
     end
 end
 
@@ -906,10 +859,10 @@ Update particle information.
                 ∂Nx = mp.∂Nx[ix, iy]
                 ∂Ny = mp.∂Ny[ix, iy]
                 # compute solid incremental deformation gradient
-                dF1 += grid.Δus[p2n, 1] * ∂Nx
-                dF2 += grid.Δus[p2n, 1] * ∂Ny
-                dF3 += grid.Δus[p2n, 2] * ∂Nx
-                dF4 += grid.Δus[p2n, 2] * ∂Ny
+                dF1 += grid.ps[p2n, 1] * ∂Nx
+                dF2 += grid.ps[p2n, 1] * ∂Ny
+                dF3 += grid.ps[p2n, 2] * ∂Nx
+                dF4 += grid.ps[p2n, 2] * ∂Ny
             end
         end
         mp.ΔFs[ix, 1] = dF1
@@ -925,10 +878,6 @@ Update particle information.
         mp.Δϵijs[ix, 1] = dF1
         mp.Δϵijs[ix, 2] = dF4
         mp.Δϵijs[ix, 4] = dF2 + dF3
-        # update strain tensor
-        mp.ϵijs[ix, 1] += dF1
-        mp.ϵijs[ix, 2] += dF4
-        mp.ϵijs[ix, 4] += dF2 + dF3
         # deformation gradient matrix
         F1 = mp.F[ix, 1]; F2 = mp.F[ix, 2]; F3 = mp.F[ix, 3]; F4 = mp.F[ix, 4]      
         mp.F[ix, 1] = (dF1 + T2(1.0)) * F1 + dF2 * F3
@@ -954,9 +903,9 @@ end
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             if mp.Nij[ix, iy] ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                ∂Nx = mp.∂Nx[ix, iy]; ds1 = grid.Δus[p2n, 1]
-                ∂Ny = mp.∂Ny[ix, iy]; ds2 = grid.Δus[p2n, 2]
-                ∂Nz = mp.∂Nz[ix, iy]; ds3 = grid.Δus[p2n, 3]
+                ∂Nx = mp.∂Nx[ix, iy]; ds1 = grid.ps[p2n, 1]
+                ∂Ny = mp.∂Ny[ix, iy]; ds2 = grid.ps[p2n, 2]
+                ∂Nz = mp.∂Nz[ix, iy]; ds3 = grid.ps[p2n, 3]
                 # compute solid incremental deformation gradient
                 dF1 += ds1 * ∂Nx; dF2 += ds1 * ∂Ny; dF3 += ds1 * ∂Nz
                 dF4 += ds2 * ∂Nx; dF5 += ds2 * ∂Ny; dF6 += ds2 * ∂Nz
@@ -1052,8 +1001,8 @@ locking problem. It is combined with kernel `fastdiv_OS!` and `G2Pvl2_OS!`.
             NiV = mp.Nij[ix, iy] * vol
             if NiV ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                @KAatomic grid.σm[p2n] += NiV * ΔJ
-                @KAatomic grid.Ω[p2n] += NiV
+                @Σ grid.σm[p2n] += NiV * ΔJ
+                @Σ grid.Ω[p2n] += NiV
             end
         end
     end
@@ -1091,8 +1040,8 @@ end
             NiV = mp.Nij[ix, iy] * vol
             if NiV ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                @KAatomic grid.σm[p2n] += NiV * ΔJ
-                @KAatomic grid.Ω[p2n] += NiV
+                @Σ grid.σm[p2n] += NiV * ΔJ
+                @Σ grid.Ω[p2n] += NiV
             end
         end
     end

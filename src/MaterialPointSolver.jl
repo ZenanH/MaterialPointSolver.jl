@@ -31,7 +31,7 @@ const tnri       = joinpath(assets_dir, "fonts/tnri.ttf" )
 const tnrb       = joinpath(assets_dir, "fonts/tnrb.ttf" )
 const tnrib      = joinpath(assets_dir, "fonts/tnrib.ttf")
 
-macro KAatomic(expr)
+macro Σ(expr)
     esc(quote
         KernelAbstractions.@atomic :monotonic $expr
     end)
@@ -56,7 +56,7 @@ end
 
 # export functions
 export materialpointsolver!
-export @KAatomic, @KAunroll, KAsync
+export @Σ, @KAunroll, KAsync
 export @MPSsuppress
 export user_adapt, @user_struct
 

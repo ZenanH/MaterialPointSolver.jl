@@ -52,18 +52,15 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1 = inv(grid.dx), inv(grid.dy)
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
+        gdx_1, gdy_1 = 1/grid.dx, 1/grid.dy
         # base index in the grid
         # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
-        bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * grid.dx - grid.x1, grid.dx))
-        bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * grid.dy - grid.y1, grid.dy))
-        bid = T1(grid.nny * bnx + grid.nny - bny)
-        gξx, gξy = grid.ξ[bid, 1], grid.ξ[bid, 2]
+        bnx = unsafe_trunc(T1, floor((mξx - T2(0.5) * mp.dx - grid.x1) / grid.dx)) # column
+        bny = unsafe_trunc(T1, floor((mξy - T2(0.5) * mp.dy - grid.y1) / grid.dy)) # row (自下而上)
+        bid = bnx * grid.nny + bny + 1
+        gξx = grid.x1 + bnx * grid.dx
+        gξy = grid.y1 + bny * grid.dy
         # compute x value in the basis function N(x)
         x1 = gdx_1 * (mξx - gξx)
         x2 = gdx_1 * (mξx - gξx - grid.dx)
@@ -78,7 +75,7 @@ end
         Nxs, Nys = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3)
         @KAunroll for i in Int32(1):Int32(3)  # x-direction
             for j in Int32(1):Int32(3)        # y-direction
-                mp.p2n[ix, it] = bid - (j - Int32(1)) + grid.nny * (i - Int32(1))
+                mp.p2n[ix, it] = bid + (j - Int32(1)) + grid.nny * (i - Int32(1))
                 mp.Nij[ix, it] = Nxs[i] * Nys[j]
                 it += Int32(1)
             end
@@ -92,20 +89,17 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1, gdz_1 = inv(grid.dx), inv(grid.dy), inv(grid.dz)
-        # update mass and momentum
-        mp.ms[ix]    = mp.Ω[ix]  * mp.ρs[ix]
-        mp.ps[ix, 1] = mp.ms[ix] * mp.vs[ix, 1]
-        mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
-        mp.ps[ix, 3] = mp.ms[ix] * mp.vs[ix, 3]
+        gdx_1, gdy_1, gdz_1 = 1/grid.dx, 1/grid.dy, 1/grid.dz
         # base index in the grid
         # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
-        bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * grid.dx - grid.x1, grid.dx))
-        bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * grid.dy - grid.y1, grid.dy))
-        bnz = unsafe_trunc(T1, fld(mξz - T2(0.5) * grid.dz - grid.z1, grid.dz))
-        bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
-        gξx, gξy, gξz = grid.ξ[bid, 1], grid.ξ[bid, 2], grid.ξ[bid, 3]
+        bnx = unsafe_trunc(T1, floor((mξx - T2(0.5) * mp.dx - grid.x1) / grid.dx)) # column
+        bny = unsafe_trunc(T1, floor((mξy - T2(0.5) * mp.dy - grid.y1) / grid.dy)) # row (自下而上)
+        bnz = unsafe_trunc(T1, floor((mξz - T2(0.5) * mp.dz - grid.z1) / grid.dz)) # layer
+        bid = grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1
+        gξx = grid.x1 + bnx * grid.dx
+        gξy = grid.y1 + bny * grid.dy
+        gξz = grid.z1 + bnz * grid.dz
         # compute x value in the basis function N(x)
         x1 = gdx_1 * (mξx - gξx)
         x2 = gdx_1 * (mξx - gξx - grid.dx)
@@ -143,29 +137,32 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1 = inv(grid.dx), inv(grid.dy)
-        vtx = mp.Ω[ix] * ΔT * T2(-4.0) * gdx_1 * gdx_1
-        vty = mp.Ω[ix] * ΔT * T2(-4.0) * gdy_1 * gdy_1
         # get particle mass and position
-        mps, mξx, mξy = mp.ms[ix], mp.ξ[ix, 1], mp.ξ[ix, 2]
+        mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
+        vol, ρs, vx, vy = mp.Ω[ix], mp.ρs[ix], mp.vs[ix, 1], mp.vs[ix, 2]
+        ms = vol * ρs
         # get particle momentum
-        mppx, mppy = mp.ps[ix, 1], mp.ps[ix, 2]
+        psx, psy = ms * vx, ms * vy
         # get particle stresses
         σxx, σyy, σxy = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 4]
+        gdx_1, gdy_1 = 1/grid.dx, 1/grid.dy
+        vtx = vol * ΔT * T2(-4.0) * gdx_1 * gdx_1
+        vty = vol * ΔT * T2(-4.0) * gdy_1 * gdy_1
         # compute nodal momentum
-        aC1 = mp.aC[ix, 1] * mps + σxx * vtx
-        aC2 = mp.aC[ix, 2] * mps + σxy * vtx
-        aC3 = mp.aC[ix, 3] * mps + σxy * vty
-        aC4 = mp.aC[ix, 4] * mps + σyy * vty
+        aC1 = mp.aC[ix, 1] * ms + σxx * vtx
+        aC2 = mp.aC[ix, 2] * ms + σxy * vtx
+        aC3 = mp.aC[ix, 3] * ms + σxy * vty
+        aC4 = mp.aC[ix, 4] * ms + σyy * vty
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Ni = mp.Nij[ix, iy]
             gi = mp.p2n[ix, iy]
-            dx, dy = grid.ξ[gi, 1] - mξx, grid.ξ[gi, 2] - mξy
+            dx = ((ceil(gi/grid.nny) - 1) * grid.dx) - mξx
+            dy = ((gi - (ceil(gi/grid.nny) - 1) * grid.nny - 1) * grid.dy) - mξy
             # compute nodal mass
-            @KAatomic grid.ms[gi] += mps * Ni
+            @Σ grid.ms[gi] += ms * Ni
             # vsT here is momentum
-            @KAatomic grid.vsT[gi, 1] += Ni * (mppx + (aC1 * dx + aC2 * dy))
-            @KAatomic grid.vsT[gi, 2] += Ni * (mppy + (aC3 * dx + aC4 * dy))
+            @Σ grid.vsT[gi, 1] += Ni * (psx + (aC1 * dx + aC2 * dy))
+            @Σ grid.vsT[gi, 2] += Ni * (psy + (aC3 * dx + aC4 * dy))
         end
     end
 end
@@ -177,39 +174,43 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mp.np
-        gdx_1, gdy_1, gdz_1 = inv(grid.dx), inv(grid.dy), inv(grid.dz)
-        vtx = mp.Ω[ix] * ΔT * T2(-4.0) * gdx_1 * gdx_1
-        vty = mp.Ω[ix] * ΔT * T2(-4.0) * gdy_1 * gdy_1
-        vtz = mp.Ω[ix] * ΔT * T2(-4.0) * gdz_1 * gdz_1
         # get particle mass and position
-        mps, mξx, mξy, mξz = mp.ms[ix], mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
+        mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
+        vol, ρs, vx, vy, vz = mp.Ω[ix], mp.ρs[ix], mp.vs[ix, 1], mp.vs[ix, 2], mp.vs[ix, 3]
+        ms = vol * ρs
         # get particle momentum
-        mppx, mppy, mppz = mp.ps[ix, 1], mp.ps[ix, 2], mp.ps[ix, 3]
+        psx, psy, psz = ms * vx, ms * vy, ms * vz
         # get particle stresses
         σxx, σyy, σzz = mp.σij[ix, 1], mp.σij[ix, 2], mp.σij[ix, 3]
         σxy, σyz, σzx = mp.σij[ix, 4], mp.σij[ix, 5], mp.σij[ix, 6]
+        gdx_1, gdy_1, gdz_1 = 1/grid.dx, 1/grid.dy, 1/grid.dz
+        vtx = vol * ΔT * T2(-4.0) * gdx_1 * gdx_1
+        vty = vol * ΔT * T2(-4.0) * gdy_1 * gdy_1
+        vtz = vol * ΔT * T2(-4.0) * gdz_1 * gdz_1
         # compute nodal momentum
-        aC1 = mp.aC[ix, 1] * mps + σxx * vtx
-        aC2 = mp.aC[ix, 2] * mps + σxy * vtx
-        aC3 = mp.aC[ix, 3] * mps + σzx * vtx
-        aC4 = mp.aC[ix, 4] * mps + σxy * vty
-        aC5 = mp.aC[ix, 5] * mps + σyy * vty
-        aC6 = mp.aC[ix, 6] * mps + σyz * vty
-        aC7 = mp.aC[ix, 7] * mps + σzx * vtz
-        aC8 = mp.aC[ix, 8] * mps + σyz * vtz
-        aC9 = mp.aC[ix, 9] * mps + σzz * vtz
+        aC1 = mp.aC[ix, 1] * ms + σxx * vtx
+        aC2 = mp.aC[ix, 2] * ms + σxy * vtx
+        aC3 = mp.aC[ix, 3] * ms + σzx * vtx
+        aC4 = mp.aC[ix, 4] * ms + σxy * vty
+        aC5 = mp.aC[ix, 5] * ms + σyy * vty
+        aC6 = mp.aC[ix, 6] * ms + σyz * vty
+        aC7 = mp.aC[ix, 7] * ms + σzx * vtz
+        aC8 = mp.aC[ix, 8] * ms + σyz * vtz
+        aC9 = mp.aC[ix, 9] * ms + σzz * vtz
         @KAunroll for iy in Int32(1):Int32(mp.NIC)
             Ni = mp.Nij[ix, iy]
             gi = mp.p2n[ix, iy]
-            dx = grid.ξ[gi, 1] - mξx
-            dy = grid.ξ[gi, 2] - mξy
-            dz = grid.ξ[gi, 3] - mξz
+            _tmp1_ = (ceil(gi/(grid.nny*grid.nnx)) - 1)
+            _tmp2_ = gi - _tmp1_
+            dx = ((ceil(_tmp2_/grid.nny) - 1) * grid.dx) - mξx
+            dy = ((_tmp2_ - (ceil(_tmp2_/grid.nny) - 1) * grid.nny - 1) * grid.dy) - mξy
+            dz = ((ceil(gi/(grid.nny*grid.nnx)) - 1) * grid.dz) - mξz
             # compute nodal mass
-            @KAatomic grid.ms[gi] += mps * Ni
+            @Σ grid.ms[gi] += ms * Ni
             # vsT here is momentum
-            @KAatomic grid.vsT[gi, 1] += Ni * (mppx + (aC1 * dx + aC2 * dy + aC3 * dz))
-            @KAatomic grid.vsT[gi, 2] += Ni * (mppy + (aC4 * dx + aC5 * dy + aC6 * dz))
-            @KAatomic grid.vsT[gi, 3] += Ni * (mppz + (aC7 * dx + aC8 * dy + aC9 * dz))
+            @Σ grid.vsT[gi, 1] += Ni * (psx + (aC1 * dx + aC2 * dy + aC3 * dz))
+            @Σ grid.vsT[gi, 2] += Ni * (psy + (aC4 * dx + aC5 * dy + aC6 * dz))
+            @Σ grid.vsT[gi, 3] += Ni * (psz + (aC7 * dx + aC8 * dy + aC9 * dz))
         end
     end
 end
@@ -222,7 +223,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : 1/grid.ms[ix]
         # update nodal velocity
         grid.vsT[ix, 1] = grid.vsT[ix, 1] * ms_denom 
         grid.vsT[ix, 2] = grid.vsT[ix, 2] * ms_denom + gravity * ΔT
@@ -240,7 +241,7 @@ end
 ) where {T1, T2}
     ix = @index(Global)
     if ix ≤ grid.ni
-        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : inv(grid.ms[ix])
+        ms_denom = grid.ms[ix] < eps(T2) ? T2(0.0) : 1/grid.ms[ix]
         # update nodal velocity
         grid.vsT[ix, 1] = grid.vsT[ix, 1] * ms_denom 
         grid.vsT[ix, 2] = grid.vsT[ix, 2] * ms_denom

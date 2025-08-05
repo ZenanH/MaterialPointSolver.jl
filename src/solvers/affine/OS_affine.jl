@@ -156,13 +156,13 @@ aP2G procedure for scattering the mass, momentum, and forces from particles to g
                 p2n = mp.p2n[ix, iy]
                 dx, dy = grid.ξ[p2n, 1] - mξx, grid.ξ[p2n, 2] - mξy
                 # compute nodal mass
-                @KAatomic grid.ms[p2n] += mps * Ni
+                @Σ grid.ms[p2n] += mps * Ni
                 # compute nodal momentum
-                @KAatomic grid.ps[p2n, 1] += Ni * (mppsx + mps * (aC1 * dx + aC2 * dy))
-                @KAatomic grid.ps[p2n, 2] += Ni * (mppsy + mps * (aC3 * dx + aC4 * dy))
+                @Σ grid.ps[p2n, 1] += Ni * (mppsx + mps * (aC1 * dx + aC2 * dy))
+                @Σ grid.ps[p2n, 2] += Ni * (mppsy + mps * (aC3 * dx + aC4 * dy))
                 # compute nodal total force for solid
-                @KAatomic grid.fs[p2n, 1] += -vol * (∂Nx * σxx + ∂Ny * σxy)
-                @KAatomic grid.fs[p2n, 2] += -vol * (∂Ny * σyy + ∂Nx * σxy) + 
+                @Σ grid.fs[p2n, 1] += -vol * (∂Nx * σxx + ∂Ny * σxy)
+                @Σ grid.fs[p2n, 2] += -vol * (∂Ny * σyy + ∂Nx * σxy) + 
                     Ni * mps * gravity
             end
         end
@@ -192,18 +192,18 @@ end
                 p2n = mp.p2n[ix, iy]
                 dx, dy, dz = grid.ξ[p2n, 1] - mx, grid.ξ[p2n, 2] - my, grid.ξ[p2n, 3] - mz
                 # compute nodal mass
-                @KAatomic grid.ms[p2n] += Ni * mps
+                @Σ grid.ms[p2n] += Ni * mps
                 # compute nodal momentum
-                @KAatomic grid.ps[p2n, 1] += Ni * (mppx + mps * 
+                @Σ grid.ps[p2n, 1] += Ni * (mppx + mps * 
                     (aC1 * dx + aC2 * dy + aC3 * dz))
-                @KAatomic grid.ps[p2n, 2] += Ni * (mppy + mps *
+                @Σ grid.ps[p2n, 2] += Ni * (mppy + mps *
                     (aC4 * dx + aC5 * dy + aC6 * dz))
-                @KAatomic grid.ps[p2n, 3] += Ni * (mppz + mps *
+                @Σ grid.ps[p2n, 3] += Ni * (mppz + mps *
                     (aC7 * dx + aC8 * dy + aC9 * dz))
                 # compute nodal total force for solid
-                @KAatomic grid.fs[p2n, 1] += -vol * (∂Nx * σxx + ∂Ny * σxy + ∂Nz * σzx)
-                @KAatomic grid.fs[p2n, 2] += -vol * (∂Ny * σyy + ∂Nx * σxy + ∂Nz * σyz)
-                @KAatomic grid.fs[p2n, 3] += -vol * (∂Nz * σzz + ∂Nx * σzx + ∂Ny * σyz) + 
+                @Σ grid.fs[p2n, 1] += -vol * (∂Nx * σxx + ∂Ny * σxy + ∂Nz * σzx)
+                @Σ grid.fs[p2n, 2] += -vol * (∂Ny * σyy + ∂Nx * σxy + ∂Nz * σyz)
+                @Σ grid.fs[p2n, 3] += -vol * (∂Nz * σzz + ∂Nx * σzx + ∂Ny * σyz) + 
                     Ni * mps * gravity
             end
         end
@@ -372,8 +372,8 @@ end
             NiV = mp.Nij[ix, iy] * vol
             if NiV ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                @KAatomic grid.σm[p2n] += NiV * ΔJ
-                @KAatomic grid.Ω[p2n] += NiV
+                @Σ grid.σm[p2n] += NiV * ΔJ
+                @Σ grid.Ω[p2n] += NiV
             end
         end
     end
@@ -403,8 +403,8 @@ end
             NiV = mp.Nij[ix, iy] * vol
             if NiV ≠ T2(0.0)
                 p2n = mp.p2n[ix, iy]
-                @KAatomic grid.σm[p2n] += NiV * ΔJ
-                @KAatomic grid.Ω[p2n] += NiV
+                @Σ grid.σm[p2n] += NiV * ΔJ
+                @Σ grid.Ω[p2n] += NiV
             end
         end
     end

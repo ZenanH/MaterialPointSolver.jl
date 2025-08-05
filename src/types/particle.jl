@@ -50,8 +50,6 @@ struct Particle2D{T1, T2,
     ϵv    :: T4
     Ω     :: T4
     Ω0    :: T4
-    ms    :: T4
-    mw    :: T4
     n     :: T4
     k     :: T4
     S     :: T4
@@ -69,8 +67,6 @@ struct Particle2D{T1, T2,
     sij   :: T5
     vs    :: T5
     vw    :: T5
-    ps    :: T5
-    pw    :: T5
     Nij   :: T5
     ∂Nx   :: T5
     ∂Ny   :: T5
@@ -106,8 +102,6 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], k=[0], S
     phase == 2 ? (np_new = np; DoF_new = DoF) : nothing
     ρs0   = copy(ρs)
     ρw0   = copy(ρw)
-    ms    = zeros(T1, np             )
-    mw    = zeros(T1, np_new         )
     ϵq    = zeros(T2, np             )
     ϵk    = zeros(T2, np             )
     ϵv    = zeros(T2, np             )
@@ -123,8 +117,6 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], k=[0], S
     ΔFs   = zeros(T2, np    , 4      )
     ΔFw   = zeros(T2, np_new, 4      )
     p2n   = zeros(T1, np    , NIC    )
-    ps    = zeros(T2, np    , DoF    )
-    pw    = zeros(T2, np_new, DoF_new)
     vs    = zeros(T2, np    , DoF    )
     vw    = zeros(T2, np_new, DoF_new)
     Nij   = zeros(T2, np    , NIC    )
@@ -138,13 +130,13 @@ function UserParticle2D(; ϵ="FP64", phase=1, NIC=9, dx, dy, ξ, n=[0], k=[0], S
     end
     aC = affine == true ? zeros(T2, np, 4) : zeros(T2, 1, 4)
     # clean the memory
-    @mem_clean kwargs mw mi ϵq ϵk ϵv σm cfl ϵijs ϵijw sij ΔFs ΔFw p2n ps pw vs vw
+    @mem_clean kwargs ϵq ϵk ϵv σm cfl ϵijs ϵijw sij ΔFs ΔFw p2n vs vw
     GC.gc()
     # instantiate the particle
     tmp = Particle2D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, 
         AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, dy, p2n, ξ, ξ0, σm, ϵq, 
-        ϵk, ϵv, Ω, Ω0, ms, mw, n, k, S, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
-        Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ΔFs, ΔFw, F, aC, ext)
+        ϵk, ϵv, Ω, Ω0, n, k, S, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
+        Δϵijw, sij, vs, vw, Nij, ∂Nx, ∂Ny, ΔFs, ΔFw, F, aC, ext)
 
     return user_adapt(Array, tmp)
 end
@@ -190,8 +182,6 @@ struct Particle3D{T1, T2,
     ϵv    :: T4
     Ω     :: T4
     Ω0    :: T4
-    ms    :: T4
-    mw    :: T4
     n     :: T4
     k     :: T4
     S     :: T4
@@ -209,8 +199,6 @@ struct Particle3D{T1, T2,
     sij   :: T5
     vs    :: T5
     vw    :: T5
-    ps    :: T5
-    pw    :: T5
     Nij   :: T5
     ∂Nx   :: T5
     ∂Ny   :: T5
@@ -248,8 +236,6 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], k=[
     phase == 2 ? (np_new = np; DoF_new = DoF) : nothing
     ρs0   = copy(ρs)
     ρw0   = copy(ρw)
-    ms    = zeros(T1, np             )
-    mw    = zeros(T1, np_new         )
     ϵq    = zeros(T2, np             )
     ϵk    = zeros(T2, np             )
     ϵv    = zeros(T2, np             )
@@ -265,8 +251,6 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], k=[
     ΔFs   = zeros(T2, np    , 9      )
     ΔFw   = zeros(T2, np_new, 9      )
     p2n   = zeros(T1, np    , NIC    )
-    ps    = zeros(T2, np    , DoF    )
-    pw    = zeros(T2, np_new, DoF_new)
     vs    = zeros(T2, np    , DoF    )
     vw    = zeros(T2, np_new, DoF_new)
     Nij   = zeros(T2, np    , NIC    )
@@ -282,13 +266,13 @@ function UserParticle3D(; ϵ="FP64", phase=1, NIC=27, dx, dy, dz, ξ, n=[0], k=[
     end
     aC = affine == true ? zeros(T2, np, 9) : zeros(T2, 1, 9)
     # clean the memory
-    @mem_clean kwargs mw mi ϵq ϵk ϵv σm cfl ϵijs ϵijw sij ΔFs ΔFw p2n ps pw vs vw
+    @mem_clean kwargs ϵq ϵk ϵv σm cfl ϵijs ϵijw sij ΔFs ΔFw p2n vs vw
     GC.gc()
     # instantiate the particle
     tmp = Particle3D{T1, T2, AbstractArray{T1, 2}, AbstractArray{T2, 1}, 
         AbstractArray{T2, 2}, UserParticleExtra}(phase, np, NIC, dx, dy, dz, p2n, ξ, ξ0, σm, 
-        ϵq, ϵk, ϵv, Ω, Ω0, ms, mw, n, k, S, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
-        Δϵijw, sij, vs, vw, ps, pw, Nij, ∂Nx, ∂Ny, ∂Nz, ΔFs, ΔFw, F, aC, ext)
+        ϵq, ϵk, ϵv, Ω, Ω0, n, k, S, ρs, ρs0, ρw, ρw0, σw, cfl, σij, ϵijs, ϵijw, Δϵijs, 
+        Δϵijw, sij, vs, vw, Nij, ∂Nx, ∂Ny, ∂Nz, ΔFs, ΔFw, F, aC, ext)
         
     return user_adapt(Array, tmp)
 end
