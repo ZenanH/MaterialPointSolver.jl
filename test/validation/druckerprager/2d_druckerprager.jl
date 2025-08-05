@@ -68,7 +68,7 @@ grid = UserGrid2D(
     dx    = init_grid_space_x,
     dy    = init_grid_space_y,
     NIC   = init_NIC
-)
+); bg = meshbuilder(grid.x1:grid.dx:grid.x2, grid.y1:grid.dy:grid.y2)
 
 # material point setup
 dx = grid.dx / init_mp_in_space
@@ -106,9 +106,9 @@ attr = UserProperty(
 # boundary setup
 vx_idx = zeros(grid.ni)
 vy_idx = zeros(grid.ni)
-tmp_idx = findall(i -> grid.ξ[i, 1] ≤ 0.0 || grid.ξ[i, 1] ≥ 0.8 ||
-                       grid.ξ[i, 2] ≤ 0, 1:grid.ni)
-tmp_idy = findall(i -> grid.ξ[i, 2] ≤ 0, 1:grid.ni)
+tmp_idx = findall(i -> bg[i, 1] ≤ 0.0 || bg[i, 1] ≥ 0.8 ||
+                       bg[i, 2] ≤ 0, 1:grid.ni)
+tmp_idy = findall(i -> bg[i, 2] ≤ 0, 1:grid.ni)
 vx_idx[tmp_idx] .= 1
 vy_idx[tmp_idy] .= 1 
 bc = UserVBoundary2D(

@@ -46,7 +46,6 @@ struct Grid2D{T1, T2,
     nny   :: T1
     ni    :: T1
     NIC   :: T1
-    ξ     :: T4
     ncx   :: T1
     ncy   :: T1
     nc    :: T1
@@ -84,33 +83,11 @@ function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0, 
     phase = phase in [1, 2] ? phase : 1
     NIC = NIC in [4, 9] ? NIC : 9
     ext = ext == 0 ? TempGridExtra(rand(T2, 2)) : ext
-    # set the nodes in background grid
-    # vx = x1:dx:x2 |> collect
-    # vy = y1:dy:y2 |> collect
-    # x2 = vx[end]; y2 = vy[end]
-    # sort!(vx); sort!(vy, rev=true) # vy should from largest to smallest
-    # nnx = length(vx); vx = reshape(vx, 1, nnx)
-    # nny = length(vy); vy = reshape(vy, nny, 1)
-    # ni  = nny*nnx
-    # x   = repeat(vx, nny, 1) |> vec
-    # y   = repeat(vy, 1, nnx) |> vec
-    # ξ   = hcat(x, y)
-
     xr = Float64.(x1:dx:x2); yr = Float64.(y1:dy:y2)
-    nx, ny = length(xr), length(yr)
-    ξ = Array{Float64, 2}(undef, nx * ny, 2)
-    idx = 1
-    @inbounds for i = 1:nx
-        xi = xr[i]
-        @simd for j = 1:ny
-            ξ[idx, 1] = xi
-            ξ[idx, 2] = yr[j]
-            idx += 1
-        end
-    end
-    nnx = nx
-    nny = ny
-    ni  = nny*nnx
+    nnx, nny = length(xr), length(yr)
+    ni = nny*nnx
+    x1 = xr[1]; x2 = xr[end]
+    y1 = yr[1]; y2 = yr[end]
     # set the cells in background grid
     ncx = nnx - 1
     ncy = nny - 1
@@ -147,8 +124,8 @@ function UserGrid2D(; ϵ="FP64", phase=1, x1, x2, y1, y2, dx, dy, NIC=9, ext=0, 
     GC.gc()
     # instantiate the grid
     tmp = Grid2D{T1, T2, AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserGridExtra}(phase, 
-        x1, x2, y1, y2, dx, dy, nnx, nny, ni, NIC, ξ, ncx, ncy, nc, σm, σw, Ω, ms, mw, mi, 
-        ps, pw, vs, vw, vsT, vwT, fs, fw, fd, Δus, Δuw, ext)
+        x1, x2, y1, y2, dx, dy, nnx, nny, ni, NIC, ncx, ncy, nc, σm, σw, Ω, ms, mw, mi, ps, 
+        pw, vs, vw, vsT, vwT, fs, fw, fd, Δus, Δuw, ext)
 
     return user_adapt(Array, tmp)
 end
@@ -196,7 +173,6 @@ struct Grid3D{T1, T2,
     nnz   :: T1
     ni    :: T1
     NIC   :: T1
-    ξ     :: T4
     ncx   :: T1
     ncy   :: T1
     ncz   :: T1
@@ -239,25 +215,14 @@ function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NI
     NIC = NIC in [8, 27] ? NIC : 27
     ext = ext == 0 ? TempGridExtra(rand(T2, 2)) : ext
     # set the nodes in background grid
-    vx = x1:dx:x2 |> collect
-    vy = y1:dy:y2 |> collect
-    vz = z1:dz:z2 |> collect
-    x2 = vx[end]; y2 = vy[end]; z2 = vz[end]
-    m, n, o = length(vy), length(vx), length(vz)
-    vx  = reshape(vx, 1, n, 1)
-    vy  = reshape(vy, m, 1, 1)
-    vz  = reshape(vz, 1, 1, o)
-    om  = ones(Int, m)
-    on  = ones(Int, n)
-    oo  = ones(Int, o)
-    x   = vec(vx[om, :, oo])
-    y   = vec(vy[:, on, oo])
-    z   = vec(vz[om, on, :])
-    ξ   = hcat(x, y, z)
-    nnx = length(vx)
-    nny = length(vy)
-    nnz = length(vz)
-    ni  = nnx * nny * nnz
+    xr = Float64.(x1:dx:x2)
+    yr = Float64.(y1:dy:y2)
+    zr = Float64.(z1:dz:z2)
+    nnx, nny, nnz = length(xr), length(yr), length(zr)
+    ni = nny*nnx*nnz
+    x1 = xr[1]; x2 = xr[end]
+    y1 = yr[1]; y2 = yr[end]
+    z1 = zr[1]; z2 = zr[end]
     # set the cells in background grid
     ncx = nnx - 1
     ncy = nny - 1
@@ -295,7 +260,7 @@ function UserGrid3D(; ϵ="FP64", phase=1, x1, x2, y1, y2, z1, z2, dx, dy, dz, NI
     GC.gc()
     # instantiate the grid
     tmp = Grid3D{T1, T2, AbstractArray{T2, 1}, AbstractArray{T2, 2}, UserGridExtra}(
-        phase, x1, x2, y1, y2, z1, z2, dx, dy, dz, nnx, nny, nnz, ni, NIC, ξ, ncx, ncy, ncz, 
+        phase, x1, x2, y1, y2, z1, z2, dx, dy, dz, nnx, nny, nnz, ni, NIC, ncx, ncy, ncz, 
         nc, σm, σw, Ω, ms, mw, mi, ps, pw, vs, vw, vsT, vwT, fs, fw, fd, Δus, Δuw, ext)
     
     return user_adapt(Array, tmp)

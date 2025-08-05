@@ -117,11 +117,11 @@ Note that `basis_type` is a valued type, so it should be passed by `Val{:linear}
         mp.ps[ix, 2] = mp.ms[ix] * mp.vs[ix, 2]
         # base index in the grid
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
-        cx = unsafe_trunc(T1, floor((mξx - grid.x1) / grid.dx)) # column
-        cy = unsafe_trunc(T1, floor((mξy - grid.y1) / grid.dy)) # row (自下而上)
-        bid = cx * grid.nny + cy + 1
-        gξx = grid.x1 + cx * grid.dx
-        gξy = grid.y1 + cy * grid.dy
+        bnx = unsafe_trunc(T1, floor((mξx - grid.x1) / grid.dx)) # column
+        bny = unsafe_trunc(T1, floor((mξy - grid.y1) / grid.dy)) # row (自下而上)
+        bid = bnx * grid.nny + bny + 1
+        gξx = grid.x1 + bnx * grid.dx
+        gξy = grid.y1 + bny * grid.dy
         # compute x value in the basis function N(x)
         x1, y1 = mξx - gξx, mξy - gξy
         x2, y2 = grid.dx - x1, grid.dy - y1
@@ -160,7 +160,7 @@ end
         bnx = unsafe_trunc(T1, fld(mξx - grid.x1, grid.dx))
         bny = unsafe_trunc(T1, fld(mξy - grid.y1, grid.dy))
         bnz = unsafe_trunc(T1, fld(mξz - grid.z1, grid.dz))
-        bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
+        bid = grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1
         gξx = grid.x1 + bnx * grid.dx
         gξy = grid.y1 + bny * grid.dy
         gξz = grid.z1 + bnz * grid.dz
@@ -205,10 +205,11 @@ end
         # base index in the grid
         # note the base index needs a shift of 0.5lp (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
-        bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * mp.dx - grid.x1, grid.dx))
-        bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * mp.dy - grid.y1, grid.dy))
-        bid = T1(grid.nny * bnx + grid.nny - bny)
-        gξx, gξy = grid.ξ[bid, 1], grid.ξ[bid, 2]
+        bnx = unsafe_trunc(T1, floor((mξx - T2(0.5) * mp.dx - grid.x1) / grid.dx)) # column
+        bny = unsafe_trunc(T1, floor((mξy - T2(0.5) * mp.dy - grid.y1) / grid.dy)) # row (自下而上)
+        bid = bnx * grid.nny + bny + 1
+        gξx = grid.x1 + bnx * grid.dx
+        gξy = grid.y1 + bny * grid.dy
         # compute x value in the basis function N(x)
         x1 = mξx - gξx
         x2 = mξx - gξx - grid.dx
@@ -224,7 +225,7 @@ end
         dxs, dys = (∂x1, ∂x2, ∂x3), (∂y1, ∂y2, ∂y3)
         @KAunroll for i in Int32(1):Int32(3)  # x-direction
             for j in Int32(1):Int32(3)        # y-direction
-                mp.p2n[ix, it] = bid - (j - Int32(1)) + grid.nny * (i - Int32(1))
+                mp.p2n[ix, it] = bid + (j - Int32(1)) + grid.nny * (i - Int32(1))
                 mp.Nij[ix, it] = Nxs[i] * Nys[j]
                 mp.∂Nx[ix, it] = dxs[i] * Nys[j]
                 mp.∂Ny[ix, it] = Nxs[i] * dys[j]
@@ -250,11 +251,13 @@ end
         # base index in the grid
         # note the base index needs a shift of 0.5lp (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
-        bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * mp.dx - grid.x1, grid.dx))
-        bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * mp.dy - grid.y1, grid.dy))
-        bnz = unsafe_trunc(T1, fld(mξz - T2(0.5) * mp.dz - grid.z1, grid.dz))
-        bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
-        gξx, gξy, gξz = grid.ξ[bid, 1], grid.ξ[bid, 2], grid.ξ[bid, 3]
+        bnx = unsafe_trunc(T1, floor((mξx - T2(0.5) * mp.dx - grid.x1) / grid.dx)) # column
+        bny = unsafe_trunc(T1, floor((mξy - T2(0.5) * mp.dy - grid.y1) / grid.dy)) # row (自下而上)
+        bnz = unsafe_trunc(T1, floor((mξz - T2(0.5) * mp.dz - grid.z1) / grid.dz)) # layer
+        bid = grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1
+        gξx = grid.x1 + bnx * grid.dx
+        gξy = grid.y1 + bny * grid.dy
+        gξz = grid.z1 + bnz * grid.dz
         # compute x value in the basis function N(x)
         x1 = mξx - gξx
         x2 = mξx - gξx - grid.dx
@@ -304,10 +307,11 @@ end
         # base index in the grid
         # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
-        bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * grid.dx - grid.x1, grid.dx))
-        bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * grid.dy - grid.y1, grid.dy))
-        bid = T1(grid.nny * bnx + grid.nny - bny)
-        gξx, gξy = grid.ξ[bid, 1], grid.ξ[bid, 2]
+        bnx = unsafe_trunc(T1, floor((mξx - T2(0.5) * mp.dx - grid.x1) / grid.dx)) # column
+        bny = unsafe_trunc(T1, floor((mξy - T2(0.5) * mp.dy - grid.y1) / grid.dy)) # row (自下而上)
+        bid = bnx * grid.nny + bny + 1
+        gξx = grid.x1 + bnx * grid.dx
+        gξy = grid.y1 + bny * grid.dy
         # compute x value in the basis function N(x)
         x1 = gdx_1 * (mξx - gξx)
         x2 = gdx_1 * (mξx - gξx - grid.dx)
@@ -323,7 +327,7 @@ end
         dxs, dys = (∂x1, ∂x2, ∂x3), (∂y1, ∂y2, ∂y3)
         @KAunroll for i in Int32(1):Int32(3)  # x-direction
             for j in Int32(1):Int32(3)        # y-direction
-                mp.p2n[ix, it] = bid - (j - Int32(1)) + grid.nny * (i - Int32(1))
+                mp.p2n[ix, it] = bid + (j - Int32(1)) + grid.nny * (i - Int32(1))
                 mp.Nij[ix, it] = Nxs[i] * Nys[j]
                 mp.∂Nx[ix, it] = dxs[i] * Nys[j]
                 mp.∂Ny[ix, it] = Nxs[i] * dys[j]
@@ -349,11 +353,13 @@ end
         # base index in the grid
         # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
-        bnx = unsafe_trunc(T1, fld(mξx - T2(0.5) * grid.dx - grid.x1, grid.dx))
-        bny = unsafe_trunc(T1, fld(mξy - T2(0.5) * grid.dy - grid.y1, grid.dy))
-        bnz = unsafe_trunc(T1, fld(mξz - T2(0.5) * grid.dz - grid.z1, grid.dz))
-        bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
-        gξx, gξy, gξz = grid.ξ[bid, 1], grid.ξ[bid, 2], grid.ξ[bid, 3]
+        bnx = unsafe_trunc(T1, floor((mξx - T2(0.5) * mp.dx - grid.x1) / grid.dx)) # column
+        bny = unsafe_trunc(T1, floor((mξy - T2(0.5) * mp.dy - grid.y1) / grid.dy)) # row (自下而上)
+        bnz = unsafe_trunc(T1, floor((mξz - T2(0.5) * mp.dz - grid.z1) / grid.dz)) # layer
+        bid = grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1
+        gξx = grid.x1 + bnx * grid.dx
+        gξy = grid.y1 + bny * grid.dy
+        gξz = grid.z1 + bnz * grid.dz
         # compute x value in the basis function N(x)
         x1 = gdx_1 * (mξx - gξx)
         x2 = gdx_1 * (mξx - gξx - grid.dx)
@@ -403,10 +409,11 @@ end
         # base index in the grid
         # note the base index needs a shift of 1.0h (see Taichi)
         mξx, mξy = mp.ξ[ix, 1], mp.ξ[ix, 2]
-        bnx = unsafe_trunc(T1, fld(mξx - grid.dx - grid.x1, grid.dx))
-        bny = unsafe_trunc(T1, fld(mξy - grid.dy - grid.y1, grid.dy))
-        bid = T1(grid.nny * bnx + grid.nny - bny)
-        gξx, gξy = grid.ξ[bid, 1], grid.ξ[bid, 2]
+        bnx = unsafe_trunc(T1, floor((mξx - grid.dx - grid.x1) / grid.dx)) # column
+        bny = unsafe_trunc(T1, floor((mξy - grid.dy - grid.y1) / grid.dy)) # row (自下而上)
+        bid = bnx * grid.nny + bny + 1
+        gξx = grid.x1 + bnx * grid.dx
+        gξy = grid.y1 + bny * grid.dy
         # compute x value in the basis function N(x)
         rx1 = (mξx - gξx                              ) * gdx_1
         rx2 = (mξx - gξx - grid.dx                    ) * gdx_1
@@ -438,7 +445,7 @@ end
         dxs, dys = (∂x1, ∂x2, ∂x3, ∂x4), (∂y1, ∂y2, ∂y3, ∂y4)
         @KAunroll for i in Int32(1):Int32(4)  # x-direction
             for j in Int32(1):Int32(4)        # y-direction
-                mp.p2n[ix, it] = bid - (j - Int32(1)) + grid.nny * (i - Int32(1))
+                mp.p2n[ix, it] = bid + (j - Int32(1)) + grid.nny * (i - Int32(1))
                 mp.Nij[ix, it] = Nxs[i] * Nys[j]
                 mp.∂Nx[ix, it] = dxs[i] * Nys[j]
                 mp.∂Ny[ix, it] = Nxs[i] * dys[j]
@@ -464,11 +471,13 @@ end
         # base index in the grid
         # note the base index needs a shift of 1h (see Taichi)
         mξx, mξy, mξz = mp.ξ[ix, 1], mp.ξ[ix, 2], mp.ξ[ix, 3]
-        bnx = unsafe_trunc(T1, fld(mξx - grid.dx - grid.x1, grid.dx))
-        bny = unsafe_trunc(T1, fld(mξy - grid.dy - grid.y1, grid.dy))
-        bnz = unsafe_trunc(T1, fld(mξz - grid.dz - grid.z1, grid.dz))
-        bid = T1(grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1)
-        gξx, gξy, gξz = grid.ξ[bid, 1], grid.ξ[bid, 2], grid.ξ[bid, 3]
+        bnx = unsafe_trunc(T1, floor((mξx - grid.dx - grid.x1) / grid.dx)) # column
+        bny = unsafe_trunc(T1, floor((mξy - grid.dy - grid.y1) / grid.dy)) # row (自下而上)
+        bnz = unsafe_trunc(T1, floor((mξz - grid.dz - grid.z1) / grid.dz)) # layer
+        bid = grid.nnx * grid.nny * bnz + grid.nny * bnx + bny + 1
+        gξx = grid.x1 + bnx * grid.dx
+        gξy = grid.y1 + bny * grid.dy
+        gξz = grid.z1 + bnz * grid.dz
         # compute x value in the basis function N(x)
         rx1 = (mξx - gξx                              ) * gdx_1
         rx2 = (mξx - gξx - grid.dx                    ) * gdx_1
