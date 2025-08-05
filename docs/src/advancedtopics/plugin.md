@@ -1,3 +1,0 @@
-# Plugin System
-
-... todo

@@ -1,18 +1,17 @@
-#==========================================================================================+
-|                OpenMPM.jl: High-performance MPM Solver for Geomechanics                  |
-+------------------------------------------------------------------------------------------+
-|  Description: AMDGPU extension for OpenMPM.jl                                            |
-|  Start Date : 01/01/2022                                                                 |
-|  Affiliation: Risk Group, ISTE, Université de Lausanne                                   |
-|  Maintainer : Zenan Huo                                                                  |
-+==========================================================================================#
-
 module MaterialPointSolverAMDGPUExt
 
-using BenchmarkTools, AMDGPU, KernelAbstractions, Printf, MaterialPointSolver
+using BenchmarkTools
+using AMDGPU
+using KernelAbstractions
+using Printf
+using MaterialPointSolver
 
-import MaterialPointSolver: dev_backend, host2device
+# rewrite with ROCm
+import MaterialPointSolver: host2device, device2host!, clean_device!, Tpeak, getBackend,
+       warmup, grf_gc!, grf_ec!, getArray
 
-include(joinpath(@__DIR__, "AMDGPUExt/datatransfer.jl"))
+include(joinpath(@__DIR__, "AMDExt/devicehelpfunc_amd.jl"))
+include(joinpath(@__DIR__, "AMDExt/warmup_amd.jl"        ))
+include(joinpath(@__DIR__, "AMDExt/randomfield_amd.jl"   ))
 
 end

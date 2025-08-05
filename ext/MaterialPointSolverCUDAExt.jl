@@ -1,18 +1,19 @@
-#==========================================================================================+
-|                OpenMPM.jl: High-performance MPM Solver for Geomechanics                  |
-+------------------------------------------------------------------------------------------+
-|  Description: CUDA extension for OpenMPM.jl                                              |
-|  Start Date : 01/01/2022                                                                 |
-|  Affiliation: Risk Group, ISTE, Université de Lausanne                                   |
-|  Maintainer : Zenan Huo                                                                  |
-+==========================================================================================#
-
 module MaterialPointSolverCUDAExt
 
-using BenchmarkTools, CUDA, KernelAbstractions, Printf, MaterialPointSolver
+using BenchmarkTools
+using CUDA
+using KernelAbstractions
+using Printf
+using MaterialPointSolver
 
-import MaterialPointSolver: dev_backend, host2device
+# rewrite with CUDA
+import MaterialPointSolver: host2device, device2host!, clean_device!, Tpeak, getBackend,
+       warmup, grf_gc!, grf_ec!, getArray
 
-include(joinpath(@__DIR__, "CUDAExt/datatransfer.jl"))
+CUDA.allowscalar(false) # disable scalar operation in GPU
+
+include(joinpath(@__DIR__, "CUDAExt/devicehelpfunc_cuda.jl"))
+include(joinpath(@__DIR__, "CUDAExt/warmup_cuda.jl"        ))
+include(joinpath(@__DIR__, "CUDAExt/randomfield_cuda.jl"   ))
 
 end

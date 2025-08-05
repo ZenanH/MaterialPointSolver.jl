@@ -1,18 +1,20 @@
-#==========================================================================================+
-|                OpenMPM.jl: High-performance MPM Solver for Geomechanics                  |
-+------------------------------------------------------------------------------------------+
-|  Description: Metal extension for OpenMPM.jl                                             |
-|  Start Date : 01/01/2022                                                                 |
-|  Affiliation: Risk Group, ISTE, Université de Lausanne                                   |
-|  Maintainer : Zenan Huo                                                                  |
-+==========================================================================================#
-
 module MaterialPointSolverMetalExt
 
-using BenchmarkTools, Metal, KernelAbstractions, Printf, MaterialPointSolver
+using BenchmarkTools
+using Metal
+using KernelAbstractions
+using Printf
+using MaterialPointSolver
 
-import MaterialPointSolver: dev_backend, host2device
+# rewrite with CUDA
+import MaterialPointSolver: host2device, device2host!, clean_device!, Tpeak, getBackend,
+       warmup, grf_gc!, grf_ec!, getArray
 
-include(joinpath(@__DIR__, "MetalExt/datatransfer.jl"))
+#=-------------------------------------------------------------------------------------=#
+# here we need something like CUDA.allowscalar(false) # disable scalar operation in GPU #
+#--------------------------------------------------------------------------------------=#
+include(joinpath(@__DIR__, "MetalExt/devicehelpfunc_metal.jl"))
+include(joinpath(@__DIR__, "MetalExt/warmup_metal.jl"        ))
+include(joinpath(@__DIR__, "MetalExt/randomfield_metal.jl"   ))
 
 end

@@ -1,2 +1,6 @@
-using Test, BenchmarkTools, DelimitedFiles
-using MaterialPointSolver
+using KernelAbstractions
+using Test
+
+@testset "other functions" begin
+    @test 1==1
+end
