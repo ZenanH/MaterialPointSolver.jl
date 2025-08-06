@@ -11,6 +11,7 @@ function resetgridstatus!(grid::DeviceGrid{T1, T2}) where {T1, T2}
     fill!(grid.ms, T2(0.0))
     fill!(grid.fs, T2(0.0))
     fill!(grid.ps, T2(0.0))
+    fill!(grid.vs, T2(0.0))
 end
 
 @kernel function resetmpstatus!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}

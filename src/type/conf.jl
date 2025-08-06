@@ -8,6 +8,7 @@ struct H5_T <: HDF5Config
     gname::Ref{Int}
     interval::Int
     varnames::Tuple
+    fpvar
 end
 
 struct H5_F <: HDF5Config
@@ -50,7 +51,20 @@ function init_conf(; dev::Symbol=:cpu, h5_int::Int=0, varnames::Tuple=(:default,
     log_int::Real=3.0, prjname, prjpath, Δt, t_tol, t_cur::Real=0.0, t_eld::Real=0.0
 )
     dev = dev_backend(dev)
-    h5 = h5_int > 0 ? H5_T(Ref{Int64}(0), Ref{Int64}(1), h5_int, varnames) : H5_F(Ref{Int64}(0))
+    # 展平字段路径：(:x, :y, (:u, :z)) → [(:x,), (:y,), (:ext, :u), (:ext, :z)]
+    field_paths = Tuple[]
+    for item in varnames
+        if item isa Symbol
+            push!(field_paths, (item,))
+        elseif item isa Tuple
+            for subfield in item
+                push!(field_paths, (:ext, subfield))
+            end
+        else
+            error("Unsupported entry in varnames: $item")
+        end
+    end
+    h5 = h5_int > 0 ? H5_T(Ref{Int64}(0), Ref{Int64}(1), h5_int, varnames, field_paths) : H5_F(Ref{Int64}(0))
     iters = Ref{Int64}(0)
     prjdst = joinpath(prjpath, prjname)
     isdir(prjdst) && rm(prjdst; recursive=true, force=true); mkpath(prjdst)

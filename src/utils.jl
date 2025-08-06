@@ -33,12 +33,25 @@ end
 
 set_hdf5(conf::Config) = HDF5.h5open(joinpath(conf.prjdst, "$(conf.prjname).h5"), "w")
 
+# @inline function hdf5!(conf::H5_T, fid, t_cur, mpts, dev_mpts)
+#     if conf.iters[] == 0 || conf.iters[] % conf.interval == 0
+#         device2host!(mpts, dev_mpts, conf.varnames)
+#         g = create_group(fid, "group$(conf.gname[])")
+#         @inbounds for vars in conf.varnames
+#             g[string(vars)] = getfield(mpts, vars)
+#         end
+#         g["time"] = t_cur
+#         conf.gname[] += 1
+#     end
+# end
+@inline _get_nested_field(obj, path) = foldl(getfield, path; init=obj)
+
 @inline function hdf5!(conf::H5_T, fid, t_cur, mpts, dev_mpts)
     if conf.iters[] == 0 || conf.iters[] % conf.interval == 0
-        device2host!(mpts, dev_mpts, var=conf.varnames)
+        device2host!(mpts, dev_mpts, conf.varnames)
         g = create_group(fid, "group$(conf.gname[])")
-        @inbounds for vars in conf.varnames
-            g[string(vars)] = mpts[vars]
+        @inbounds for path in conf.fpvar
+            g[string(path[end])] = _get_nested_field(mpts, path)
         end
         g["time"] = t_cur
         conf.gname[] += 1
@@ -47,9 +60,8 @@ end
 
 @inline function hdf5!(::H5_T, fid, grid)
     g = create_group(fid, "grid")
-    fields = :z1 in keys(grid) ? (:h, :x1, :x2, :y1, :y2, :z1, :z2) : (:h, :x1, :x2, :y1, :y2)
-    @inbounds for vars in fields
-        g[string(vars)] = grid[vars]
+    @inbounds for vars in (:h, :x1, :x2, :y1, :y2, :z1, :z2)
+        g[string(vars)] = getfield(grid, vars)
     end
 end
 

@@ -11,9 +11,10 @@
 using MaterialPointGenerator
 using MaterialPointSolver
 using CUDA
+using CairoMakie
 
 init_h     = 0.0025
-init_ϵ     = :single
+init_ϵ     = :double
 init_FLIP  = 1.0
 init_G     = -9.8
 init_ρs    = 2650
@@ -23,16 +24,16 @@ init_Es    = init_Ks * (3 * (1 - 2 * init_ν))
 init_Gs    = init_Es / (2 * (1 +     init_ν))
 init_σt    = 0.0
 init_ϕ     = deg2rad(19.8)
-init_ψ     = 0.0
-init_c     = 0.0
-init_dev   = :cpu
-init_T     = 1
+init_dev   = :cuda
+init_T     = 0.6
 init_Tcur  = 0.0
 init_ΔT    = 0.5 * init_h / sqrt(init_Es / init_ρs)
-#init_h5    = HDF5(interval=floor(Int, init_T / init_ΔT / 200), varnames=(:ξ, :ϵq))
+init_h5    = floor(Int, init_T / init_ΔT / 200)
+init_var   = (:ξ, :ϵq)
 
 # args setup
-conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T, prjpath=@__DIR__, prjname="3D_example")
+conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T, h5_int=init_h5, varnames=init_var,
+    prjpath=@__DIR__, prjname="3D_example")
 
 # grid and boundary conditions setup
 bg      = meshbuilder(-0.02:init_h:0.07, -0.02:init_h:0.75, -0.02:init_h:0.12)
@@ -48,7 +49,9 @@ grid    = init_grid(-0.02:init_h:0.07, -0.02:init_h:0.75, -0.02:init_h:0.12, ϵ=
 
 # material point setup
 mh = grid.h * 0.5
-ξ0 = meshbuilder(mh*0.5 : mh : 0.05-mh*0.5, mh*0.5 : mh : 0.2-mh*0.5, mh*0.5 : mh : 0.1-mh*0.5) # xrange: 0:0.05, yrange: 0:0.2, zrange: 0:0.1
+ξ0 = meshbuilder(mh*0.5 : mh : 0.05-mh*0.5, 
+                 mh*0.5 : mh : 0.20-mh*0.5, 
+                 mh*0.5 : mh : 0.10-mh*0.5) # xrange: 0:0.05, yrange: 0:0.2, zrange: 0:0.1
 np = size(ξ0, 1)
 mpts = init_mpts(ϵ=init_ϵ,
     ξ    = ξ0,
@@ -60,24 +63,23 @@ mpts = init_mpts(ϵ=init_ϵ,
     Ks   = [init_Ks],
     Es   = [init_Es],
     Gs   = [init_Gs],
-    c    = [init_c],
     ϕ    = [init_ϕ]
 )
 
 # solver setup
 mpmsolver!(procedure!, conf, grid, mpts)
 
-# let
-#     figfont = MaterialPointSolver.tnr
-#     fig = Figure(size=(1200, 700), fonts=(; regular=figfont, bold=figfont), fontsize=30)
-#     ax = Axis3(fig[1, 1], xlabel=L"x\ (m)", ylabel=L"y\ (m)", zlabel=L"z\ (m)", 
-#         aspect=:data, azimuth=0.2*π, elevation=0.1*π, xlabeloffset=60, zlabeloffset=80,
-#         protrusions=100, xticks=(0:0.04:0.04), height=450, width=950)
-#     pl1 = scatter!(ax, mp.ξ, color=log10.(mp.ϵq.+1), colormap=:jet, markersize=3,
-#         colorrange=(0, 1))
-#     Colorbar(fig[1, 1], limits=(0, 1), colormap=:jet, size=16, ticks=0:0.5:1, spinewidth=0,
-#         label=L"log_{10}(\epsilon_{II}+1)", vertical=false, tellwidth=false, width=200,
-#         halign=:right, valign=:top, flipaxis=false)
-#     display(fig)
-# end
+let
+    set_theme!(theme_latexfonts())
+    fig = Figure(size=(1200, 700), fontsize=30)
+    ax = Axis3(fig[1, 1], xlabel=L"x\ (m)", ylabel=L"y\ (m)", zlabel=L"z\ (m)", 
+        aspect=:data, azimuth=0.2*π, elevation=0.1*π, xlabeloffset=60, zlabeloffset=80,
+        protrusions=100, xticks=(0:0.04:0.04), height=450, width=950)
+    pl1 = scatter!(ax, mpts.ξ, color=log10.(mpts.ϵq.+1), colormap=:jet, markersize=3,
+        colorrange=(0, 1))
+    Colorbar(fig[1, 1], limits=(0, 1), colormap=:jet, size=16, ticks=0:0.5:1, spinewidth=0,
+        label=L"log_{10}(\epsilon_{II}+1)", vertical=false, tellwidth=false, width=200,
+        halign=:right, valign=:top, flipaxis=false)
+    display(fig)
+end
 # rm(joinpath(abspath(args.project_path), args.project_name), recursive=true, force=true)

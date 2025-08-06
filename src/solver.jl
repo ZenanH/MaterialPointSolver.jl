@@ -39,7 +39,7 @@ function procedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle
     end
     conf.etime[] = time(); KAsync(dev)
     device2host!(mpts, dev_mpts)
-    @info "downloaded $(@sprintf("%.2f", totalsize(dev_mpts))) GiB data to CPU()"
+    @info "downloaded $(@sprintf("%.2f", memorysize(dev_mpts))) GiB data to CPU()"
     hdf5!(h5, fid, grid)
     close(fid)
 end
