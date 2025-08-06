@@ -6,15 +6,10 @@ using KernelAbstractions
 using Printf
 using MaterialPointSolver
 
-# rewrite with CUDA
-import MaterialPointSolver: host2device, device2host!, clean_device!, Tpeak, getBackend,
-       warmup, grf_gc!, grf_ec!, getArray
+import MaterialPointSolver: dev_backend, host2device
 
-#=-------------------------------------------------------------------------------------=#
-# here we need something like CUDA.allowscalar(false) # disable scalar operation in GPU #
-#--------------------------------------------------------------------------------------=#
-include(joinpath(@__DIR__, "MetalExt/devicehelpfunc_metal.jl"))
-include(joinpath(@__DIR__, "MetalExt/warmup_metal.jl"        ))
-include(joinpath(@__DIR__, "MetalExt/randomfield_metal.jl"   ))
+dev_backend(::Val{:metal}) = MetalBackend()
+
+host2device(::MetalBackend, grid::DeviceGrid{T1,T2}, mpts::DeviceParticle{T1,T2}) where {T1,T2} = KAupload(MtlArray, grid), KAupload(MtlArray, mpts)
 
 end

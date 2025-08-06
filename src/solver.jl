@@ -1,137 +1,45 @@
-#==========================================================================================+
-|           MaterialPointSolver.jl: High-performance MPM Solver for Geomechanics           |
-+------------------------------------------------------------------------------------------+
-|  File Name  : solver.jl                                                                  |
-|  Description: MPM solver implementation                                                  |
-|  Programmer : Zenan Huo                                                                  |
-|  Start Date : 01/01/2022                                                                 |
-|  Affiliation: Risk Group, UNIL-ISTE                                                      |
-|  Functions  : 1. submit_work!                                                            |
-+==========================================================================================#
-
-include(joinpath(@__DIR__, "solvers/extras.jl"  ))
-include(joinpath(@__DIR__, "solvers/utils_OS.jl"))
-include(joinpath(@__DIR__, "solvers/affine/OS_affine.jl")) # include affine MPM procedures
-include(joinpath(@__DIR__, "solvers/mls/OS_mls.jl"))       # include MLS-MPM procedures
-
-include(joinpath(@__DIR__, "solvers/OS_MUSL.jl" ))
-include(joinpath(@__DIR__, "solvers/OS_USL.jl"  ))
-include(joinpath(@__DIR__, "solvers/OS_USF.jl"  ))
-include(joinpath(@__DIR__, "solvers/affine/OS_aUSF.jl"))   # include affine MPM procedures
-include(joinpath(@__DIR__, "solvers/mls/OS_mlsUSF.jl"))   # include MLS-MPM procedures
-
-include(joinpath(@__DIR__, "materials/linearelastic.jl"))
-include(joinpath(@__DIR__, "materials/druckerprager.jl"))
-include(joinpath(@__DIR__, "materials/mohrcoulomb.jl"  ))
-include(joinpath(@__DIR__, "materials/hyperelastic.jl" ))
-include(joinpath(@__DIR__, "materials/bingham.jl"      ))
-
+export mpmsolver!
 export procedure!
-export submit_work!
 
-"""
-    submit_work!(args::DeviceArgs2D{T1, T2}, grid::DeviceGrid2D{T1, T2}, 
-        mp::DeviceParticle{T1, T2}, attr::DeviceProperty{T1, T2}, 
-        bc::DeviceVBoundary{T1, T2}, workflow::Function) 
+include(joinpath(@__DIR__, "solver/interpolation.jl"))
+include(joinpath(@__DIR__, "solver/datatransfer.jl"))
+include(joinpath(@__DIR__, "solver/kernels.jl"))
+include(joinpath(@__DIR__, "solver/materials.jl"))
+include(joinpath(@__DIR__, "solver/calculator.jl"))
 
-Description:
----
-This function will start to run the MPM solver.
-"""
-@views function submit_work!(
-    args    ::     DeviceArgs{T1, T2},
-    grid    ::     DeviceGrid{T1, T2}, 
-    mp      :: DeviceParticle{T1, T2}, 
-    attr    :: DeviceProperty{T1, T2},
-    bc      ::DeviceVBoundary{T1, T2},
-    workflow::F
-) where {T1, T2, F<:Function}
-    initmpstatus!(CPU())(ndrange=mp.np, grid, mp, Val(args.basis))
-    # variables setup for the simulation 
-    Ti = T2(0.0)
-    pc = Ref{T1}(0)
-    pb = progressinfo(args, "solving")
-    ΔT = args.ΔT
-    #ΔT = args.time_step==:auto ? cfl(args, grid, mp, attr, Val(args.coupling)) : args.ΔT
-    dev_grid, dev_mp, dev_attr, dev_bc = host2device(grid, mp, attr, bc, Val(args.device))
-    # main part: HDF5 ON / OFF
-    if args.hdf5 == true
-        hdf5_id     = T1(1) # HDF5 group index
-        hdf5_switch = T1(0) # HDF5 step
-        proj_path   = joinpath(args.project_path, args.project_name)
-        hdf5_path   = joinpath(proj_path, "$(args.project_name).h5")
-        isfile(hdf5_path) ? rm(hdf5_path) : nothing
-        h5open(hdf5_path, "cw") do fid
-            args.start_time = time()
-            while Ti < args.Ttol
-                if (hdf5_switch == args.hdf5_step) || (hdf5_switch == T1(0))
-                    device2host!(args, mp, dev_mp, Val(args.device))
-                    g = create_group(fid, "group$(hdf5_id)")
-                    g["stress"    ] = mp.σij
-                    g["strain_s"  ] = mp.ϵijs
-                    g["eqstrain"  ] = mp.ϵq
-                    g["ekstrain"  ] = mp.ϵk
-                    g["eqrate"    ] = mp.ϵv
-                    g["coords"    ] = mp.ξ
-                    g["velocity_s"] = mp.vs
-                    g["volume"    ] = mp.Ω
-                    g["mass_s"    ] = mp.ms
-                    g["time"      ] = Ti
-                    if args.coupling==:TS
-                        g["pressure_w"] = mp.σw
-                        g["strain_w"  ] = mp.ϵijw
-                        g["velocity_w"] = mp.vw
-                        g["porosity"  ] = mp.n
-                        g["saturation"] = mp.S
-                    end
-                    hdf5_switch = T1(0); hdf5_id += T1(1)
-                end
-                workflow(args, dev_grid, dev_mp, dev_attr, dev_bc, ΔT, Ti, 
-                    Val(args.coupling), Val(args.scheme))
-                ΔT = args.time_step == :auto ? args.αT * reduce(min, dev_mp.cfl) : args.ΔT
-                Ti += ΔT
-                hdf5_switch += 1
-                args.iter_num += 1
-                updatepb!(pc, Ti, args.Ttol, pb)
-            end
-            args.end_time = time()
-            write(fid, "FILE_NUM"   , hdf5_id    )
-            write(fid, "grid_coords", grid.ξ     )
-            write(fid, "mp_coords0" , mp.ξ0      )
-            write(fid, "nid"        , attr.nid   )
-            write(fid, "vbc_xs_idx" , bc.vx_s_idx)
-            write(fid, "vbc_xs_val" , bc.vx_s_val)
-            write(fid, "vbc_ys_idx" , bc.vy_s_idx)
-            write(fid, "vbc_ys_val" , bc.vy_s_val)
-            if typeof(args) <: DeviceArgs3D
-                write(fid, "vbc_zs_idx", bc.vz_s_idx)
-                write(fid, "vbc_zs_val", bc.vz_s_val)
-            end
-            if args.coupling == :TS
-                write(fid, "vbc_xw_idx", bc.vx_w_idx)
-                write(fid, "vbc_xw_val", bc.vx_w_val)
-                write(fid, "vbc_yw_idx", bc.vy_w_idx)
-                write(fid, "vbc_yw_val", bc.vy_w_val)
-                if typeof(args) <: DeviceArgs3D
-                    write(fid, "vbc_zw_idx", bc.vz_w_idx)
-                    write(fid, "vbc_zw_val", bc.vz_w_val)
-                end
-            end
-        end
-    elseif args.hdf5 == false
-        args.start_time = time()
-        while Ti < args.Ttol
-            workflow(args, dev_grid, dev_mp, dev_attr, dev_bc, ΔT, Ti, 
-                Val(args.coupling), Val(args.scheme))
-            ΔT = args.time_step == :auto ? args.αT * reduce(min, dev_mp.cfl) : args.ΔT
-            Ti += ΔT
-            args.iter_num += 1
-            updatepb!(pc, Ti, args.Ttol, pb)
-        end
-        args.end_time = time()
+
+mpmsolver!(solver::Function, args...) = solver(args...)
+
+function procedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+    t_cur = T2(conf.t_cur)
+    t_tol = T2(conf.t_tol)
+    Δt    = T2(conf.Δt)
+    dev   = conf.dev
+    h5    = conf.h5
+    dev_grid, dev_mpts = host2device(dev, grid, mpts)
+    memsize = memorysize(dev_grid) + memorysize(dev_mpts)
+    @info "uploaded $(@sprintf("%.2f", memsize)) GiB data to $(dev)"
+
+    fid = set_hdf5(conf)
+    printer = set_pb(conf)
+    conf.stime[] = time()
+    while t_cur < t_tol
+        hdf5!(h5, fid, t_cur, mpts, dev_mpts)
+        resetgridstatus!(dev_grid)
+        resetmpstatus!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
+        p2g!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
+        solvegrid!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
+        doublemapping1!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, Δt)
+        doublemapping2!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
+        doublemapping3!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
+        g2p!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
+        pb!(printer, t_cur, Δt)
+        t_cur += Δt
+        h5.iters[] += 1
     end
-    KAsync(getBackend(Val(args.device)))
-    device2host!(grid, mp, attr, bc, dev_grid, dev_mp, dev_attr, dev_bc, Val(args.device))
-    clean_device!(dev_grid, dev_mp, dev_attr, dev_bc, Val(args.device))
-    return nothing
+    conf.etime[] = time(); KAsync(dev)
+    device2host!(mpts, dev_mpts)
+    @info "downloaded $(@sprintf("%.2f", totalsize(dev_mpts))) GiB data to CPU()"
+    hdf5!(h5, fid, grid)
+    close(fid)
 end

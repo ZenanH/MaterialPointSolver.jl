@@ -6,12 +6,10 @@ using KernelAbstractions
 using Printf
 using MaterialPointSolver
 
-# rewrite with ROCm
-import MaterialPointSolver: host2device, device2host!, clean_device!, Tpeak, getBackend,
-       warmup, grf_gc!, grf_ec!, getArray
+import MaterialPointSolver: dev_backend, host2device
 
-include(joinpath(@__DIR__, "AMDExt/devicehelpfunc_amd.jl"))
-include(joinpath(@__DIR__, "AMDExt/warmup_amd.jl"        ))
-include(joinpath(@__DIR__, "AMDExt/randomfield_amd.jl"   ))
+dev_backend(::Val{:rocm}) = ROCBackend()
+
+host2device(::ROCBackend, grid::DeviceGrid{T1,T2}, mpts::DeviceParticle{T1,T2}) where {T1,T2} = KAupload(ROCArray, grid), KAupload(ROCArray, mpts)
 
 end
