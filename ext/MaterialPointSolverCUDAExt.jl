@@ -12,5 +12,6 @@ CUDA.allowscalar(false) # disable scalar operation in GPU
 dev_backend(::Val{:cuda}) = CUDABackend()
 
 host2device(::CUDABackend, grid::DeviceGrid{T1,T2}, mpts::DeviceParticle{T1,T2}) where {T1,T2} = KAupload(CuArray, grid), KAupload(CuArray, mpts)
+host2device(::CUDABackend, data) = KAupload(CuArray, data)
 
 end

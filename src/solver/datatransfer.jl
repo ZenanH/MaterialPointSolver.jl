@@ -2,6 +2,7 @@ export host2device, device2host!
 export memorysize
 
 host2device(::CPU, grid::DeviceGrid{T1,T2}, mpts::DeviceParticle{T1,T2}) where {T1,T2} = KAupload(Array, grid), KAupload(Array, mpts)
+host2device(::CPU, data) = KAupload(Array, data)
 
 # Device to Host transfer (fully)
 @inline device2host!(dst::AbstractArray, src::AbstractArray) = (copyto!(dst, src); dst)

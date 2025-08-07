@@ -23,6 +23,7 @@ struct Grid{T1, T2,
     y2  ::T2
     z1  ::T2
     z2  ::T2
+    ζs  ::T2
     ms  ::T5
     ps  ::T6
     vs  ::T6
@@ -40,7 +41,9 @@ end
 @KAadapt Grid
 
 function init_grid(xr::AbstractRange, yr::AbstractRange, zr::AbstractRange; 
-    ϵ::Symbol=:double, NIC=27, vsxi, vsxv, vsyi, vsyv, vszi, vszv, ext=[0])
+    ϵ::Symbol=:double, NIC=27, vsxi=[1], vsxv=[0], vsyi=[1], vsyv=[0], vszi=[1], vszv=[0], 
+    ζs=0.0, ext=[0]
+)
     T1  = ϵ == :single ? Int32   : Int64
     T2  = ϵ == :single ? Float32 : Float64
     NIC = T1(NIC)
@@ -64,6 +67,7 @@ function init_grid(xr::AbstractRange, yr::AbstractRange, zr::AbstractRange;
     y2   = T2(y[end])
     z1   = T2(z[1])
     z2   = T2(z[end])
+    ζs   = T2(ζs)
     ms   = zeros(T2, ni)
     ps   = zeros(T2, ni, 3)
     vs   = zeros(T2, ni, 3)
@@ -77,6 +81,6 @@ function init_grid(xr::AbstractRange, yr::AbstractRange, zr::AbstractRange;
     vszv = Array{T2}(vszv)
     ext  = ext == [0] ? (_tmp1=rand(T2, 3, 3), _tmp2=rand(T2, 3, 3)) : ext
     return Grid{T1, T2, Array{T1, 1}, AbstractArray{T2, 1}, AbstractArray{T2, 2}, NamedTuple}(
-        NIC, ni, nx, ny, nz, h, invh, x1, x2, y1, y2, z1, z2, ms, ps, vs, vsT, fs, vsxi, 
+        NIC, ni, nx, ny, nz, h, invh, x1, x2, y1, y2, z1, z2, ζs, ms, ps, vs, vsT, fs, vsxi, 
         vsxv, vsyi, vsyv, vszi, vszv, ext)
 end
