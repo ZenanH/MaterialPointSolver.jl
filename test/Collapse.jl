@@ -10,6 +10,7 @@
 
 using MaterialPointGenerator
 using MaterialPointSolver
+using MaterialPointVisualizer
 using CUDA
 using CairoMakie
 
@@ -29,11 +30,11 @@ init_T     = 0.6
 init_Tcur  = 0.0
 init_ΔT    = 0.5 * init_h / sqrt(init_Es / init_ρs)
 init_h5    = floor(Int, init_T / init_ΔT / 200)
-init_var   = (:ξ, :ϵq)
+init_var   = (:ξ, :ϵq, (:xy,))
 
 # args setup
-conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T, h5_int=init_h5, varnames=init_var,
-    prjpath=@__DIR__, prjname="3D_example")
+conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T,# h5_int=init_h5, varnames=init_var,
+    prjpath=@__DIR__, prjname="Collapse")
 
 # grid and boundary conditions setup
 bg      = meshbuilder(-0.02:init_h:0.07, -0.02:init_h:0.75, -0.02:init_h:0.12)
@@ -68,6 +69,8 @@ mpts = init_mpts(ϵ=init_ϵ,
 
 # solver setup
 mpmsolver!(procedure!, conf, grid, mpts)
+# h5conf = (prjdst=conf.prjdst, prjname=conf.prjname)
+# animation(h5conf)
 
 let
     set_theme!(theme_latexfonts())
@@ -82,4 +85,3 @@ let
         halign=:right, valign=:top, flipaxis=false)
     display(fig)
 end
-# rm(joinpath(abspath(args.project_path), args.project_name), recursive=true, force=true)

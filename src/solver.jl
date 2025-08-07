@@ -33,6 +33,7 @@ function procedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle
         doublemapping2!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
         doublemapping3!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
         g2p!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
+        dev_mpts.ext.xy .= dev_mpts.ϵq
         pb!(printer, t_cur, Δt)
         t_cur += Δt
         h5.iters[] += 1

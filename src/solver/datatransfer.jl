@@ -24,8 +24,9 @@ end
 end
 
 function memorysize(obj)
-    bytes = obj isa AbstractArray                    ? sizeof(eltype(obj)) * length(obj)       :
-            obj isa NamedTuple                       ? sum(memorysize(v) for v in values(obj)) :
-            (f = fieldnames(typeof(obj)); isempty(f) ? sizeof(obj)                             : sum(memorysize(getfield(obj, n)) for n in f))
-    return bytes / 1024^3
+    bytes(x) = x isa AbstractArray ? sizeof(eltype(x)) * length(x) :
+               x isa NamedTuple ? sum(bytes(v) for v in values(x)) :
+               isbits(x) ? sizeof(x) :
+               (fn = fieldnames(typeof(x)); isempty(fn) ? 0 : sum(bytes(getfield(x, f)) for f in fn))
+    return bytes(obj) / 1024^3      # GiB
 end
