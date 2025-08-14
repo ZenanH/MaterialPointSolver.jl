@@ -1,7 +1,15 @@
 export host2device, device2host!
 export memorysize
 
-host2device(::CPU, grid::DeviceGrid{T1,T2}, mpts::DeviceParticle{T1,T2}) where {T1,T2} = KAupload(Array, grid), KAupload(Array, mpts)
+function host2device(::CPU, grid::DeviceGrid{T1,T2}, mpts::DeviceParticle{T1,T2}) where {T1,T2} 
+    dev_grid = KAupload(Array, grid)
+    dev_mpts = KAupload(Array, mpts)
+    memsize = memorysize(dev_grid) + memorysize(dev_mpts)
+    content = "uploaded $(@sprintf("%.2f", memsize)) GiB data to CPU"
+    println("\e[1;32m[▲ I/O:\e[0m \e[0;32m$(content)\e[0m")
+    return dev_grid, dev_mpts
+end
+
 host2device(::CPU, data) = KAupload(Array, data)
 
 # Device to Host transfer (fully)
@@ -12,6 +20,8 @@ host2device(::CPU, data) = KAupload(Array, data)
     @inbounds for n in fieldnames(typeof(dst))
         device2host!(getfield(dst,n), getfield(src,n))
     end
+    content = "downloaded $(@sprintf("%.2f", memorysize(src))) GiB data to CPU"
+    println("\e[1;31m[▼ I/O:\e[0m \e[0;31m$(content)\e[0m")
     dst
 end
 # Device to Host transfer (partially)

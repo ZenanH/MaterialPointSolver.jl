@@ -1,6 +1,7 @@
 module MaterialPointSolver
 
-using Adapt, BenchmarkTools, Dates, DelimitedFiles, HDF5, KernelAbstractions, Printf
+using Adapt, BenchmarkTools, Dates, DelimitedFiles, HDF5, KernelAbstractions, Printf, 
+      ProgressMeter
 
 import Adapt.adapt as KAupload
 import Adapt.@adapt_structure as @KAadapt

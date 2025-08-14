@@ -11,12 +11,12 @@ using MaterialPointGenerator
 using MaterialPointSolver
 using MaterialPointVisualizer
 using CUDA
-using CairoMakie
+# using CairoMakie
 
 init_h     = 0.0025
 init_ϵ     = :double
-init_basis = :bspline3
-init_NIC   = 64
+init_basis = :bspline2
+init_NIC   = 27
 init_FLIP  = 1.0
 init_G     = -9.8
 init_ρs    = 2650
@@ -31,10 +31,10 @@ init_T     = 0.6
 init_Tcur  = 0.0
 init_ΔT    = 0.5 * init_h / sqrt(init_Es / init_ρs)
 init_h5    = floor(Int, init_T / init_ΔT / 200)
-init_var   = (:ξ, :ϵq, (:xy,))
+init_var   = (:ξ, :ϵq)
 
 # args setup
-conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T,# h5_int=init_h5, varnames=init_var,
+conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T, h5_int=init_h5, varnames=init_var,
     prjpath=@__DIR__, prjname="Collapse", basis=init_basis)
 
 # grid and boundary conditions setup
@@ -73,20 +73,20 @@ mpts = init_mpts(ϵ=init_ϵ, NIC=init_NIC,
 
 # solver setup
 mpmsolver!(procedure!, conf, grid, mpts)
-# h5conf = (prjdst=conf.prjdst, prjname=conf.prjname)
-# animation(h5conf)
+h5conf = (prjdst=conf.prjdst, prjname=conf.prjname)
+animation(h5conf)
 
-let
-    set_theme!(theme_latexfonts())
-    fig = Figure(size=(1200, 700), fontsize=30)
-    ax = Axis3(fig[1, 1], xlabel=L"x\ (m)", ylabel=L"y\ (m)", zlabel=L"z\ (m)", 
-        aspect=:data, azimuth=0.2*π, elevation=0.1*π, xlabeloffset=60, zlabeloffset=80,
-        protrusions=100, xticks=(0:0.04:0.04), height=450, width=950)
-    pl1 = scatter!(ax, mpts.ξ, color=log10.(mpts.ϵq.+1), colormap=:jet, markersize=3,
-        colorrange=(0, 1))
-    Colorbar(fig[1, 1], limits=(0, 1), colormap=:jet, size=16, ticks=0:0.5:1, spinewidth=0,
-        label=L"log_{10}(\epsilon_{II}+1)", vertical=false, tellwidth=false, width=200,
-        halign=:right, valign=:top, flipaxis=false)
-    display(fig)
-    save("Collapse.png", fig, px_per_unit=2.0)
-end
+# let
+#     set_theme!(theme_latexfonts())
+#     fig = Figure(size=(1200, 700), fontsize=30)
+#     ax = Axis3(fig[1, 1], xlabel=L"x\ (m)", ylabel=L"y\ (m)", zlabel=L"z\ (m)", 
+#         aspect=:data, azimuth=0.2*π, elevation=0.1*π, xlabeloffset=60, zlabeloffset=80,
+#         protrusions=100, xticks=(0:0.04:0.04), height=450, width=950)
+#     pl1 = scatter!(ax, mpts.ξ, color=log10.(mpts.ϵq.+1), colormap=:jet, markersize=3,
+#         colorrange=(0, 1))
+#     Colorbar(fig[1, 1], limits=(0, 1), colormap=:jet, size=16, ticks=0:0.5:1, spinewidth=0,
+#         label=L"log_{10}(\epsilon_{II}+1)", vertical=false, tellwidth=false, width=200,
+#         halign=:right, valign=:top, flipaxis=false)
+#     display(fig)
+#     save("Collapse.png", fig, px_per_unit=2.0)
+# end

@@ -17,12 +17,9 @@ function procedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle
     dev   = conf.dev
     h5    = conf.h5
     dev_grid, dev_mpts = host2device(dev, grid, mpts)
-    memsize = memorysize(dev_grid) + memorysize(dev_mpts)
-    @info "uploaded $(@sprintf("%.2f", memsize)) GiB data to $(dev)"
 
     fid = set_hdf5(conf)
     printer = set_pb(conf)
-    conf.stime[] = time()
     while t_cur < t_tol
         hdf5!(h5, fid, t_cur, mpts, dev_mpts)
         resetgridstatus!(dev_grid)
@@ -33,13 +30,12 @@ function procedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle
         doublemapping2!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
         doublemapping3!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
         g2p!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
-        pb!(printer, t_cur, Δt)
         t_cur += Δt
         h5.iters[] += 1
+        update_pb!(printer, t_cur, t_tol)
     end
-    conf.etime[] = time(); KAsync(dev)
+    finish_pb!(conf, printer); KAsync(dev)
     device2host!(mpts, dev_mpts)
-    @info "downloaded $(@sprintf("%.2f", memorysize(dev_mpts))) GiB data to CPU()"
     hdf5!(h5, fid, grid)
     close(fid)
 end
