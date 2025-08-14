@@ -148,6 +148,77 @@ end
     end
 end
 
+@kernel function resetmpstatus!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, ::Bspline3Basis) where {T1, T2}
+    ix = @index(Global)
+    if ix ≤ mpts.np
+        # base index in the grid
+        # note the base index needs a shift of 1h (see Taichi)
+        mξx, mξy, mξz = mpts.ξ[ix, 1], mpts.ξ[ix, 2], mpts.ξ[ix, 3]
+        bnx = unsafe_trunc(T1, floor((mξx - grid.h - grid.x1) * grid.invh))
+        bny = unsafe_trunc(T1, floor((mξy - grid.h - grid.y1) * grid.invh))
+        bnz = unsafe_trunc(T1, floor((mξz - grid.h - grid.z1) * grid.invh))
+        bid = grid.nx * grid.ny * bnz + grid.ny * bnx + bny + 1
+        gξx = grid.x1 + bnx * grid.h
+        gξy = grid.y1 + bny * grid.h
+        gξz = grid.z1 + bnz * grid.h
+        # compute x value in the basis function N(x)
+        rx1 = (mξx - gξx                           ) * grid.invh
+        rx2 = (mξx - gξx - grid.h                  ) * grid.invh
+        rx3 = (mξx - gξx - grid.h - grid.h         ) * grid.invh
+        rx4 = (mξx - gξx - grid.h - grid.h - grid.h) * grid.invh
+        ry1 = (mξy - gξy                           ) * grid.invh
+        ry2 = (mξy - gξy - grid.h                  ) * grid.invh
+        ry3 = (mξy - gξy - grid.h - grid.h         ) * grid.invh
+        ry4 = (mξy - gξy - grid.h - grid.h - grid.h) * grid.invh
+        rz1 = (mξz - gξz                           ) * grid.invh
+        rz2 = (mξz - gξz - grid.h                  ) * grid.invh
+        rz3 = (mξz - gξz - grid.h - grid.h         ) * grid.invh
+        rz4 = (mξz - gξz - grid.h - grid.h - grid.h) * grid.invh
+        tx1 = get_type(gξx                           , grid.x1, grid.x2, grid.h)
+        tx2 = get_type(gξx + grid.h                  , grid.x1, grid.x2, grid.h)
+        tx3 = get_type(gξx + grid.h + grid.h         , grid.x1, grid.x2, grid.h)
+        tx4 = get_type(gξx + grid.h + grid.h + grid.h, grid.x1, grid.x2, grid.h)
+        ty1 = get_type(gξy                           , grid.y1, grid.y2, grid.h)
+        ty2 = get_type(gξy + grid.h                  , grid.y1, grid.y2, grid.h)
+        ty3 = get_type(gξy + grid.h + grid.h         , grid.y1, grid.y2, grid.h)
+        ty4 = get_type(gξy + grid.h + grid.h + grid.h, grid.y1, grid.y2, grid.h)
+        tz1 = get_type(gξz                           , grid.z1, grid.z2, grid.h)
+        tz2 = get_type(gξz + grid.h                  , grid.z1, grid.z2, grid.h)
+        tz3 = get_type(gξz + grid.h + grid.h         , grid.z1, grid.z2, grid.h)
+        tz4 = get_type(gξz + grid.h + grid.h + grid.h, grid.z1, grid.z2, grid.h)
+        Nx1, ∂x1 = bspline3basis(rx1, grid.h, tx1)
+        Nx2, ∂x2 = bspline3basis(rx2, grid.h, tx2)
+        Nx3, ∂x3 = bspline3basis(rx3, grid.h, tx3)
+        Nx4, ∂x4 = bspline3basis(rx4, grid.h, tx4)
+        Ny1, ∂y1 = bspline3basis(ry1, grid.h, ty1)
+        Ny2, ∂y2 = bspline3basis(ry2, grid.h, ty2)
+        Ny3, ∂y3 = bspline3basis(ry3, grid.h, ty3)
+        Ny4, ∂y4 = bspline3basis(ry4, grid.h, ty4)
+        Nz1, ∂z1 = bspline3basis(rz1, grid.h, tz1)
+        Nz2, ∂z2 = bspline3basis(rz2, grid.h, tz2)
+        Nz3, ∂z3 = bspline3basis(rz3, grid.h, tz3)
+        Nz4, ∂z4 = bspline3basis(rz4, grid.h, tz4)
+        # assign the value (in order)
+        it = Int32(1)
+        Nxs, Nys, Nzs = (Nx1, Nx2, Nx3, Nx4), (Ny1, Ny2, Ny3, Ny4), (Nz1, Nz2, Nz3, Nz4)
+        dxs, dys, dzs = (∂x1, ∂x2, ∂x3, ∂x4), (∂y1, ∂y2, ∂y3, ∂y4), (∂z1, ∂z2, ∂z3, ∂z4)
+        @KAunroll for k in Int32(1):Int32(4) # z-direction
+            for i in Int32(1):Int32(4)       # x-direction
+                for j in Int32(1):Int32(4)   # y-direction
+                    mpts.p2n[ix, it] = bid +               (j - Int32(1)) + 
+                                       grid.ny *           (i - Int32(1)) + 
+                                       grid.ny * grid.nx * (k - Int32(1))
+                    mpts.Nij[ix, it] = Nxs[i] * Nys[j] * Nzs[k]
+                    mpts.∂Nx[ix, it] = dxs[i] * Nys[j] * Nzs[k]
+                    mpts.∂Ny[ix, it] = Nxs[i] * dys[j] * Nzs[k]
+                    mpts.∂Nz[ix, it] = Nxs[i] * Nys[j] * dzs[k]
+                    it += Int32(1)
+                end
+            end
+        end
+    end
+end
+
 @kernel function p2g!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mpts.np

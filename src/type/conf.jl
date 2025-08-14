@@ -1,4 +1,4 @@
-export Config, HDF5Config, H5_T, H5_F, BasisConfig, LinearBasis, Bspline2Basis, uGIMPBasis
+export Config, HDF5Config, H5_T, H5_F, BasisConfig, LinearBasis, Bspline2Basis, Bspline3Basis, uGIMPBasis
 export dev_backend, init_conf
 
 abstract type HDF5Config end
@@ -18,6 +18,7 @@ end
 
 struct LinearBasis <: BasisConfig end
 struct Bspline2Basis <: BasisConfig end
+struct Bspline3Basis <: BasisConfig end
 struct uGIMPBasis <: BasisConfig end
 
 struct Config
@@ -81,10 +82,11 @@ function init_conf(; dev::Symbol=:cpu, h5_int::Int=0, varnames::Tuple=(:default,
     t_tol = Float64(t_tol)
     t_cur = Float64(t_cur)
     t_eld = Float64(t_eld)
-    b = basis in [:linear, :bspline2, :uGIMP] ? basis : :bspline2
+    b = basis in [:linear, :bspline2, :bspline3, :uGIMP] ? basis : :bspline2
     basisfunc = b == :linear ? LinearBasis() :
                 b == :bspline2 ? Bspline2Basis() :
-                b == :uGIMP ? uGIMPBasis() : nothing
+                b == :uGIMP ? uGIMPBasis() :
+                b == :bspline3 ? Bspline3Basis() : nothing
     return Config(dev, h5, iters, log_int, prjname, prjpath, prjdst, stime, etime, Δt, 
         t_tol, t_cur, t_eld, basisfunc)
 end
