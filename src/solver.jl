@@ -26,7 +26,7 @@ function procedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle
     while t_cur < t_tol
         hdf5!(h5, fid, t_cur, mpts, dev_mpts)
         resetgridstatus!(dev_grid)
-        resetmpstatus!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
+        resetmpstatus!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, conf.basis)
         p2g!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
         solvegrid!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
         doublemapping1!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, Δt)

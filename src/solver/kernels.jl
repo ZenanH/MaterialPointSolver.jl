@@ -14,15 +14,15 @@ function resetgridstatus!(grid::DeviceGrid{T1, T2}) where {T1, T2}
     fill!(grid.vs, T2(0.0))
 end
 
-@kernel function resetmpstatus!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+@kernel function resetmpstatus!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, ::Bspline2Basis) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mpts.np
         # base index in the grid
         # note the base index needs a shift of 0.5h (see Taichi)
         mξx, mξy, mξz = mpts.ξ[ix, 1], mpts.ξ[ix, 2], mpts.ξ[ix, 3]
-        bnx = unsafe_trunc(T1, floor((mξx - T2(0.5) * mpts.h - grid.x1) * grid.invh)) # column
-        bny = unsafe_trunc(T1, floor((mξy - T2(0.5) * mpts.h - grid.y1) * grid.invh)) # row (自下而上)
-        bnz = unsafe_trunc(T1, floor((mξz - T2(0.5) * mpts.h - grid.z1) * grid.invh)) # layer
+        bnx = unsafe_trunc(T1, floor((mξx - T2(0.5) * grid.h - grid.x1) * grid.invh)) # column
+        bny = unsafe_trunc(T1, floor((mξy - T2(0.5) * grid.h - grid.y1) * grid.invh)) # row (自下而上)
+        bnz = unsafe_trunc(T1, floor((mξz - T2(0.5) * grid.h - grid.z1) * grid.invh)) # layer
         bid = grid.nx * grid.ny * bnz + grid.ny * bnx + bny + 1
         gξx = grid.x1 + bnx * grid.h
         gξy = grid.y1 + bny * grid.h
@@ -40,6 +40,93 @@ end
         Nx1, Nx2, Nx3, dx1, dx2, dx3 = bspline2basis(x1, x2, x3, grid.invh)
         Ny1, Ny2, Ny3, dy1, dy2, dy3 = bspline2basis(y1, y2, y3, grid.invh)
         Nz1, Nz2, Nz3, dz1, dz2, dz3 = bspline2basis(z1, z2, z3, grid.invh)
+        # assign the value (in order)
+        it = Int32(1)
+        Nxs, Nys, Nzs = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3), (Nz1, Nz2, Nz3)
+        dxs, dys, dzs = (dx1, dx2, dx3), (dy1, dy2, dy3), (dz1, dz2, dz3)
+        @KAunroll for k in Int32(1):Int32(3) # z-direction
+            for i in Int32(1):Int32(3)       # x-direction
+                for j in Int32(1):Int32(3)   # y-direction
+                    mpts.p2n[ix, it] = bid +               (j - Int32(1)) + 
+                                       grid.ny *           (i - Int32(1)) + 
+                                       grid.ny * grid.nx * (k - Int32(1))
+                    mpts.Nij[ix, it] = Nxs[i] * Nys[j] * Nzs[k]
+                    mpts.∂Nx[ix, it] = dxs[i] * Nys[j] * Nzs[k]
+                    mpts.∂Ny[ix, it] = Nxs[i] * dys[j] * Nzs[k]
+                    mpts.∂Nz[ix, it] = Nxs[i] * Nys[j] * dzs[k]
+                    it += Int32(1)
+                end
+            end
+        end
+    end
+end
+
+@kernel function resetmpstatus!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, ::LinearBasis) where {T1, T2}
+    ix = @index(Global)
+    if ix ≤ mpts.np
+        # base index in the grid
+        # note the base index needs a shift of 0.5h (see Taichi)
+        mξx, mξy, mξz = mpts.ξ[ix, 1], mpts.ξ[ix, 2], mpts.ξ[ix, 3]
+        bnx = unsafe_trunc(T1, floor((mξx - grid.x1) * grid.invh))
+        bny = unsafe_trunc(T1, floor((mξy - grid.y1) * grid.invh))
+        bnz = unsafe_trunc(T1, floor((mξz - grid.z1) * grid.invh))
+        bid = grid.nx * grid.ny * bnz + grid.ny * bnx + bny + 1
+        gξx = grid.x1 + bnx * grid.h
+        gξy = grid.y1 + bny * grid.h
+        gξz = grid.z1 + bnz * grid.h
+        # compute x value in the basis function N(x)
+        x1, y1, z1 = mξx - gξx, mξy - gξy, mξz - gξz
+        x2, y2, z2 = grid.h - x1, grid.h - y1, grid.h - z1
+        Nx1, Nx2, ∂x1, ∂x2 = linearbasis(x1, x2, grid.invh)
+        Ny1, Ny2, ∂y1, ∂y2 = linearbasis(y1, y2, grid.invh)
+        Nz1, Nz2, ∂z1, ∂z2 = linearbasis(z1, z2, grid.invh)
+        # assign the value (in order)
+        it = Int32(1)
+        Nxs, Nys, Nzs = (Nx1, Nx2), (Ny1, Ny2), (Nz1, Nz2)
+        dxs, dys, dzs = (∂x1, ∂x2), (∂y1, ∂y2), (∂z1, ∂z2)
+        @KAunroll for k in Int32(1):Int32(2) # z-direction
+            for i in Int32(1):Int32(2)       # x-direction
+                for j in Int32(1):Int32(2)   # y-direction
+                    mpts.p2n[ix, it] = bid +               (j - Int32(1)) + 
+                                       grid.ny *           (i - Int32(1)) + 
+                                       grid.ny * grid.nx * (k - Int32(1))
+                    mpts.Nij[ix, it] = Nxs[i] * Nys[j] * Nzs[k]
+                    mpts.∂Nx[ix, it] = dxs[i] * Nys[j] * Nzs[k]
+                    mpts.∂Ny[ix, it] = Nxs[i] * dys[j] * Nzs[k]
+                    mpts.∂Nz[ix, it] = Nxs[i] * Nys[j] * dzs[k]
+                    it += Int32(1)
+                end
+            end
+        end
+    end
+end
+
+@kernel function resetmpstatus!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, ::uGIMPBasis) where {T1, T2}
+    ix = @index(Global)
+    if ix ≤ mpts.np
+        # base index in the grid
+        # note the base index needs a shift of 0.5h (see Taichi)
+        mξx, mξy, mξz = mpts.ξ[ix, 1], mpts.ξ[ix, 2], mpts.ξ[ix, 3]
+        bnx = unsafe_trunc(T1, floor((mξx - T2(0.5) * mpts.h - grid.x1) * grid.invh))
+        bny = unsafe_trunc(T1, floor((mξy - T2(0.5) * mpts.h - grid.y1) * grid.invh))
+        bnz = unsafe_trunc(T1, floor((mξz - T2(0.5) * mpts.h - grid.z1) * grid.invh))
+        bid = grid.nx * grid.ny * bnz + grid.ny * bnx + bny + 1
+        gξx = grid.x1 + bnx * grid.h
+        gξy = grid.y1 + bny * grid.h
+        gξz = grid.z1 + bnz * grid.h
+        # compute x value in the basis function N(x)
+        x1 = mξx - gξx
+        x2 = mξx - gξx - grid.h
+        x3 = mξx - gξx - grid.h - grid.h
+        y1 = mξy - gξy
+        y2 = mξy - gξy - grid.h
+        y3 = mξy - gξy - grid.h - grid.h
+        z1 = mξz - gξz
+        z2 = mξz - gξz - grid.h
+        z3 = mξz - gξz - grid.h - grid.h
+        Nx1, Nx2, Nx3, dx1, dx2, dx3 = uGIMPbasis(x1, x2, x3, grid.h, mpts.h)
+        Ny1, Ny2, Ny3, dy1, dy2, dy3 = uGIMPbasis(y1, y2, y3, grid.h, mpts.h)
+        Nz1, Nz2, Nz3, dz1, dz2, dz3 = uGIMPbasis(z1, z2, z3, grid.h, mpts.h)
         # assign the value (in order)
         it = Int32(1)
         Nxs, Nys, Nzs = (Nx1, Nx2, Nx3), (Ny1, Ny2, Ny3), (Nz1, Nz2, Nz3)

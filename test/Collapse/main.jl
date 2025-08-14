@@ -1,8 +1,7 @@
 #==========================================================================================+
 |           MaterialPointSolver.jl: High-performance MPM Solver for Geomechanics           |
 +------------------------------------------------------------------------------------------+
-|  File Name  : 3d_druckerprager.jl                                                        |
-|  Description: Case used to vaildate the functions                                        |
+|  Description: 3D granular collapse test                                                  |
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
@@ -11,8 +10,8 @@
 using MaterialPointGenerator
 using MaterialPointSolver
 using MaterialPointVisualizer
-using CUDA
-using CairoMakie
+#using CUDA
+#using CairoMakie
 
 init_h     = 0.0025
 init_ϵ     = :double
@@ -25,7 +24,7 @@ init_Es    = init_Ks * (3 * (1 - 2 * init_ν))
 init_Gs    = init_Es / (2 * (1 +     init_ν))
 init_σt    = 0.0
 init_ϕ     = deg2rad(19.8)
-init_dev   = :cuda
+init_dev   = :cpu
 init_T     = 0.6
 init_Tcur  = 0.0
 init_ΔT    = 0.5 * init_h / sqrt(init_Es / init_ρs)

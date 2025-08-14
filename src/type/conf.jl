@@ -1,7 +1,8 @@
-export Config, HDF5Config, H5_T, H5_F
+export Config, HDF5Config, H5_T, H5_F, BasisConfig, LinearBasis, Bspline2Basis, uGIMPBasis
 export dev_backend, init_conf
 
 abstract type HDF5Config end
+abstract type BasisConfig end
 
 struct H5_T <: HDF5Config
     iters::Ref{Int}
@@ -14,6 +15,10 @@ end
 struct H5_F <: HDF5Config
     iters::Ref{Int}
 end
+
+struct LinearBasis <: BasisConfig end
+struct Bspline2Basis <: BasisConfig end
+struct uGIMPBasis <: BasisConfig end
 
 struct Config
     dev
@@ -29,6 +34,7 @@ struct Config
     t_tol  ::Float64
     t_cur  ::Float64
     t_eld  ::Float64
+    basis  ::BasisConfig
 end
 
 dev_backend(sym::Symbol=:cpu) = dev_backend(Val(sym))
@@ -48,7 +54,8 @@ _missing_backend(S) = throw(ArgumentError(
 dev_backend(::Val{:cpu}) = CPU()
 
 function init_conf(; dev::Symbol=:cpu, h5_int::Int=0, varnames::Tuple=(:default,), 
-    log_int::Real=3.0, prjname, prjpath, Δt, t_tol, t_cur::Real=0.0, t_eld::Real=0.0
+    basis::Symbol=:bspline2, log_int::Real=3.0, prjname, prjpath, Δt, t_tol, 
+    t_cur::Real=0.0, t_eld::Real=0.0
 )
     dev = dev_backend(dev)
     # 展平字段路径：(:x, :y, (:u, :z)) → [(:x,), (:y,), (:ext, :u), (:ext, :z)]
@@ -74,6 +81,10 @@ function init_conf(; dev::Symbol=:cpu, h5_int::Int=0, varnames::Tuple=(:default,
     t_tol = Float64(t_tol)
     t_cur = Float64(t_cur)
     t_eld = Float64(t_eld)
+    b = basis in [:linear, :bspline2, :uGIMP] ? basis : :bspline2
+    basisfunc = b == :linear ? LinearBasis() :
+                b == :bspline2 ? Bspline2Basis() :
+                b == :uGIMP ? uGIMPBasis() : nothing
     return Config(dev, h5, iters, log_int, prjname, prjpath, prjdst, stime, etime, Δt, 
-        t_tol, t_cur, t_eld)
+        t_tol, t_cur, t_eld, basisfunc)
 end
