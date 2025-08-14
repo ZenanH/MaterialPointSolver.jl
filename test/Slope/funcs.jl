@@ -11,6 +11,8 @@ function tresetgridstatus!(grid::DeviceGrid{T1, T2}) where {T1, T2}
     fill!(grid.ext.fw, T2(0.0))
     fill!(grid.ext.pw, T2(0.0))
     fill!(grid.ext.vw, T2(0.0))
+    fill!(grid.ext.avg, T2(0.0))
+    fill!(grid.ext.Ω  , T2(0.0))
 end
 
 @kernel function tp2g!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, G::T2) where {T1, T2}
@@ -269,12 +271,45 @@ end
         ΔJ = J * mpts.Ω0[ix] / mpts.Ω[ix]
         mpts.Ω[ix] = J * mpts.Ω0[ix]
         mpts.ρs[ix] = mpts.ρs0[ix] / J
-        # mpts.ext.σw[ix] += (mpts.ext.Kw / mpts.ext.n[ix]) * (
-        #     (1.0 - mpts.ext.n[ix]) * (dfs1 + dfs5 + dfs9) + 
-        #            mpts.ext.n[ix]  * (dfw1 + dfw5 + dfw9))
-        # mpts.ext.n[ix] = clamp(1.0 - (1.0 - mpts.ext.n[ix]) / ΔJ, 0.0, 1.0)
+        mpts.ext.σw[ix] += (mpts.ext.Kw / mpts.ext.n[ix]) * (
+            (1.0 - mpts.ext.n[ix]) * (dfs1 + dfs5 + dfs9) + 
+                   mpts.ext.n[ix]  * (dfw1 + dfw5 + dfw9))
+        mpts.ext.n[ix] = clamp(1.0 - (1.0 - mpts.ext.n[ix]) / ΔJ, 0.0, 1.0)
         liE!(mpts, dfs1, dfs2, dfs3, dfs4, dfs5, dfs6, dfs7, dfs8, dfs9, ix)
         t_cur >= t_eld && tdpP!(mpts, ix)
+    end
+end
+
+@kernel function p2g_avg!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+    ix = @index(Global)
+    if ix ≤ mpts.np
+        mξx, mξy, mξz = mpts.ξ[ix, 1], mpts.ξ[ix, 2], mpts.ξ[ix, 3]
+        bcz = unsafe_trunc(T1, floor((mξz - grid.z1) * grid.invh))
+        bcy = unsafe_trunc(T1, floor((mξy - grid.y1) * grid.invh))
+        bcx = unsafe_trunc(T1, floor((mξx - grid.x1) * grid.invh))
+        bic = grid.ncx * grid.ncy * bcz + grid.ncy * bcx + bcy + 1
+        @Σ grid.ext.avg[bic] += mpts.ext.σw[ix] * mpts.Ω[ix]
+        @Σ grid.ext.Ω[bic] += mpts.Ω[ix]
+    end
+end
+
+@kernel function solve_avg!(grid::DeviceGrid{T1, T2}) where {T1, T2}
+    ix = @index(Global)
+    if ix ≤ grid.nc
+        inv_Ω = grid.ext.Ω[ix] < eps(T2) ? T2(0.0) : 1 / grid.ext.Ω[ix]
+        grid.ext.avg[ix] *= inv_Ω
+    end
+end
+
+@kernel function g2p_avg!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+    ix = @index(Global)
+    if ix ≤ mpts.np
+        mξx, mξy, mξz = mpts.ξ[ix, 1], mpts.ξ[ix, 2], mpts.ξ[ix, 3]
+        bcz = unsafe_trunc(T1, floor((mξz - grid.z1) * grid.invh))
+        bcy = unsafe_trunc(T1, floor((mξy - grid.y1) * grid.invh))
+        bcx = unsafe_trunc(T1, floor((mξx - grid.x1) * grid.invh))
+        bic = grid.ncx * grid.ncy * bcz + grid.ncy * bcx + bcy + 1
+        mpts.ext.σw[ix] = grid.ext.avg[bic]
     end
 end
 
@@ -304,6 +339,11 @@ function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticl
         tdoublemapping2!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
         tdoublemapping3!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
         tg2p!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, t_cur, t_eld)
+
+        p2g_avg!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
+        solve_avg!(dev)(ndrange=dev_grid.nc, dev_grid)
+        g2p_avg!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
+
         pb!(printer, t_cur, Δt)
         t_cur += Δt
         h5.iters[] += 1

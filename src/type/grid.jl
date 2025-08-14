@@ -15,6 +15,10 @@ struct Grid{T1, T2,
     nx  ::T1
     ny  ::T1
     nz  ::T1
+    nc  ::T1
+    ncx ::T1
+    ncy ::T1
+    ncz ::T1
     h   ::T2
     invh::T2
     x1  ::T2
@@ -51,7 +55,8 @@ function init_grid(xr::AbstractRange, yr::AbstractRange, zr::AbstractRange;
     nx = T1(length(x)); nx ≤ 1 && error("Grid must have at least 2 points in x-direction")
     ny = T1(length(y)); ny ≤ 1 && error("Grid must have at least 2 points in y-direction")
     nz = T1(length(z)); nz ≤ 1 && error("Grid must have at least 2 points in z-direction")
-    ni = T1(nx * ny * nz)
+    ni = T1(nx * ny * nz); ncx = T1(nx - 1); ncy = T1(ny - 1); ncz = T1(nz - 1)
+    nc = T1(ncx * ncy * ncz)
     _tmp_diff_vec_ = diff(x); all_equal = all(≈(_tmp_diff_vec_[1]), _tmp_diff_vec_)
     h1 = all_equal ? _tmp_diff_vec_[1] : error("grid spacing in x direction must be equal")
     _tmp_diff_vec_ = diff(y); all_equal = all(≈(_tmp_diff_vec_[1]), _tmp_diff_vec_)
@@ -81,6 +86,6 @@ function init_grid(xr::AbstractRange, yr::AbstractRange, zr::AbstractRange;
     vszv = Array{T2}(vszv)
     ext  = ext == [0] ? (_tmp1=rand(T2, 3, 3), _tmp2=rand(T2, 3, 3)) : ext
     return Grid{T1, T2, Array{T1, 1}, AbstractArray{T2, 1}, AbstractArray{T2, 2}, NamedTuple}(
-        NIC, ni, nx, ny, nz, h, invh, x1, x2, y1, y2, z1, z2, ζs, ms, ps, vs, vsT, fs, vsxi, 
-        vsxv, vsyi, vsyv, vszi, vszv, ext)
+        NIC, ni, nx, ny, nz, nc, ncx, ncy, ncz, h, invh, x1, x2, y1, y2, z1, z2, ζs, ms, ps,
+        vs, vsT, fs, vsxi, vsxv, vsyi, vsyv, vszi, vszv, ext)
 end

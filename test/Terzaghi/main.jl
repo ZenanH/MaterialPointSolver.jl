@@ -17,7 +17,7 @@ include(joinpath(@__DIR__, "funcs.jl"))
 
 init_h     = 0.05
 init_ϵ     = :double
-init_basis = :bspline2
+init_basis = :uGIMP
 init_NIC   = 27
 init_FLIP  = 1.0
 init_G     = 0.0
