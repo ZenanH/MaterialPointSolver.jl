@@ -16,6 +16,7 @@ using CUDA
 init_h     = 0.0025
 init_ϵ     = :double
 init_basis = :bspline2
+init_mtl   = :druckerprager
 init_NIC   = 27
 init_FLIP  = 1.0
 init_G     = -9.8
@@ -35,7 +36,7 @@ init_var   = (:ξ, :ϵq)
 
 # args setup
 conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T, h5_int=init_h5, varnames=init_var,
-    prjpath=@__DIR__, prjname="Collapse", basis=init_basis)
+    prjpath=@__DIR__, prjname="Collapse", basis=init_basis, material=init_mtl)
 
 # grid and boundary conditions setup
 rangex  = -0.02:init_h:0.07

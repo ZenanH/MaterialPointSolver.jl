@@ -1,5 +1,25 @@
 export liE!
 export dpP!
+export material!
+
+@inline Base.@propagate_inbounds function material!(
+    mpts::DeviceParticle{T1, T2}, t_eld::T2, t_cur::T2, Δt::T2, 
+    df1::T2, df2::T2, df3::T2, df4::T2, df5::T2, df6::T2, df7::T2, df8::T2, df9::T2,
+    ix::Int, ::LinearElastic
+) where {T1, T2}
+    liE!(mpts, df1, df2, df3, df4, df5, df6, df7, df8, df9, ix)
+end
+
+@inline Base.@propagate_inbounds function material!(
+    mpts::DeviceParticle{T1, T2}, t_eld::T2, t_cur::T2, Δt::T2, 
+    df1::T2, df2::T2, df3::T2, df4::T2, df5::T2, df6::T2, df7::T2, df8::T2, df9::T2,
+    ix::Int, ::DruckerPrager
+) where {T1, T2}
+    liE!(mpts, df1, df2, df3, df4, df5, df6, df7, df8, df9, ix)
+    if t_cur > t_eld || t_eld == 0 
+        dpP!(mpts, ix)
+    end
+end
 
 @inline Base.@propagate_inbounds function liE!(mpts::DeviceParticle{T1, T2}, 
     df1::T2, df2::T2, df3::T2, df4::T2, df5::T2, df6::T2, df7::T2, df8::T2, df9::T2, ix::Int

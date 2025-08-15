@@ -1,5 +1,5 @@
 
-export format_seconds, set_pb, update_pb!, finish_pb!, set_hdf5, hdf5!
+export format_seconds, set_pb, update_pb!, finish_pb!, set_hdf5, hdf5!, model_info
 
 @inline function format_seconds(s_time)
     s = s_time < 1 ? 1.0 : ceil(Int, s_time)
@@ -15,7 +15,7 @@ end
     conf.stime[] = time()
     p = Progress(100; dt=conf.log_int,
         desc      = "\e[1;36m[ Info:\e[0m solving",
-        barlen    = 12,
+        barlen    = 20,
         barglyphs = BarGlyphs(" ■■  "),
         output    = stderr,
         enabled   = true
@@ -58,3 +58,28 @@ end
 
 @inline hdf5!(::H5_F, fid, t_cur, mpts::DeviceParticle{T1, T2}, dev_mpts::DeviceParticle{T1, T2}) where {T1, T2} = nothing
 @inline hdf5!(::H5_F, fid, grid::DeviceGrid{T1, T2}) where {T1, T2} = nothing
+
+
+function model_info(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+    textplace1 = 16
+    textplace2 = 9
+    basis = lpad(string(conf.basis), textplace1)
+    h5 = typeof(conf.h5) <: H5_T ? lpad("true", textplace1) : lpad("false", textplace1)
+    material = lpad(string(conf.material), textplace1)
+    t_tol = rpad(string(@sprintf("%.2e", conf.t_tol))*" s", textplace2)
+    npts = rpad(string(@sprintf("%.2e", mpts.np)), textplace2)
+    ngid = rpad(string(@sprintf("%.2e", grid.ni)), textplace2)
+    
+    FLIP = lpad(string(@sprintf("%.2f", mpts.FLIP)), 6)
+    PIC  = lpad(string(@sprintf("%.2f", 1-mpts.FLIP)), 6)
+    precision = typeof(T2) == Float32 ? "single" : "double"
+
+    
+    @info """$(conf.prjname) [$(conf.dev)]
+    ─────────────┬────────────────────────────┬──────────────────
+    FLIP: $(FLIP) │ basis   : $(basis) │ mpts : $(npts)
+    PIC : $(PIC) │ HDF5    : $(h5) │ nodes: $(ngid)
+    ϵ   : $(precision) │ material: $(material) │ t_tol: $(t_tol)
+    ─────────────┴────────────────────────────┴──────────────────
+    """
+end

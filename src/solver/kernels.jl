@@ -327,7 +327,10 @@ end
     end
 end
 
-@kernel function g2p!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+@kernel function g2p!(
+    grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, 
+    material::Material, t_eld::T2, t_cur::T2, Δt::T2
+) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mpts.np
         df1 = df2 = df3 = df4 = df5 = df6 = df7 = df8 = df9 = T2(0.0)
@@ -347,7 +350,6 @@ end
         J = detF(mpts, ix)
         mpts.Ω[ix] = J * mpts.Ω0[ix]
         mpts.ρs[ix] = mpts.ρs0[ix] / J
-        liE!(mpts, df1, df2, df3, df4, df5, df6, df7, df8, df9, ix)
-        dpP!(mpts, ix)
+        material!(mpts, t_eld, t_cur, Δt, df1, df2, df3, df4, df5, df6, df7, df8, df9, ix, material)
     end
 end
