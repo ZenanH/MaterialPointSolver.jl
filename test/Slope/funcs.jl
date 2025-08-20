@@ -246,7 +246,7 @@ end
     end
 end
 
-@kernel function tg2p!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, t_cur::T2, t_eld::T2) where {T1, T2}
+@kernel function tg2p!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, material::Material, t_eld::T2, t_cur::T2, Δt::T2) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mpts.np
         dfs1 = dfs2 = dfs3 = dfs4 = dfs5 = dfs6 = dfs7 = dfs8 = dfs9 = T2(0.0)
@@ -275,8 +275,9 @@ end
             (1.0 - mpts.ext.n[ix]) * (dfs1 + dfs5 + dfs9) + 
                    mpts.ext.n[ix]  * (dfw1 + dfw5 + dfw9))
         mpts.ext.n[ix] = clamp(1.0 - (1.0 - mpts.ext.n[ix]) / ΔJ, 0.0, 1.0)
-        liE!(mpts, dfs1, dfs2, dfs3, dfs4, dfs5, dfs6, dfs7, dfs8, dfs9, ix)
-        t_cur >= t_eld && tdpP!(mpts, ix)
+        material!(mpts, t_eld, t_cur, Δt, 
+            dfs1, dfs2, dfs3, dfs4, dfs5, dfs6, dfs7, dfs8, dfs9, 
+            ix, material)
     end
 end
 
@@ -314,6 +315,7 @@ end
 end
 
 function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+    model_info(conf, grid, mpts)
     t_cur = T2(conf.t_cur)
     t_tol = T2(conf.t_tol)
     t_eld = T2(conf.t_eld)
@@ -322,12 +324,9 @@ function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticl
     dev   = conf.dev
     h5    = conf.h5
     dev_grid, dev_mpts = host2device(dev, grid, mpts)
-    memsize = memorysize(dev_grid) + memorysize(dev_mpts)
-    @info "uploaded $(@sprintf("%.2f", memsize)) GiB data to $(dev)"
 
     fid = set_hdf5(conf)
     printer = set_pb(conf)
-    conf.stime[] = time()
     while t_cur < t_tol
         G = t_cur ≤ t_eld ? (Gg * t_cur) / t_eld : Gg
         hdf5!(h5, fid, t_cur, mpts, dev_mpts)
@@ -338,19 +337,17 @@ function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticl
         tdoublemapping1!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, Δt)
         tdoublemapping2!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
         tdoublemapping3!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
-        tg2p!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, t_cur, t_eld)
-
+        tg2p!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, conf.material, t_eld, t_cur, Δt)
         p2g_avg!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
         solve_avg!(dev)(ndrange=dev_grid.nc, dev_grid)
         g2p_avg!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
 
-        pb!(printer, t_cur, Δt)
         t_cur += Δt
         h5.iters[] += 1
+        update_pb!(printer, t_cur, t_tol)
     end
-    conf.etime[] = time(); KAsync(dev)
+    finish_pb!(conf, printer); KAsync(dev)
     device2host!(mpts, dev_mpts)
-    @info "downloaded $(@sprintf("%.2f", memorysize(dev_mpts))) GiB data to CPU()"
     hdf5!(h5, fid, grid)
     close(fid)
 end

@@ -11,12 +11,14 @@
 using MaterialPointGenerator
 using MaterialPointSolver
 using MaterialPointVisualizer
-using WGLMakie
+using CUDA
+# using WGLMakie
 
 include(joinpath(@__DIR__, "funcs.jl"))
 
 init_h     = 0.05
 init_ϵ     = :double
+init_mtl   = :linearelastic
 init_basis = :uGIMP
 init_NIC   = 27
 init_FLIP  = 1.0
@@ -31,16 +33,16 @@ init_Kw    = 2.2e9
 init_n     = 0.4
 init_k     = 1e-3
 init_σw    = -1e4
-init_dev   = :cpu
+init_dev   = :cuda
 init_T     = 1.0
 init_Tcur  = 0.0
-init_ΔT    = 5e-6
+init_ΔT    = 1e-5
 init_h5    = floor(Int, init_T / init_ΔT / 200)
 init_var   = (:ξ, (:σw,))
 
 # args setup
 conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T, h5_int=init_h5, varnames=init_var,
-    prjpath=@__DIR__, prjname="Terzaghi", basis=init_basis)
+    prjpath=@__DIR__, prjname="Terzaghi", basis=init_basis, material=init_mtl)
 
 # grid and boundary conditions setup
 rangex  = -2*init_h:init_h:0.1+2*init_h
@@ -103,30 +105,30 @@ mpmsolver!(tprocedure!, conf, grid, mpts)
 h5conf = (prjdst=conf.prjdst, prjname=conf.prjname)
 animation(h5conf)
 
-let     
-    custom_dark = theme_dark()
-    custom_dark.textcolor = :white
-    custom_dark.linecolor = :white
-    custom_dark.backgroundcolor = "#181818"
-    Makie.set_theme!(WGLMakie=(resize_to=:body,), custom_dark)
-    fig = Figure()
-    ax = LScene(fig[1, 1], show_axis=true)
-    canvas = ax.scene.plots[1]
-    canvas.ticks[:textcolor] = :white
-    canvas.ticks[:fontsize] = (15, 15, 15)
-    canvas.frame[:axiscolor] = "#818181"
-    canvas.names[:textcolor] = :white
-    canvas.names[:fontsize] = (15, 15, 15)
-    scatter!(ax, mpts.ξ, color=mpts.ext.σw, colormap=:turbo,
-        inspector_label = (self, i, pos) -> (
-        "x=" * string(pos[1]) *
-        "\ny=" * string(pos[2]) *
-        "\nz=" * string(pos[3]) *
-        "\nval=" * string(mpts.ext.σw[i])
-    ))
-    scatter!(ax, bg, markersize=4, alpha=0.2)
-    #scatter!(ax, mpts.ξ[bcp, :])
-    #scatter!(ax, bg[findall(grid.ext.vwyi.==1), :],)
-    DataInspector(fig, textcolor = :black,)
-    display(fig)
-end
+# let     
+#     custom_dark = theme_dark()
+#     custom_dark.textcolor = :white
+#     custom_dark.linecolor = :white
+#     custom_dark.backgroundcolor = "#181818"
+#     Makie.set_theme!(WGLMakie=(resize_to=:body,), custom_dark)
+#     fig = Figure()
+#     ax = LScene(fig[1, 1], show_axis=true)
+#     canvas = ax.scene.plots[1]
+#     canvas.ticks[:textcolor] = :white
+#     canvas.ticks[:fontsize] = (15, 15, 15)
+#     canvas.frame[:axiscolor] = "#818181"
+#     canvas.names[:textcolor] = :white
+#     canvas.names[:fontsize] = (15, 15, 15)
+#     scatter!(ax, mpts.ξ, color=mpts.ext.σw, colormap=:turbo,
+#         inspector_label = (self, i, pos) -> (
+#         "x=" * string(pos[1]) *
+#         "\ny=" * string(pos[2]) *
+#         "\nz=" * string(pos[3]) *
+#         "\nval=" * string(mpts.ext.σw[i])
+#     ))
+#     scatter!(ax, bg, markersize=4, alpha=0.2)
+#     #scatter!(ax, mpts.ξ[bcp, :])
+#     #scatter!(ax, bg[findall(grid.ext.vwyi.==1), :],)
+#     DataInspector(fig, textcolor = :black,)
+#     display(fig)
+# end

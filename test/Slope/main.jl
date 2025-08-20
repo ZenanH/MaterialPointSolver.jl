@@ -15,11 +15,12 @@ using CUDA
 
 include(joinpath(@__DIR__, "funcs.jl"))
 
-init_h     = 0.25
+init_h     = 0.5
 init_ϵ     = :double
-init_FLIP  = 1.0
-init_NIC   = 27
+init_mtl   = :druckerprager
 init_basis = :bspline2
+init_NIC   = 27
+init_FLIP  = 1.0
 init_G     = -9.8
 init_ρs    = 2500
 init_ρw    = 1000
@@ -42,13 +43,13 @@ init_Tcur  = 0.0
 Eu         = init_Es + init_Kw / init_n
 cv         = init_k/(init_ρw*9.8*(1/init_Es+init_n)/init_Kw)
 c1         = sqrt(Eu/(init_ρs*(1-init_n) + init_ρw*init_n))
-init_ΔT    = 0.5 *5.9e-3#0.5 * init_h / c1
-init_h5    = floor(Int, init_T / init_ΔT / 200)
-init_var   = (:ξ, :ϵq, :σij, (:σw,))
+init_ΔT    = 0.5 * init_h / c1
+init_h5    = floor(Int, init_T / init_ΔT / 50)
+init_var   = (:ξ, :ϵq, :σij, :Ω, :ρs, (:σw,))
 
 # args setup
 conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T, t_eld=init_Te, h5_int=init_h5, varnames=init_var,
-    prjpath=@__DIR__, prjname="Slope", basis=init_basis)
+    prjpath=@__DIR__, prjname="Slope", basis=init_basis, material=init_mtl)
 
 # grid and boundary conditions setup
 rangex  = -2*init_h:init_h:65+2*init_h
