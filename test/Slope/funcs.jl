@@ -311,6 +311,10 @@ end
         bcx = unsafe_trunc(T1, floor((mξx - grid.x1) * grid.invh))
         bic = grid.ncx * grid.ncy * bcz + grid.ncy * bcx + bcy + 1
         mpts.ext.σw[ix] = grid.ext.avg[bic]
+
+        nid = mpts.nid[ix]
+        mpts.cfl[ix] = satΔt(mpts.Gs[nid], mpts.Ks[nid], mpts.ext.Kw, mpts.ρs[ix], 
+            mpts.ext.ρw, mpts.ext.n[ix], mpts.ext.k, grid.h)
     end
 end
 
@@ -341,7 +345,7 @@ function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticl
         p2g_avg!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
         solve_avg!(dev)(ndrange=dev_grid.nc, dev_grid)
         g2p_avg!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
-
+        Δt = reduce(min, dev_mpts.cfl)
         t_cur += Δt
         h5.iters[] += 1
         update_pb!(printer, t_cur, t_tol)
