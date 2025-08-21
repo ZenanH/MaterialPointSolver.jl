@@ -16,7 +16,8 @@ end
 @kernel function tp2g!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mpts.np
-        Ω, ns, nl, σw = mpts.Ω[ix], 1-mpts.ext.n[ix], mpts.ext.n[ix], mpts.ext.σw[ix]
+        Ω, S, n, σw = mpts.Ω[ix], mpts.ext.S[ix], mpts.ext.n[ix], mpts.ext.σw[ix]
+        ns, nl, σw = 1-n, S*n, mpts.ext.σw[ix]
         ms  = Ω * mpts.ρs[ix]
         mw  = Ω * mpts.ext.ρw
         mm  = ms * ns + mw * nl
@@ -28,9 +29,10 @@ end
         pwx = mw * nl * mpts.ext.vw[ix, 1]
         pwy = mw * nl * mpts.ext.vw[ix, 2]
         pwz = mw * nl * mpts.ext.vw[ix, 3]
-        dragx = ((nl * mw * 9.8) / mpts.ext.k) * (mpts.ext.vw[ix, 1] - mpts.vs[ix, 1])
-        dragy = ((nl * mw * 9.8) / mpts.ext.k) * (mpts.ext.vw[ix, 2] - mpts.vs[ix, 2])
-        dragz = ((nl * mw * 9.8) / mpts.ext.k) * (mpts.ext.vw[ix, 3] - mpts.vs[ix, 3])
+        dragc = (nl * mw * 9.8) / (mpts.ext.kr[ix] * mpts.ext.k)
+        dragx = dragc * (mpts.ext.vw[ix, 1] - mpts.vs[ix, 1])
+        dragy = dragc * (mpts.ext.vw[ix, 2] - mpts.vs[ix, 2])
+        dragz = dragc * (mpts.ext.vw[ix, 3] - mpts.vs[ix, 3])
         σxx, σyy, σzz = mpts.σij[ix, 1], mpts.σij[ix, 2], mpts.σij[ix, 3]
         σxy, σyz, σzx = mpts.σij[ix, 4], mpts.σij[ix, 5], mpts.σij[ix, 6]
         mpext = ix in mpts.ext.bcp ? mpts.ext.mpf : 0.0
@@ -55,9 +57,9 @@ end
             @Σ grid.ext.fw[p2n, 1] += -∂Nx * Ω * σw - Nij * dragx
             @Σ grid.ext.fw[p2n, 2] += -∂Ny * Ω * σw - Nij * dragy
             @Σ grid.ext.fw[p2n, 3] += -∂Nz * Ω * σw - Nij * dragz + Nij * mwG
-            @Σ grid.fs[p2n, 1] += -Ω * (∂Nx * (σxx + σw) + ∂Ny * σxy + ∂Nz * σzx)
-            @Σ grid.fs[p2n, 2] += -Ω * (∂Ny * (σyy + σw) + ∂Nx * σxy + ∂Nz * σyz)
-            @Σ grid.fs[p2n, 3] += -Ω * (∂Nz * (σzz + σw) + ∂Nx * σzx + ∂Ny * σyz) + 
+            @Σ grid.fs[p2n, 1] += -Ω * (∂Nx * (σxx + S*σw) + ∂Ny * σxy + ∂Nz * σzx)
+            @Σ grid.fs[p2n, 2] += -Ω * (∂Ny * (σyy + S*σw) + ∂Nx * σxy + ∂Nz * σyz)
+            @Σ grid.fs[p2n, 3] += -Ω * (∂Nz * (σzz + S*σw) + ∂Nx * σzx + ∂Ny * σyz) + 
                 Nij * mmG + Nij * mpext
         end
     end
@@ -146,7 +148,7 @@ end
     ix = @index(Global)
     if ix ≤ mpts.np
         ms = mpts.ρs[ix] * mpts.Ω[ix] * (1.0 - mpts.ext.n[ix])
-        mw = mpts.ext.ρw * mpts.Ω[ix] * mpts.ext.n[ix]
+        mw = mpts.ext.ρw * mpts.Ω[ix] * mpts.ext.S[ix] * mpts.ext.n[ix]
         psx, psy, psz = ms * mpts.vs[ix, 1], ms * mpts.vs[ix, 2], ms * mpts.vs[ix, 3]
         pwx, pwy, pwz = mw * mpts.ext.vw[ix, 1], mw * mpts.ext.vw[ix, 2], mw * mpts.ext.vw[ix, 3]
         # update particle position & velocity

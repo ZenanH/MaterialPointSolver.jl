@@ -292,19 +292,23 @@ kr(S) = 1 - 2.207 * (1 - S)
         # update pore pressure
         ψm, S, n = -mpts.ext.σw[ix], mpts.ext.S[ix], mpts.ext.n[ix]
         if ψm > T2(0.0)
+            #@info "ψm = $(ψm), S = $(S), n = $(n)"
             Cs = ∂S∂ψm(ψm)
+            # update hydraulic conductivity and the degree of saturation
+            mpts.ext.S[ix] = Sr(-mpts.ext.σw[ix])
+            mpts.ext.kr[ix] = kr(mpts.ext.S[ix])
         else
             Cs = T2(0.0)
             S = T2(1.0)
+            # update hydraulic conductivity and the degree of saturation
+            mpts.ext.S[ix] = T2(1.0)
+            mpts.ext.kr[ix] = T2(1.0)
         end
         mpts.ext.σw[ix] += (1 / (n*Cs + (n*S)/mpts.ext.Kw)) * (
             (1.0 - n) * S * (dfs1 + dfs5 + dfs9) + 
                    n  * S * (dfw1 + dfw5 + dfw9))
         # update porosity
         mpts.ext.n[ix] = clamp(1.0 - (1.0 - mpts.ext.n[ix]) / ΔJ, 0.0, 1.0)
-        # update hydraulic conductivity and the degree of saturation
-        mpts.ext.S[ix] = Sr(-mpts.ext.σw[ix])
-        mpts.ext.kr[ix] = kr(mpts.ext.S[ix])
         # constitutive model
         material!(mpts, t_eld, t_cur, Δt, 
             dfs1, dfs2, dfs3, dfs4, dfs5, dfs6, dfs7, dfs8, dfs9, 
@@ -312,7 +316,7 @@ kr(S) = 1 - 2.207 * (1 - S)
     end
 end
 
-function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, vpos, vcol) where {T1, T2}
     model_info(conf, grid, mpts)
     t_cur = T2(conf.t_cur)
     t_tol = T2(conf.t_tol)
@@ -326,7 +330,9 @@ function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticl
     fid = set_hdf5(conf)
     printer = set_pb(conf)
     while t_cur < t_tol
-        G = t_cur ≤ t_eld ? (Gg * t_cur) / t_eld : Gg
+        G = Gg
+        vpos[] = dev_mpts.ξ
+        vcol[] = dev_mpts.ext.vw[:, 3]
         hdf5!(h5, fid, t_cur, mpts, dev_mpts)
         tresetgridstatus!(dev_grid)
         resetmpstatus!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, conf.basis)
@@ -337,17 +343,18 @@ function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticl
         tdoublemapping3!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
         tg2p!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, conf.material, t_eld, t_cur, Δt)
 
-        mpts_top_idx = findall(i->mpts.ξ[i, 3]≥1-grid.h, 1:mpts.np)
+        #mpts.ext.σw[1:8] .= 0.0
+        #mpts.ext.S[1:8] .= 1.0
+        mpts_top_idx = findall(i->dev_mpts.ξ[i, 3]≥1-grid.h, 1:mpts.np)
         mpts_top_inp = length(mpts_top_idx)
-        grid.ext.topS[1] = sum(mpts.ext.S[mpts_top_idx]) / mpts_top_inp
+        dev_grid.ext.topS[1] = sum(dev_mpts.ext.S[mpts_top_idx]) / mpts_top_inp
 
+        @info "σw range: $(minimum(dev_mpts.ext.σw)) - $(maximum(dev_mpts.ext.σw))"
 
-
-
-        Δt = reduce(min, dev_mpts.cfl)
         t_cur += Δt
         h5.iters[] += 1
         update_pb!(printer, t_cur, t_tol)
+        sleep(0.5)
     end
     finish_pb!(conf, printer); KAsync(dev)
     device2host!(mpts, dev_mpts)

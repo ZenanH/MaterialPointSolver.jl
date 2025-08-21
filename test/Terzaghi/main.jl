@@ -1,8 +1,7 @@
 #==========================================================================================+
 |           MaterialPointSolver.jl: High-performance MPM Solver for Geomechanics           |
 +------------------------------------------------------------------------------------------+
-|  File Name  : 3d_druckerprager.jl                                                        |
-|  Description: Case used to vaildate the functions                                        |
+|  Description: Terzaghi consolidation test (saturated MPM)                                |
 |  Programmer : Zenan Huo                                                                  |
 |  Start Date : 01/01/2022                                                                 |
 |  Affiliation: Risk Group, UNIL-ISTE                                                      |
@@ -11,7 +10,6 @@
 using MaterialPointGenerator
 using MaterialPointSolver
 using MaterialPointVisualizer
-using CUDA
 # using WGLMakie
 
 include(joinpath(@__DIR__, "funcs.jl"))
@@ -19,12 +17,12 @@ include(joinpath(@__DIR__, "funcs.jl"))
 init_h     = 0.05
 init_ϵ     = :double
 init_mtl   = :linearelastic
-init_basis = :uGIMP
-init_NIC   = 27
+init_basis = :linear
+init_NIC   = 8
 init_FLIP  = 1.0
 init_G     = 0.0
-init_ρs    = 2650
-init_ρw    = 1000
+init_ρs    = 2.65e3
+init_ρw    = 1e3
 init_ν     = 0.0
 init_Es    = 1e7
 init_Gs    = init_Es / (2 * (1 + init_ν))
@@ -32,8 +30,9 @@ init_Ks    = init_Es / (3 * (1 - 2 * init_ν))
 init_Kw    = 2.2e9
 init_n     = 0.4
 init_k     = 1e-3
+init_S     = 1.0
 init_σw    = -1e4
-init_dev   = :cuda
+init_dev   = :cpu
 init_T     = 1.0
 init_Tcur  = 0.0
 init_ΔT    = 1e-5
@@ -90,12 +89,14 @@ mpts = init_mpts(ϵ=init_ϵ, NIC=init_NIC,
     Es   = [init_Es],
     Gs   = [init_Gs],
     ext = (
-        σw = fill(init_σw, np),
-        vw = zeros(Float64, np, 3),
-        k = init_k,
-        n = fill(init_n, np),
-        Kw = init_Kw,
-        ρw = init_ρw,
+        σw  = fill(init_σw, np),
+        vw  = zeros(Float64, np, 3),
+        k   = init_k,
+        kr  = fill(1.0, np),
+        S   = fill(init_S, np),
+        n   = fill(init_n, np),
+        Kw  = init_Kw,
+        ρw  = init_ρw,
         bcp = bcp,
         mpf = -100 / length(bcp))
 )
@@ -105,7 +106,7 @@ mpmsolver!(tprocedure!, conf, grid, mpts)
 h5conf = (prjdst=conf.prjdst, prjname=conf.prjname)
 animation(h5conf)
 
-# let     
+# let
 #     custom_dark = theme_dark()
 #     custom_dark.textcolor = :white
 #     custom_dark.linecolor = :white
