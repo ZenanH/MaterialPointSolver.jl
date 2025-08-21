@@ -41,7 +41,7 @@ export satΔt, unsatΔt
     return T2(min(sat_Δtu, sat_Δtl))
 end
 
-@inline function usatΔt(
+@inline function unsatΔt(
     Gs::T2, 
     Ks::T2, 
     Kw::T2, 
