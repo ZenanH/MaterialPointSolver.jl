@@ -14,23 +14,23 @@ function tresetgridstatus!(grid::DeviceGrid{T1, T2}) where {T1, T2}
     fill!(grid.ext.vw, T2(0.0))
 end
 
-@kernel function tp2g!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, G::T2) where {T1, T2}
+@kernel function tp2g!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mpts.np
-        Ω, S, n, σw = mpts.Ω[ix], mpts.ext.S[ix], mpts.ext.n[ix], mpts.ext.σw[ix] 
+        Ω, S, n, σw = mpts.Ω[ix], mpts.ext.S[ix], mpts.ext.n[ix], mpts.ext.σw[ix]
         ns, nl, σw = 1-n, S*n, mpts.ext.σw[ix]
         ms  = Ω * mpts.ρs[ix]
         mw  = Ω * mpts.ext.ρw
         mm  = ms * ns + mw * nl
-        mmG = mm * G
-        mwG = mw * G
+        mmG = mm * mpts.G
+        mwG = mw * mpts.G
         psx = ms * ns * mpts.vs[ix, 1]
         psy = ms * ns * mpts.vs[ix, 2]
         psz = ms * ns * mpts.vs[ix, 3]
         pwx = mw * nl * mpts.ext.vw[ix, 1]
         pwy = mw * nl * mpts.ext.vw[ix, 2]
         pwz = mw * nl * mpts.ext.vw[ix, 3]
-        dragc = (nl * mw * 9.8) / (mpts.ext.kr[ix]*mpts.ext.k)
+        dragc = (nl * mw * 9.8) / (mpts.ext.kr[ix] * mpts.ext.k)
         dragx = dragc * (mpts.ext.vw[ix, 1] - mpts.vs[ix, 1])
         dragy = dragc * (mpts.ext.vw[ix, 2] - mpts.vs[ix, 2])
         dragz = dragc * (mpts.ext.vw[ix, 3] - mpts.vs[ix, 3])
@@ -73,12 +73,12 @@ end
         # boundary condition
         grid.ext.vwxi[ix] ≠ T1(0) ? grid.ext.vw[ix, 1] = grid.ext.vwxv[ix] : nothing
         grid.ext.vwyi[ix] ≠ T1(0) ? grid.ext.vw[ix, 2] = grid.ext.vwyv[ix] : nothing
-        if grid.ext.topS[1] < 1.0 
-            grid.ext.vwzi[ix] ≠ T1(0) ? grid.ext.vw[ix, 3] = grid.ext.vwzv[ix] : nothing
-        end
+        grid.ext.vwzi[ix] ≠ T1(0) ? grid.ext.vw[ix, 3] = grid.ext.vwzv[ix] : nothing
         grid.vsxi[ix] ≠ T1(0) ? grid.vs[ix, 1] = grid.vsxv[ix] : nothing
         grid.vsyi[ix] ≠ T1(0) ? grid.vs[ix, 2] = grid.vsyv[ix] : nothing
-        grid.vszi[ix] ≠ T1(0) ? grid.vs[ix, 3] = grid.vszv[ix] : nothing
+        if grid.ext.topS[1] < 1.0
+            grid.vszi[ix] ≠ T1(0) ? grid.vs[ix, 3] = grid.vszv[ix] : nothing
+        end
         # compute nodal velocity
         grid.ext.vw[ix, 1] *= inv_mw
         grid.ext.vw[ix, 2] *= inv_mw
@@ -102,7 +102,7 @@ end
         # boundary condition
         grid.ext.vwxi[ix] ≠ T1(0) ? grid.ext.vwT[ix, 1] = grid.ext.vwxv[ix] : nothing
         grid.ext.vwyi[ix] ≠ T1(0) ? grid.ext.vwT[ix, 2] = grid.ext.vwyv[ix] : nothing
-        if grid.ext.topS[1] < 1.0 
+        if grid.ext.topS[1] < 1.0
             grid.ext.vwzi[ix] ≠ T1(0) ? grid.ext.vwT[ix, 3] = grid.ext.vwzv[ix] : nothing
         end
         grid.vsxi[ix] ≠ T1(0) ? grid.vsT[ix, 1] = grid.vsxv[ix] : nothing
@@ -174,82 +174,21 @@ end
         inv_mw = grid.ext.mw[ix] < eps(T2) ? T2(0.0) : 1 / grid.ext.mw[ix]
         inv_ms = grid.ms[ix] < eps(T2) ? T2(0.0) : 1 / grid.ms[ix]
         # compute nodal velocities
-        grid.ext.pw[ix, 1] = grid.ext.pw[ix, 1] * inv_mw * Δt
-        grid.ext.pw[ix, 2] = grid.ext.pw[ix, 2] * inv_mw * Δt
-        grid.ext.pw[ix, 3] = grid.ext.pw[ix, 3] * inv_mw * Δt
-        grid.ps[ix, 1] = grid.ps[ix, 1] * inv_ms * Δt
-        grid.ps[ix, 2] = grid.ps[ix, 2] * inv_ms * Δt
-        grid.ps[ix, 3] = grid.ps[ix, 3] * inv_ms * Δt
+        grid.ext.pw[ix, 1] *= inv_mw * Δt
+        grid.ext.pw[ix, 2] *= inv_mw * Δt
+        grid.ext.pw[ix, 3] *= inv_mw * Δt
+        grid.ps[ix, 1] *= inv_ms * Δt
+        grid.ps[ix, 2] *= inv_ms * Δt
+        grid.ps[ix, 3] *= inv_ms * Δt
         # fixed Dirichlet nodes
         grid.ext.vwxi[ix] ≠ T1(0) ? grid.ext.pw[ix, 1] = grid.ext.vwxv[ix] : nothing
         grid.ext.vwyi[ix] ≠ T1(0) ? grid.ext.pw[ix, 2] = grid.ext.vwyv[ix] : nothing
-        if grid.ext.topS[1] < 1.0 
+        if grid.ext.topS[1] < 1.0
             grid.ext.vwzi[ix] ≠ T1(0) ? grid.ext.pw[ix, 3] = grid.ext.vwzv[ix] : nothing
         end
         grid.vsxi[ix] ≠ T1(0) ? grid.ps[ix, 1] = grid.vsxv[ix] : nothing
         grid.vsyi[ix] ≠ T1(0) ? grid.ps[ix, 2] = grid.vsyv[ix] : nothing
         grid.vszi[ix] ≠ T1(0) ? grid.ps[ix, 3] = grid.vszv[ix] : nothing
-    end
-end
-
-@inline Base.@propagate_inbounds function tdpP!(mpts::DeviceParticle{T1, T2}, ix::Int) where {T1, T2}
-    nid = mpts.nid[ix]
-    c_  = mpts.c[nid]
-    cr  = mpts.cr[nid]
-    ϕ   = mpts.ϕ[nid]
-    ψ   = mpts.ψ[nid]
-    σt  = mpts.σt[nid]
-    Gs  = mpts.Gs[nid]
-    Ks  = mpts.Ks[nid]
-    Hp  = mpts.Hp[nid]
-
-    ctmp = c_ * (-Hp * mpts.ϵq[ix])
-    c = ctmp < cr ? cr : ctmp 
-
-    # update deviatoric stress tensor
-    σm = (mpts.σij[ix, 1] + mpts.σij[ix, 2] + mpts.σij[ix, 3]) * T2(0.333333)
-    s1 = mpts.σij[ix, 1] - σm
-    s2 = mpts.σij[ix, 2] - σm
-    s3 = mpts.σij[ix, 3] - σm
-    s4 = mpts.σij[ix, 4]
-    s5 = mpts.σij[ix, 5]
-    s6 = mpts.σij[ix, 6]
-    # drucker-prager
-    τ  = sqrt(T2(0.5) * (s1 * s1 + s2 * s2 + s3 * s3) +
-                         s4 * s4 + s5 * s5 + s6 * s6)
-    kϕ = (T2(6.0) * c * cos(ϕ)) / (T2(1.732051) * (T2(3.0) + sin(ϕ)))
-    qϕ = (T2(6.0) *     sin(ϕ)) / (T2(1.732051) * (T2(3.0) + sin(ϕ)))
-    qψ = (T2(6.0) *     sin(ψ)) / (T2(1.732051) * (T2(3.0) + sin(ψ)))
-    σt = min(σt, kϕ / qϕ)
-    αb = sqrt(T2(1.0) + qϕ * qϕ) - qϕ
-    τb = kϕ - qϕ * σt
-    fs = τ + qϕ * σm - kϕ            # yield function considering shear failure
-    ft = σm - σt                     # yield function considering tensile failure
-    BF = (τ - τb) - (αb * (σm - σt)) # BF is used to classify shear failure from tensile failure
-    # determination of failure criteria
-    ## shear failure correction
-    if ((σm < σt) && (fs > T2(0.0))) ||
-       ((σm ≥ σt) && (BF > T2(0.0)))
-        Δλs  = fs / (Gs + Ks * qϕ * qψ)
-        tmp1 = σm - Ks * qψ * Δλs
-        tmp2 = (kϕ - qϕ * tmp1) / τ
-        mpts.σij[ix, 1] = s1 * tmp2 + tmp1
-        mpts.σij[ix, 2] = s2 * tmp2 + tmp1
-        mpts.σij[ix, 3] = s3 * tmp2 + tmp1
-        mpts.σij[ix, 4] = s4 * tmp2
-        mpts.σij[ix, 5] = s5 * tmp2
-        mpts.σij[ix, 6] = s6 * tmp2
-        mpts.ϵq[ix] += Δλs * sqrt(T2(0.333333) + T2(0.222222) * qψ * qψ)
-        mpts.ϵk[ix] += Δλs * qψ
-    end
-    ## tensile failure correction
-    if (σm ≥ σt) && (BF ≤ T2(0.0))
-        Δλt = ft / Ks
-        mpts.σij[ix, 1] = s1 + σt
-        mpts.σij[ix, 2] = s2 + σt
-        mpts.σij[ix, 3] = s3 + σt
-        mpts.ϵq[ix] += Δλt * T2(0.333333) * T2(1.414214)
-        mpts.ϵk[ix] += Δλt
     end
 end
 
@@ -288,7 +227,7 @@ kr(S) = 1 - 2.207 * (1 - S)
         J = detF(mpts, ix)
         ΔJ = J * mpts.Ω0[ix] / mpts.Ω[ix]
         mpts.Ω[ix] = J * mpts.Ω0[ix]
-        mpts.ρs[ix] = mpts.ρs0[ix] / J
+        mpts.ρs[ix] = mpts.ρs[ix] / ΔJ
         # update pore pressure
         ψm, S, n = -mpts.ext.σw[ix], mpts.ext.S[ix], mpts.ext.n[ix]
         if ψm > T2(0.0)
@@ -309,7 +248,6 @@ kr(S) = 1 - 2.207 * (1 - S)
                    n  * S * (dfw1 + dfw5 + dfw9))
         # update porosity
         mpts.ext.n[ix] = clamp(1.0 - (1.0 - mpts.ext.n[ix]) / ΔJ, 0.0, 1.0)
-        # constitutive model
         material!(mpts, t_eld, t_cur, Δt, 
             dfs1, dfs2, dfs3, dfs4, dfs5, dfs6, dfs7, dfs8, dfs9, 
             ix, material)
@@ -322,7 +260,6 @@ function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticl
     t_tol = T2(conf.t_tol)
     t_eld = T2(conf.t_eld)
     Δt    = T2(conf.Δt)
-    Gg    = T2(mpts.G)
     dev   = conf.dev
     h5    = conf.h5
     dev_grid, dev_mpts = host2device(dev, grid, mpts)
@@ -330,30 +267,29 @@ function tprocedure!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticl
     fid = set_hdf5(conf)
     printer = set_pb(conf)
     while t_cur < t_tol
-        G = Gg
+        hdf5!(h5, fid, t_cur, mpts, dev_mpts)
+
         vpos[] = dev_mpts.ξ
         vcol[] = dev_mpts.ext.vw[:, 3]
-        hdf5!(h5, fid, t_cur, mpts, dev_mpts)
         tresetgridstatus!(dev_grid)
         resetmpstatus!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, conf.basis)
-        tp2g!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, G)
+        tp2g!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
         tsolvegrid!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
         tdoublemapping1!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, Δt)
         tdoublemapping2!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
         tdoublemapping3!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
         tg2p!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, conf.material, t_eld, t_cur, Δt)
-
-        #mpts.ext.σw[1:8] .= 0.0
-        #mpts.ext.S[1:8] .= 1.0
+        dev_mpts.ext.σw[1:8] .= 0.0
+        dev_mpts.ext.S[1:8] .= 1.0
+        
         mpts_top_idx = findall(i->dev_mpts.ξ[i, 3]≥1-grid.h, 1:mpts.np)
         mpts_top_inp = length(mpts_top_idx)
         dev_grid.ext.topS[1] = sum(dev_mpts.ext.S[mpts_top_idx]) / mpts_top_inp
 
-        @info "σw range: $(minimum(dev_mpts.ext.σw)) - $(maximum(dev_mpts.ext.σw))"
-
         t_cur += Δt
         h5.iters[] += 1
         update_pb!(printer, t_cur, t_tol)
+
         sleep(0.5)
     end
     finish_pb!(conf, printer); KAsync(dev)

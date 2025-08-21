@@ -212,9 +212,9 @@ end
         ΔJ = J * mpts.Ω0[ix] / mpts.Ω[ix]
         mpts.Ω[ix] = J * mpts.Ω0[ix]
         mpts.ρs[ix] = mpts.ρs[ix] / ΔJ
-        mpts.ext.σw[ix] += (mpts.ext.Kw / mpts.ext.n[ix]) * (
-            (1.0 - mpts.ext.n[ix]) * (dfs1 + dfs5 + dfs9) + 
-                   mpts.ext.n[ix]  * (dfw1 + dfw5 + dfw9))
+        mpts.ext.σw[ix] += (mpts.ext.Kw / (mpts.ext.n[ix]*mpts.ext.S[ix])) * (
+            (1.0 - mpts.ext.n[ix]) * mpts.ext.S[ix] * (dfs1 + dfs5 + dfs9) + 
+                   mpts.ext.n[ix]  * mpts.ext.S[ix] * (dfw1 + dfw5 + dfw9))
         mpts.ext.n[ix] = clamp(1.0 - (1.0 - mpts.ext.n[ix]) / ΔJ, 0.0, 1.0)
         material!(mpts, t_eld, t_cur, Δt, 
             dfs1, dfs2, dfs3, dfs4, dfs5, dfs6, dfs7, dfs8, dfs9, 
