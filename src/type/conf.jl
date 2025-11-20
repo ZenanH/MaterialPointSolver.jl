@@ -1,12 +1,8 @@
 export Config
 export HDF5Config, H5_T, H5_F
-export BasisConfig, LinearBasis, Bspline2Basis, Bspline3Basis, uGIMPBasis
-export Material, LinearElastic, DruckerPrager
 export dev_backend, init_conf
 
 abstract type HDF5Config end
-abstract type BasisConfig end
-abstract type Material end
 
 struct H5_T <: HDF5Config
     iters::Ref{Int}
@@ -19,14 +15,6 @@ end
 struct H5_F <: HDF5Config
     iters::Ref{Int}
 end
-
-struct LinearBasis <: BasisConfig end
-struct Bspline2Basis <: BasisConfig end
-struct Bspline3Basis <: BasisConfig end
-struct uGIMPBasis <: BasisConfig end
-
-struct LinearElastic <: Material end
-struct DruckerPrager <: Material end
 
 struct Config
     dev
@@ -42,8 +30,6 @@ struct Config
     t_tol   ::Float64
     t_cur   ::Float64
     t_eld   ::Float64
-    basis   ::BasisConfig
-    material::Material
 end
 
 dev_backend(sym::Symbol=:cpu) = dev_backend(Val(sym))
@@ -63,8 +49,7 @@ _missing_backend(S) = throw(ArgumentError(
 dev_backend(::Val{:cpu}) = CPU()
 
 function init_conf(; dev::Symbol=:cpu, h5_int::Int=0, varnames::Tuple=(:default,), 
-    basis::Symbol=:bspline2, log_int::Real=3.0, prjname, prjpath, Δt, t_tol, 
-    t_cur::Real=0.0, t_eld::Real=0.0, material::Symbol=:linearelastic
+    log_int::Real=3.0, prjname, prjpath, Δt, t_tol, t_cur::Real=0.0, t_eld::Real=0.0
 )
     dev = dev_backend(dev)
     # 展平字段路径：(:x, :y, (:u, :z)) → [(:x,), (:y,), (:ext, :u), (:ext, :z)]
@@ -90,14 +75,7 @@ function init_conf(; dev::Symbol=:cpu, h5_int::Int=0, varnames::Tuple=(:default,
     t_tol = Float64(t_tol)
     t_cur = Float64(t_cur)
     t_eld = Float64(t_eld)
-    b = basis in [:linear, :bspline2, :bspline3, :uGIMP] ? basis : :bspline2
-    basisfunc = b == :linear ? LinearBasis() :
-                b == :bspline2 ? Bspline2Basis() :
-                b == :uGIMP ? uGIMPBasis() :
-                b == :bspline3 ? Bspline3Basis() : nothing
-    mtl = material in [:linearelastic, :druckerprager] ? material : :linearelastic
-    mtlfunc = mtl == :linearelastic ? LinearElastic() :
-              mtl == :druckerprager ? DruckerPrager() : nothing
+
     return Config(dev, h5, iters, log_int, prjname, prjpath, prjdst, stime, etime, Δt, 
-        t_tol, t_cur, t_eld, basisfunc, mtlfunc)
+        t_tol, t_cur, t_eld)
 end

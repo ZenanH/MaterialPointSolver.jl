@@ -1,7 +1,7 @@
 module MaterialPointSolver
 
-using Adapt, BenchmarkTools, Dates, DelimitedFiles, HDF5, KernelAbstractions, Printf, 
-      ProgressMeter
+using Dates, DelimitedFiles, ProgressMeter, Reexport
+@reexport using Adapt, BenchmarkTools, HDF5, KernelAbstractions, Printf
 
 import Adapt.adapt as KAupload
 import Adapt.@adapt_structure as @KAadapt
@@ -21,5 +21,8 @@ include(joinpath(@__DIR__, "type/grid.jl"))
 include(joinpath(@__DIR__, "type/particle.jl"))
 include(joinpath(@__DIR__, "utils.jl"))
 include(joinpath(@__DIR__, "solver.jl"))
+
+# import external libraries
+include(joinpath(@__DIR__, "libs.jl"))
 
 end

@@ -1,5 +1,4 @@
-
-export format_seconds, set_pb, update_pb!, finish_pb!, set_hdf5, hdf5!, model_info
+export format_seconds, set_pb, update_pb!, finish_pb!, set_hdf5, hdf5!, model_info, status_checker
 
 @inline function format_seconds(s_time)
     s = s_time < 1 ? 1.0 : ceil(Int, s_time)
@@ -18,7 +17,8 @@ end
         barlen    = 20,
         barglyphs = BarGlyphs(" ■■  "),
         output    = stderr,
-        enabled   = true
+        enabled   = true,
+        color     = :cyan
     )
     return p 
 end
@@ -59,27 +59,64 @@ end
 @inline hdf5!(::H5_F, fid, t_cur, mpts::DeviceParticle{T1, T2}, dev_mpts::DeviceParticle{T1, T2}) where {T1, T2} = nothing
 @inline hdf5!(::H5_F, fid, grid::DeviceGrid{T1, T2}) where {T1, T2} = nothing
 
-
 function model_info(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
-    textplace1 = 16
-    textplace2 = 9
-    basis = lpad(string(conf.basis), textplace1)
-    h5 = typeof(conf.h5) <: H5_T ? lpad("true", textplace1) : lpad("false", textplace1)
-    material = lpad(string(conf.material), textplace1)
-    t_tol = rpad(string(@sprintf("%.2e", conf.t_tol))*" s", textplace2)
-    npts = rpad(string(@sprintf("%.2e", mpts.np)), textplace2)
-    ngid = rpad(string(@sprintf("%.2e", grid.ni)), textplace2)
-    
-    FLIP = lpad(string(@sprintf("%.2f", mpts.FLIP)), 6)
-    PIC  = lpad(string(@sprintf("%.2f", 1-mpts.FLIP)), 6)
-    precision = typeof(T2) == Float32 ? "single" : "double"
+    textplace1 = 5
+    FLIP = lpad(string(@sprintf("%.2f", mpts.FLIP)), textplace1)
+    ζs   = lpad(string(@sprintf("%.2f", grid.ζs)), textplace1)
+    h5   = typeof(conf.h5) <: H5_T ? lpad("true", textplace1) : lpad("false", textplace3)
 
-    
-    @info """$(conf.prjname) [$(conf.dev)]
-    ─────────────┬────────────────────────────┬──────────────────
-    FLIP: $(FLIP) │ basis   : $(basis) │ mpts : $(npts)
-    PIC : $(PIC) │ HDF5    : $(h5) │ nodes: $(ngid)
-    ϵ   : $(precision) │ material: $(material) │ t_tol: $(t_tol)
-    ─────────────┴────────────────────────────┴──────────────────
+    textplace2 = 9
+    t_tol = rpad(string(@sprintf("%.2e", conf.t_tol))*" s", textplace2)
+    t_eld = rpad(string(@sprintf("%.2e", conf.t_eld))*" s", textplace2)
+    Δt    = rpad(string(@sprintf("%.2e", conf.Δt))*" s", textplace2)
+
+    textplace3 = 9
+    npts = rpad(string(@sprintf("%.2e", mpts.np)), textplace3)
+    ngid = rpad(string(@sprintf("%.2e", grid.ni)), textplace3)
+    precision = typeof(T2) == Float32 ? rpad("single", textplace3) : rpad("double", textplace3)
+
+    @info """\e[1;31mCommunity Edition\e[0m
+    ────────────┬───────────────────┬────────────────
+    FLIP: $(FLIP) │ t_tol: $(t_tol) │ mpts: $(npts)
+    ζs  : $(ζs) │ t_eld: $(t_eld) │ node: $(ngid)
+    HDF5: $(h5) │ Δt   : $(Δt) │ ϵ   : $(precision)
+    ────────────┴───────────────────┴────────────────
+    Project name: $(conf.prjname)
     """
+end
+
+@views @inbounds function status_checker(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+
+    # 1. Ω check: cannot be negative
+    if reduce(min, mpts.Ω) < 0
+        error("MPM instability: Ω contains negative value")
+    end
+
+    # 2. ξ check: cannot contain NaN or Inf
+    minξ = reduce(min, mpts.ξ)
+    maxξ = reduce(max, mpts.ξ)
+    if isnan(minξ) || isnan(maxξ) || isinf(minξ) || isinf(maxξ)
+        error("MPM instability: ξ contains NaN or Inf")
+    end
+
+    # 3. σij check: cannot contain NaN or Inf
+    minσ = reduce(min, mpts.σij)
+    maxσ = reduce(max, mpts.σij)
+    if isnan(minσ) || isnan(maxσ) || isinf(minσ) || isinf(maxσ)
+        error("MPM instability: σij contains NaN or Inf")
+    end
+
+    # 4. particle position check: cannot exceed grid boundary
+    mpts.vmin .= Array(reduce(min, mpts.ξ, dims=1))
+    mpts.vmax .= Array(reduce(max, mpts.ξ, dims=1))
+    
+    rst = mpts.vmin[1] ≥ grid.x1 + grid.h * 2 &&
+          mpts.vmax[1] ≤ grid.x2 - grid.h * 2 &&
+          mpts.vmin[2] ≥ grid.y1 + grid.h * 2 &&
+          mpts.vmax[2] ≤ grid.y2 - grid.h * 2 &&
+          mpts.vmin[3] ≥ grid.z1 + grid.h * 2 &&
+          mpts.vmax[3] ≤ grid.z2 - grid.h * 2
+    if !rst error("MPM instability: particle position exceeds grid boundary") end
+
+    return nothing
 end

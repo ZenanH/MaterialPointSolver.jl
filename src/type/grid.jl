@@ -10,7 +10,6 @@ struct Grid{T1, T2,
     T6 <: AbstractArray{T2, 2},
     T7 <: NamedTuple
 } <: DeviceGrid{T1, T2}
-    NIC ::T1
     ni  ::T1
     nx  ::T1
     ny  ::T1
@@ -45,12 +44,11 @@ end
 @KAadapt Grid
 
 function init_grid(xr::AbstractRange, yr::AbstractRange, zr::AbstractRange; 
-    ϵ::Symbol=:double, NIC=27, vsxi=[1], vsxv=[0], vsyi=[1], vsyv=[0], vszi=[1], vszv=[0], 
+    ϵ::Symbol=:double, vsxi=[1], vsxv=[0], vsyi=[1], vsyv=[0], vszi=[1], vszv=[0], 
     ζs=0.0, ext=[0]
 )
     T1  = ϵ == :single ? Int32   : Int64
     T2  = ϵ == :single ? Float32 : Float64
-    NIC = T1(NIC)
     x, y, z = convert.(Float64, xr), convert.(Float64, yr), convert.(Float64, zr)
     nx = T1(length(x)); nx ≤ 1 && error("Grid must have at least 2 points in x-direction")
     ny = T1(length(y)); ny ≤ 1 && error("Grid must have at least 2 points in y-direction")
@@ -86,6 +84,6 @@ function init_grid(xr::AbstractRange, yr::AbstractRange, zr::AbstractRange;
     vszv = Array{T2}(vszv)
     ext  = ext == [0] ? (_tmp1=rand(T2, 3, 3), _tmp2=rand(T2, 3, 3)) : ext
     return Grid{T1, T2, Array{T1, 1}, AbstractArray{T2, 1}, AbstractArray{T2, 2}, NamedTuple}(
-        NIC, ni, nx, ny, nz, nc, ncx, ncy, ncz, h, invh, x1, x2, y1, y2, z1, z2, ζs, ms, ps,
-        vs, vsT, fs, vsxi, vsxv, vsyi, vsyv, vszi, vszv, ext)
+        ni, nx, ny, nz, nc, ncx, ncy, ncz, h, invh, x1, x2, y1, y2, z1, z2, ζs, ms, ps, vs, 
+        vsT, fs, vsxi, vsxv, vsyi, vsyv, vszi, vszv, ext)
 end
