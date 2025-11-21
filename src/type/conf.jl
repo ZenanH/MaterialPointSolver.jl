@@ -5,9 +5,8 @@ export dev_backend, init_conf
 abstract type HDF5Config end
 
 struct H5_T <: HDF5Config
-    iters::Ref{Int}
     gname::Ref{Int}
-    interval::Int
+    interval::Vector{Float64}
     varnames::Tuple
     fpvar
 end
@@ -30,6 +29,7 @@ struct Config
     t_tol   ::Float64
     t_cur   ::Float64
     t_eld   ::Float64
+    αT      ::Float64
 end
 
 dev_backend(sym::Symbol=:cpu) = dev_backend(Val(sym))
@@ -49,7 +49,8 @@ _missing_backend(S) = throw(ArgumentError(
 dev_backend(::Val{:cpu}) = CPU()
 
 function init_conf(; dev::Symbol=:cpu, h5_int::Int=0, varnames::Tuple=(:default,), 
-    log_int::Real=3.0, prjname, prjpath, Δt, t_tol, t_cur::Real=0.0, t_eld::Real=0.0
+    log_int::Real=3.0, prjname, prjpath, Δt, t_tol, t_cur::Real=0.0, t_eld::Real=0.0,
+    αT::Real=0.5
 )
     dev = dev_backend(dev)
     # 展平字段路径：(:x, :y, (:u, :z)) → [(:x,), (:y,), (:ext, :u), (:ext, :z)]
@@ -65,7 +66,11 @@ function init_conf(; dev::Symbol=:cpu, h5_int::Int=0, varnames::Tuple=(:default,
             error("Unsupported entry in varnames: $item")
         end
     end
-    h5 = h5_int > 0 ? H5_T(Ref{Int64}(0), Ref{Int64}(1), h5_int, varnames, field_paths) : H5_F(Ref{Int64}(0))
+
+    h5 = h5_int > 0 ?
+        H5_T(Ref(1), collect(range(t_tol, t_cur; length=h5_int)), varnames, field_paths) :
+        H5_F(Ref(0))
+
     iters = Ref{Int64}(0)
     prjdst = joinpath(prjpath, prjname)
     isdir(prjdst) && rm(prjdst; recursive=true, force=true); mkpath(prjdst)
@@ -75,7 +80,8 @@ function init_conf(; dev::Symbol=:cpu, h5_int::Int=0, varnames::Tuple=(:default,
     t_tol = Float64(t_tol)
     t_cur = Float64(t_cur)
     t_eld = Float64(t_eld)
+    αT    = Float64(αT)
 
     return Config(dev, h5, iters, log_int, prjname, prjpath, prjdst, stime, etime, Δt, 
-        t_tol, t_cur, t_eld)
+        t_tol, t_cur, t_eld, αT)
 end
