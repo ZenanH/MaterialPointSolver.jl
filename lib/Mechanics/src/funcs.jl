@@ -13,7 +13,7 @@ end
         psx, psy, psz = mpts.vs[ix, 1] * ms, mpts.vs[ix, 2] * ms, mpts.vs[ix, 3] * ms
         σxx, σyy, σzz = mpts.σij[ix, 1], mpts.σij[ix, 2], mpts.σij[ix, 3]
         σxy, σyz, σzx = mpts.σij[ix, 4], mpts.σij[ix, 5], mpts.σij[ix, 6]
-        @N∂N(grid, mpts, ix, begin
+        @N∂NuGIMP(grid, mpts, ix, begin
             # compute nodal mass
             @Σ grid.ms[p2n] += Nij * ms
             # compute nodal momentum
@@ -68,7 +68,7 @@ end
     if ix ≤ mpts.np
         FLIP = mpts.FLIP
         ξx = ξy = ξz = vx = vy = vz = T2(0.0)
-        @Nij(grid, mpts, ix, begin
+        @NijuGIMP(grid, mpts, ix, begin
             ξx += Nij * grid.vsT[p2n, 1]
             ξy += Nij * grid.vsT[p2n, 2]
             ξz += Nij * grid.vsT[p2n, 3]
@@ -83,8 +83,15 @@ end
         # update grid momentum
         ms = mpts.ρs[ix] * mpts.Ω[ix]
         px, py, pz = ms * mpts.vs[ix, 1], ms * mpts.vs[ix, 2], ms * mpts.vs[ix, 3]
+        # update CFL conditions
+        nid  = mpts.nid[ix]
+        Ks   = mpts.Ks[nid]
+        Gs   = mpts.Gs[nid]
+        cdil = sqrt((Ks + T2(1.333333) * Gs) / mpts.ρs[ix]) # 4/3 ≈ 1.333333
+        mpts.cfl[ix] = min(grid.h / (cdil + abs(mpts.vs[ix, 1])), 
+                           grid.h / (cdil + abs(mpts.vs[ix, 2]))) 
         # update grid momentum
-        @Nij(grid, mpts, ix, begin
+        @NijuGIMP(grid, mpts, ix, begin
             @Σ grid.ps[p2n, 1] += px * Nij
             @Σ grid.ps[p2n, 2] += py * Nij
             @Σ grid.ps[p2n, 3] += pz * Nij
@@ -118,7 +125,7 @@ end
     if ix ≤ mpts.np
         df1 = df2 = df3 = df4 = df5 = df6 = df7 = df8 = df9 = T2(0.0)
         ξx = ξy = ξz = T2(0.0)
-        @N∂N(grid, mpts, ix, begin
+        @N∂NuGIMP(grid, mpts, ix, begin
             ux = grid.ps[p2n, 1]; ξx += ux * Nij
             uy = grid.ps[p2n, 2]; ξy += uy * Nij
             uz = grid.ps[p2n, 3]; ξz += uz * Nij
