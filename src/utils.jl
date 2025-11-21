@@ -33,12 +33,24 @@ end
     finish!(printer)
 end
 
-set_hdf5(conf::Config) = HDF5.h5open(joinpath(conf.prjdst, "$(conf.prjname).h5"), "w")
-
 @inline _get_nested_field(obj, path) = foldl(getfield, path; init=obj)
 
-@inline function hdf5!(conf::H5_T, fid, t_cur, mpts, dev_mpts)
-    if conf.iters[] == 0 || conf.iters[] % conf.interval == 0
+function set_hdf5(conf::Config, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+    fid = HDF5.h5open(joinpath(conf.prjdst, "$(conf.prjname).h5"), "w")
+    if typeof(conf.h5) <: H5_T
+        g = create_group(fid, "group$(conf.h5.gname[])")
+        @inbounds for path in conf.h5.fpvar
+            g[string(path[end])] = _get_nested_field(mpts, path)
+        end
+        g["time"] = conf.t_cur
+        conf.h5.gname[] += 1
+        pop!(conf.h5.interval)
+    end
+    return fid
+end
+
+@inline function hdf5!(conf::H5_T, fid, t_cur, Δt, mpts, dev_mpts)
+    if t_cur + Δt > conf.interval[end]
         device2host!(mpts, dev_mpts, conf.varnames)
         g = create_group(fid, "group$(conf.gname[])")
         @inbounds for path in conf.fpvar
@@ -46,6 +58,7 @@ set_hdf5(conf::Config) = HDF5.h5open(joinpath(conf.prjdst, "$(conf.prjname).h5")
         end
         g["time"] = t_cur
         conf.gname[] += 1
+        pop!(conf.interval)
     end
 end
 
