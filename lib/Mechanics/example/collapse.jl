@@ -26,7 +26,7 @@ init_Es    = init_Ks * (3 * (1 - 2 * init_ν))
 init_Gs    = init_Es / (2 * (1 +     init_ν))
 init_σt    = 0.0
 init_ϕ     = deg2rad(19.8)
-init_dev   = :cpu
+init_dev   = :cuda
 init_T     = 0.6
 init_Tcur  = 0.0
 init_ΔT    = 0.5 * init_h / sqrt(init_Es / init_ρs)
@@ -35,7 +35,7 @@ init_var   = (:ξ, :ϵq, :σij)
 
 # args setup
 conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T, h5_int=init_h5, varnames=init_var,
-    prjpath=@__DIR__, prjname="Collapse")
+    prjpath=joinpath(@__DIR__, ".output"), prjname="Collapse")
 
 # grid and boundary conditions setup
 rangex  = -0.02:init_h:0.07
