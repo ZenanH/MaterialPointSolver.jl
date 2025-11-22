@@ -5,11 +5,11 @@ function resetgridstatus!(grid::DeviceGrid{T1, T2}) where {T1, T2}
     fill!(grid.vs, T2(0.0))
 end
 
-@kernel function p2g!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
+@kernel function p2g!(grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}, Gg::T2) where {T1, T2}
     ix = @index(Global)
     if ix ≤ mpts.np
         Ω, ms = mpts.Ω[ix], mpts.ρs[ix] * mpts.Ω[ix]
-        msG = ms * mpts.G
+        msG = ms * Gg
         psx, psy, psz = mpts.vs[ix, 1] * ms, mpts.vs[ix, 2] * ms, mpts.vs[ix, 3] * ms
         σxx, σyy, σzz = mpts.σij[ix, 1], mpts.σij[ix, 2], mpts.σij[ix, 3]
         σxy, σyz, σzx = mpts.σij[ix, 4], mpts.σij[ix, 5], mpts.σij[ix, 6]

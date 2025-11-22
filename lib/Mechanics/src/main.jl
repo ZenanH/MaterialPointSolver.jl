@@ -20,8 +20,9 @@ function mpm_mechanics!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DevicePart
     printer = set_pb(conf)
     while t_cur < t_tol
         # main MPM loop
+        Gg = 0 < t_eld < t_cur ? (mpts.G * t_cur) / t_eld : mpts.G
         resetgridstatus!(dev_grid)
-        p2g!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
+        p2g!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, Gg)
         solvegrid!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
         doublemapping1!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts)
         doublemapping2!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
