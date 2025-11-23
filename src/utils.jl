@@ -44,22 +44,40 @@ function set_hdf5(conf::Config, mpts::DeviceParticle{T1, T2}) where {T1, T2}
         end
         g["time"] = conf.t_cur
         conf.h5.gname[] += 1
-        pop!(conf.h5.interval)
+        conf.h5.k[] += 1
     end
     return fid
 end
 
-@inline function hdf5!(conf::H5_T, fid, t_cur, Δt, mpts, dev_mpts)
-    if t_cur + Δt > conf.interval[end]
-        device2host!(mpts, dev_mpts, conf.varnames)
-        g = create_group(fid, "group$(conf.gname[])")
-        @inbounds for path in conf.fpvar
+@inline function hdf5!(h5::H5_T, fid, t_cur, t_tol, Δt, mpts, dev_mpts)
+    # while !isempty(conf.interval) && t_cur + Δt > conf.interval[end]
+    #     device2host!(mpts, dev_mpts, conf.varnames)
+    #     g = create_group(fid, "group$(conf.gname[])")
+    #     @inbounds for path in conf.fpvar
+    #         g[string(path[end])] = _get_nested_field(mpts, path)
+    #     end
+    #     g["time"] = conf.interval[end] # t_cur
+    #     conf.gname[] += 1
+    #     pop!(conf.interval)
+    # end
+
+
+
+    if h5.k[] ≤ h5.tol_iters && abs(t_cur - h5.interval[h5.k[]]) < 1e-10
+        device2host!(mpts, dev_mpts, h5.varnames)
+        g = create_group(fid, "group$(h5.gname[])")
+        @inbounds for path in h5.fpvar
             g[string(path[end])] = _get_nested_field(mpts, path)
         end
-        g["time"] = t_cur
-        conf.gname[] += 1
-        pop!(conf.interval)
+        g["time"] = h5.interval[h5.k[]] # t_cur
+        h5.gname[] += 1
+        h5.k[] += 1
     end
+    if h5.k[] ≤ h5.tol_iters
+        Δt = min(Δt, h5.interval[h5.k[]] - t_cur)
+    end
+    Δt = min(Δt, t_tol - t_cur)
+    return Δt
 end
 
 @inline function hdf5!(::H5_T, fid, grid)

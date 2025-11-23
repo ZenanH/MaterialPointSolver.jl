@@ -5,9 +5,11 @@ export dev_backend, init_conf
 abstract type HDF5Config end
 
 struct H5_T <: HDF5Config
-    gname::Ref{Int}
-    interval::Vector{Float64}
-    varnames::Tuple
+    gname    ::Ref{Int}
+    k        ::Ref{Int}
+    tol_iters::Int
+    interval ::Vector{Float64}
+    varnames ::Tuple
     fpvar
 end
 
@@ -68,7 +70,7 @@ function init_conf(; dev::Symbol=:cpu, h5_int::Int=0, varnames::Tuple=(:default,
     end
 
     h5 = h5_int > 0 ?
-        H5_T(Ref(1), collect(range(t_tol, t_cur; length=h5_int)), varnames, field_paths) :
+        H5_T(Ref(1), Ref(1), h5_int, collect(range(t_cur, t_tol; length=h5_int)), varnames, field_paths) :
         H5_F(Ref(0))
 
     iters = Ref{Int64}(0)

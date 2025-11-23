@@ -30,7 +30,7 @@ init_dev   = :cuda
 init_T     = 0.6
 init_Tcur  = 0.0
 init_ΔT    = 0.5 * init_h / sqrt(init_Es / init_ρs)
-init_h5    = floor(Int, init_T / init_ΔT / 200)
+init_h5    = 200#floor(Int, init_T / init_ΔT / 200)
 init_var   = (:ξ, :ϵq, :σij)
 
 # args setup

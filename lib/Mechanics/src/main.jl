@@ -28,12 +28,15 @@ function mpm_mechanics!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DevicePart
         doublemapping2!(dev)(ndrange=dev_grid.ni, dev_grid, Δt)
         g2p!(dev)(ndrange=dev_mpts.np, dev_grid, dev_mpts, t_eld, t_cur, Δt)
 
+        # safty check for the simulation
         # status_checker(grid, mpts)
         
-        # adaptive time step
-        # Δt = conf.αT * reduce(min, dev_mpts.cfl)
+        # adaptive time step or fixed time step
+        # Δt = conf.αT * reduce(min, dev_mpts.cfl) # adaptive time step
+        Δt = conf.Δt # fixed time step
 
-        hdf5!(h5, fid, t_cur, Δt, mpts, dev_mpts)
+        # HDF5 output
+        Δt = hdf5!(h5, fid, t_cur, t_tol, Δt, mpts, dev_mpts)
         
         t_cur += Δt
         update_pb!(printer, t_cur, t_tol)
