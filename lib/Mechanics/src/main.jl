@@ -11,9 +11,9 @@ function mpm_mechanics!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DevicePart
     t_cur = T2(conf.t_cur)
     t_tol = T2(conf.t_tol)
     t_eld = T2(conf.t_eld)
-    Δt    = T2(conf.Δt)
-    dev   = conf.dev
-    h5    = conf.h5
+    Δt = Δti = T2(conf.Δt)
+    dev = conf.dev
+    h5  = conf.h5
     dev_grid, dev_mpts = host2device(dev, grid, mpts)
 
     fid = set_hdf5(conf, mpts)
@@ -33,18 +33,16 @@ function mpm_mechanics!(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DevicePart
         
         # adaptive time step or fixed time step
         # Δt = conf.αT * reduce(min, dev_mpts.cfl) # adaptive time step
-        Δt = conf.Δt # fixed time step
+        Δt = Δti # fixed time step
 
         # HDF5 output
-        Δt = hdf5!(h5, fid, t_cur, t_tol, Δt, mpts, dev_mpts)
+        # Δt = hdf5!(h5, fid, t_cur, t_tol, Δt_cfl, Δti, αT, mpts, dev_mpts)
+        Δt = hdf5!(h5, fid, t_cur, t_tol, Δti, mpts, dev_mpts)
         
         t_cur += Δt
         update_pb!(printer, t_cur, t_tol)
     end
-    finish_pb!(conf, printer); KAsync(dev)
-    device2host!(mpts, dev_mpts)
-    hdf5!(h5, fid, grid)
-    close(fid)
+    exit_sim(conf, printer, fid, grid, mpts, dev_mpts)
 end
 
 end

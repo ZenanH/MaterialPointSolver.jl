@@ -30,7 +30,7 @@ init_dev   = :cuda
 init_T     = 0.6
 init_Tcur  = 0.0
 init_ΔT    = 0.5 * init_h / sqrt(init_Es / init_ρs)
-init_h5    = 200#floor(Int, init_T / init_ΔT / 200)
+init_h5    = 200
 init_var   = (:ξ, :ϵq, :σij)
 
 # args setup
@@ -38,25 +38,27 @@ conf = init_conf(dev=init_dev, Δt=init_ΔT, t_tol=init_T, h5_int=init_h5, varna
     prjpath=joinpath(@__DIR__, ".output"), prjname="Collapse")
 
 # grid and boundary conditions setup
-rangex  = -0.02:init_h:0.07
-rangey  = -0.02:init_h:0.75
-rangez  = -0.02:init_h:0.12
-bg      = meshbuilder(rangex, rangey, rangez)
-ni      = size(bg, 1)
-tmp_idx = findall(i -> bg[i, 1]≤0||bg[i, 1]≥0.05||bg[i, 3]≤0||bg[i, 2]≤0, 1:ni)
-tmp_idy = findall(i -> bg[i, 2]≤0||bg[i, 3]≤0.00, 1:ni)
-tmp_idz = findall(i -> bg[i, 3]≤0, 1:ni)
-vx_idx  = zeros(Int, ni); vx_idx[tmp_idx] .= 1
-vy_idx  = zeros(Int, ni); vy_idx[tmp_idy] .= 1
-vz_idx  = zeros(Int, ni); vz_idx[tmp_idz] .= 1 
-grid    = init_grid(rangex, rangey, rangez, ϵ=init_ϵ, ζs=init_ζs,
-    vsxi=vx_idx, vsxv=zeros(ni), vsyi=vy_idx, vsyv=zeros(ni), vszi=vz_idx, vszv=zeros(ni))
+margin  = 0.
+rangex  = [-0.02-margin, 0.07+margin]
+rangey  = [-0.02-margin, 0.75+margin]
+rangez  = [-0.02-margin, 0.12+margin]
+bg      = gridbuilder(rangex, rangey, rangez, init_h)
+tmp_idx = findall(i -> bg.ξ[i, 1]≤0||bg.ξ[i, 1]≥0.05||bg.ξ[i, 3]≤0||bg.ξ[i, 2]≤0, 1:bg.ni)
+tmp_idy = findall(i -> bg.ξ[i, 2]≤0||bg.ξ[i, 3]≤0.00, 1:bg.ni)
+tmp_idz = findall(i -> bg.ξ[i, 3]≤0, 1:bg.ni)
+vx_idx  = zeros(Int, bg.ni); vx_idx[tmp_idx] .= 1
+vy_idx  = zeros(Int, bg.ni); vy_idx[tmp_idy] .= 1
+vz_idx  = zeros(Int, bg.ni); vz_idx[tmp_idz] .= 1 
+grid    = init_grid(bg, ϵ=init_ϵ, ζs=init_ζs,
+    vsxi=vx_idx, vsxv=zeros(bg.ni), 
+    vsyi=vy_idx, vsyv=zeros(bg.ni), 
+    vszi=vz_idx, vszv=zeros(bg.ni))
 
 # material point setup
 mh = grid.h * 0.5
-ξ0 = meshbuilder(mh*0.5 : mh : 0.05-mh*0.5, 
-                 mh*0.5 : mh : 0.20-mh*0.5, 
-                 mh*0.5 : mh : 0.10-mh*0.5) # xrange: 0:0.05, yrange: 0:0.2, zrange: 0:0.1
+ξ0 = meshbuilder([mh*0.5, 0.05-mh*0.5], 
+                 [mh*0.5, 0.20-mh*0.5], 
+                 [mh*0.5, 0.10-mh*0.5], mh) # xrange: 0:0.05, yrange: 0:0.2, zrange: 0:0.1
 np = size(ξ0, 1)
 mpts = init_mpts(ϵ=init_ϵ,
     ξ    = ξ0,
