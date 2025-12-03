@@ -1,4 +1,9 @@
-export format_seconds, set_pb, update_pb!, finish_pb!, set_hdf5, hdf5!, model_info, status_checker
+export format_seconds
+export set_pb, update_pb!, finish_pb!
+export set_hdf5, hdf5!
+export model_info
+export status_checker
+export exit_sim
 
 @inline function format_seconds(s_time)
     s = s_time < 1 ? 1.0 : ceil(Int, s_time)
@@ -49,34 +54,72 @@ function set_hdf5(conf::Config, mpts::DeviceParticle{T1, T2}) where {T1, T2}
     return fid
 end
 
-@inline function hdf5!(h5::H5_T, fid, t_cur, t_tol, Δt, mpts, dev_mpts)
-    # while !isempty(conf.interval) && t_cur + Δt > conf.interval[end]
-    #     device2host!(mpts, dev_mpts, conf.varnames)
-    #     g = create_group(fid, "group$(conf.gname[])")
-    #     @inbounds for path in conf.fpvar
-    #         g[string(path[end])] = _get_nested_field(mpts, path)
-    #     end
-    #     g["time"] = conf.interval[end] # t_cur
-    #     conf.gname[] += 1
-    #     pop!(conf.interval)
-    # end
-
-
-
-    if h5.k[] ≤ h5.tol_iters && abs(t_cur - h5.interval[h5.k[]]) < 1e-10
+@inline function hdf5!(h5::H5_T, fid, t_cur, t_tol, Δti, mpts, dev_mpts)
+    # check whether the current time has reached or surpassed the next save point.
+    if h5.k[] ≤ h5.tol_iters && t_cur ≥ h5.interval[h5.k[]] - 1e-12
         device2host!(mpts, dev_mpts, h5.varnames)
         g = create_group(fid, "group$(h5.gname[])")
         @inbounds for path in h5.fpvar
             g[string(path[end])] = _get_nested_field(mpts, path)
         end
-        g["time"] = h5.interval[h5.k[]] # t_cur
+        g["time"] = t_cur
         h5.gname[] += 1
         h5.k[] += 1
     end
+    
+    # adjust the next time step to ensure it can precisely reach the next save point
     if h5.k[] ≤ h5.tol_iters
-        Δt = min(Δt, h5.interval[h5.k[]] - t_cur)
+        next_save_time = h5.interval[h5.k[]]
+        if t_cur < next_save_time
+            # if the next step would exceed the save point, adjust Δt to exactly reach the save point
+            if t_cur + Δti > next_save_time
+                Δt = next_save_time - t_cur
+            else
+                Δt = Δti
+            end
+        end
     end
+    
+    # ensure not exceeding total time and Δt is valid
     Δt = min(Δt, t_tol - t_cur)
+    
+    return Δt
+end
+
+@inline function hdf5!(h5::H5_T, fid, t_cur, t_tol, Δt_cfl, Δti, αT, mpts, dev_mpts)
+    # correct wrong Δt_cfl
+    if 0 < Δt_cfl < Δti
+        Δt = clamp(Δt_cfl, Δti*αT, Δti) # using the cfl condition to determine the time step
+    else
+        Δt = αT*Δti    # using a fixed time step (including exceptional cases)
+    end
+
+    # check whether the current time has reached or surpassed the next save point.
+    if h5.k[] ≤ h5.tol_iters && t_cur ≥ h5.interval[h5.k[]] - 1e-12
+        device2host!(mpts, dev_mpts, h5.varnames)
+        g = create_group(fid, "group$(h5.gname[])")
+        @inbounds for path in h5.fpvar
+            g[string(path[end])] = _get_nested_field(mpts, path)
+        end
+        g["time"] = t_cur
+        h5.gname[] += 1
+        h5.k[] += 1
+    end
+    
+    # adjust the next time step to ensure it can precisely reach the next save point
+    if h5.k[] ≤ h5.tol_iters
+        next_save_time = h5.interval[h5.k[]]
+        if t_cur < next_save_time
+            # if the next step would exceed the save point, adjust Δt to exactly reach the save point
+            if t_cur + Δt > next_save_time
+                Δt = next_save_time - t_cur
+            end
+        end
+    end
+    
+    # ensure not exceeding total time and Δt is valid
+    Δt = min(Δt, t_tol - t_cur)
+    
     return Δt
 end
 
@@ -94,7 +137,7 @@ function model_info(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle
     textplace1 = 5
     FLIP = lpad(string(@sprintf("%.2f", mpts.FLIP)), textplace1)
     ζs   = lpad(string(@sprintf("%.2f", grid.ζs)), textplace1)
-    h5   = typeof(conf.h5) <: H5_T ? lpad("true", textplace1) : lpad("false", textplace3)
+    h5   = typeof(conf.h5) <: H5_T ? lpad("true", textplace1) : lpad("false", textplace1)
 
     textplace2 = 9
     t_tol = rpad(string(@sprintf("%.2e", conf.t_tol))*" s", textplace2)
@@ -150,4 +193,22 @@ end
     if !rst error("MPM instability: particle position exceeds grid boundary") end
 
     return nothing
+end
+
+function exit_sim(
+    conf::Config, 
+    printer, fid,
+    grid::DeviceGrid{T1, T2}, 
+    mpts::DeviceParticle{T1, T2}, 
+    dev_mpts::DeviceParticle{T1, T2}
+) where {T1, T2}
+    finish_pb!(conf, printer)
+    KAsync(conf.dev)
+    device2host!(mpts, dev_mpts)
+    hdf5!(conf.h5, fid, grid)
+    close(fid)
+
+    @info """simulation completed:
+    $(conf.prjdst)/$(conf.prjname)
+    """
 end
