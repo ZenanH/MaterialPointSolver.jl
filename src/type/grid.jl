@@ -43,33 +43,25 @@ end
 
 @KAadapt Grid
 
-function init_grid(xr::AbstractRange, yr::AbstractRange, zr::AbstractRange; 
+function init_grid(bg::NamedTuple; 
     ϵ::Symbol=:double, vsxi=[1], vsxv=[0], vsyi=[1], vsyv=[0], vszi=[1], vszv=[0], 
     ζs=0.0, ext=[0]
 )
     T1  = ϵ == :single ? Int32   : Int64
     T2  = ϵ == :single ? Float32 : Float64
-    x, y, z = convert.(Float64, xr), convert.(Float64, yr), convert.(Float64, zr)
-    nx = T1(length(x)); nx ≤ 1 && error("Grid must have at least 2 points in x-direction")
-    ny = T1(length(y)); ny ≤ 1 && error("Grid must have at least 2 points in y-direction")
-    nz = T1(length(z)); nz ≤ 1 && error("Grid must have at least 2 points in z-direction")
-    ni = T1(nx * ny * nz); ncx = T1(nx - 1); ncy = T1(ny - 1); ncz = T1(nz - 1)
-    nc = T1(ncx * ncy * ncz)
-    _tmp_diff_vec_ = diff(x); all_equal = all(≈(_tmp_diff_vec_[1]), _tmp_diff_vec_)
-    h1 = all_equal ? _tmp_diff_vec_[1] : error("grid spacing in x direction must be equal")
-    _tmp_diff_vec_ = diff(y); all_equal = all(≈(_tmp_diff_vec_[1]), _tmp_diff_vec_)
-    h2 = all_equal ? _tmp_diff_vec_[1] : error("grid spacing in y direction must be equal")
-    _tmp_diff_vec_ = diff(z); all_equal = all(≈(_tmp_diff_vec_[1]), _tmp_diff_vec_)
-    h3 = all_equal ? _tmp_diff_vec_[1] : error("grid spacing in z direction must be equal")
-    h1 ≈ h2 ≈ h3 || error("Grid spacing in x, y and z directions must be equal")
-    h    = T2(h1)
-    invh = T2(1 / h)
-    x1   = T2(x[1])
-    x2   = T2(x[end])
-    y1   = T2(y[1])
-    y2   = T2(y[end])
-    z1   = T2(z[1])
-    z2   = T2(z[end])
+
+    nx = T1(bg.nx); ncx = T1(nx - 1)
+    ny = T1(bg.ny); ncy = T1(ny - 1)
+    nz = T1(bg.nz); ncz = T1(nz - 1)
+    ni = T1(bg.ni); nc = T1(ncx * ncy * ncz); nc == bg.nc
+    h    = T2(bg.h)
+    invh = T2(bg.inv_h)
+    x1   = T2(bg.x1)
+    x2   = T2(bg.x2)
+    y1   = T2(bg.y1)
+    y2   = T2(bg.y2)
+    z1   = T2(bg.z1)
+    z2   = T2(bg.z2)
     ζs   = T2(ζs)
     ms   = zeros(T2, ni)
     ps   = zeros(T2, ni, 3)
