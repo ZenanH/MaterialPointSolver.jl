@@ -1,7 +1,7 @@
 name: CI
 on:
   schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM UTC (8 PM CST)
+    - cron: '0 6 */3 * *'  # 每三天，北京时间 14:00
   push:
     branches: [main]
     tags: ["*"]
