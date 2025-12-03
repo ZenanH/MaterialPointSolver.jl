@@ -14,9 +14,13 @@
 This package provides a high-performance, backend-agnostic implementation of the Material Point Method (MPM) using the <a href="https://julialang.org" target="_blank"><img src="https://raw.githubusercontent.com/JuliaLang/julia-logo-graphics/master/images/julia.ico" width="16em"> Julia Language</a>. It is lightweight and user-friendly, allowing efficient execution on various hardware accelerators with a single codebase. Please check here for the <a href="https://landslidesim.github.io/MaterialPointSolver.jl/stable/" target="_blank">documentation</a>.
 </p>
 
-> If you have a GPU from Intel® and want to try on it, please [contact me 📧](mailto:zenan.huo@outlook.com).
+<p>
+This solver is part of a doctoral thesis and is distributed as open-source under the MIT License (Community Edition). Our design philosophy is to develop a user-friendly MPM solver capable of handling various equations. We focus on building the overall framework and enhance scalability through a "plugin" system. This approach also serves as a compromise to reduce maintenance costs. We welcome open-source contributions from different plugin implementations—please submit a pull request or start a discussion.
+</p>
 
-<img src="https://cdn.jsdelivr.net/gh/LandslideSIM/MaterialPointSolver.jl@main/docs/assets/readme.gif" width="100%" align="center">
+<img src="https://cdn.jsdelivr.net/gh/LandslideSIM/MaterialPointSolver.jl@main/docs/assets/readme.png" width="100%" align="center">
+
+> If you have a GPU from Intel® and want to try on it, please [contact me 📧](mailto:zenan.huo@outlook.com).
 
 ## Installation ⚙️
 
