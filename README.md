@@ -81,16 +81,14 @@ If you find `MaterialPointSolver.jl` useful or have used it in your research, pl
 
 ```bib
 @article{HUO2025107189,
-title = {A high-performance backend-agnostic Material Point Method solver in Julia},
-journal = {Computers and Geotechnics},
-volume = {183},
-pages = {107189},
-year = {2025},
-issn = {0266-352X},
-doi = {https://doi.org/10.1016/j.compgeo.2025.107189},
-url = {https://www.sciencedirect.com/science/article/pii/S0266352X25001387},
-author = {Zenan Huo and Yury Alkhimenkov and Michel Jaboyedoff and Yury Podladchikov and Ludovic Räss and Emmanuel Wyser and Gang Mei},
-keywords = {MPM, Julia language, Heterogeneous computing, Effective memory throughput}
+  title        = {A high-performance backend-agnostic Material Point Method solver in Julia},
+  author       = {Zenan Huo and Yury Alkhimenkov and Michel Jaboyedoff and Yury Podladchikov and Ludovic Räss and Emmanuel Wyser and Gang Mei},
+  year         = 2025,
+  journal      = {Computers and Geotechnics},
+  volume       = 183,
+  pages        = 107189,
+  doi          = {10.1016/j.compgeo.2025.107189},
+  issn         = {0266-352X}
 }
 ```
 > [!CAUTION]
