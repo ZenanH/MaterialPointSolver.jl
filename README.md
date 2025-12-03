@@ -33,47 +33,12 @@ julia> ]
 
 ## Features 💪
 
-*These features can be combined in any way, but MLS-MPM can only use quadratic b-spline for the speed*
-
-- Basis function:
-
-  - ✅ standard MPM
-  - ✅ uGIMP (uniformed Generalized interpolation MPM)
-  - ✅ quadratic B-spline
-  - ✅ cubic B-spline (boundary modified)
-
-- Stress update scheme:
-
-  - ✅ USL (update stress last)
-  - ✅ USF (update stress first)
-  - ✅ MUSL (modified USL)
-
-- MPM formulation:
-
-  - ✅ one-phase single-point
-  - 🚧 two-phase single-point (saturated/unsaturated)
-
-- Constitutive model:
-
-  - ✅ linear elastic
-  - ✅ hyper elastic (Neo-Hookean)
-  - ✅ Drucker-Prager (with softening/harding)
-  - 🚧 Mohr-Coulomb
-  - ✅ Bingham
-    
-    …
-
-- Others:
-
-  - ✅ Affine/MLS-MPM
-  - ✅ $\bar{F}$-based volumetric locking elimination
-  - ✅ Gaussian random field
-  - ✅ one-click switch between `FP64` and `FP32`
-  - ✅ user-defined algorithms/extensions at any level
-
-There is a `debug` model can be used to make sure the simulation is working as expect. It's also can be used for in-situ visualization in VSCode.
-
-<img src="https://cdn.jsdelivr.net/gh/LandslideSIM/MaterialPointSolver.jl@main/docs/assets/debug.gif" width="100%" align="center">
+  - ✅ Backend-agnostic solver
+  - ✅ Plugin system
+  - ✅ Random field generation
+  - ✅ One-click switch between `FP64` and `FP32`
+  - ✅ Export HDF5 for post-processing
+  - ✅ In-situ visualization
 
 ## Citation 🔥
 
@@ -95,7 +60,7 @@ If you find `MaterialPointSolver.jl` useful or have used it in your research, pl
 > This is the latest version of `MaterialPointSover.jl`, if you want to see the examples in the paper, please move to [https://github.com/LandslideSIM/Archive_MaterialPointSolver.jl_paper](https://github.com/LandslideSIM/Archive_MaterialPointSolver.jl_paper).
 
 > [!TIP]
-> After the article was published, we released many new features and achieved significant performance improvements. We are currently actively working on completing the documentation. If possible, you can directly review the source code.
+> After the article was published, we released many new features and achieved significant performance improvements.
 
 ## Acknowledgement 👍
 
