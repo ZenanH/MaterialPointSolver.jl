@@ -7,7 +7,7 @@ using Printf
 using MaterialPointSolver
 
 import MaterialPointSolver: dev_backend, host2device
-CUDA.allowscalar(false) # disable scalar operation in GPU
+CUDA.allowscalar(false)
 
 dev_backend(::Val{:cuda}) = CUDABackend()
 
