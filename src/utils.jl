@@ -4,6 +4,8 @@ export set_hdf5, hdf5!
 export model_info
 export status_checker
 export exit_sim
+export start_sim
+export timestep
 
 @inline function format_seconds(s_time)
     s = s_time < 1 ? 1.0 : ceil(Int, s_time)
@@ -142,7 +144,8 @@ function model_info(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle
     textplace2 = 9
     t_tol = rpad(string(@sprintf("%.2e", conf.t_tol))*" s", textplace2)
     t_eld = rpad(string(@sprintf("%.2e", conf.t_eld))*" s", textplace2)
-    Δt    = rpad(string(@sprintf("%.2e", conf.Δt))*" s", textplace2)
+    Δt = conf.adaptive ? rpad("adaptive", textplace2) :
+        rpad(string(@sprintf("%.2e", conf.Δt))*" s", textplace2)
 
     textplace3 = 9
     npts = rpad(string(@sprintf("%.2e", mpts.np)), textplace3)
@@ -211,4 +214,42 @@ function exit_sim(
     @info """simulation completed:
     $(conf.prjdst)/$(conf.prjname)
     """
+end
+
+function start_sim(
+    conf::Config, 
+    grid::DeviceGrid{T1, T2}, 
+    mpts::DeviceParticle{T1, T2}
+) where {T1, T2}
+    model_info(conf, grid, mpts)
+    t_cur = T2(conf.t_cur)
+    t_tol = T2(conf.t_tol)
+    t_eld = T2(conf.t_eld)
+    Δt    = T2(conf.Δt)
+    dev = conf.dev
+    dev_grid, dev_mpts = host2device(dev, grid, mpts)
+
+    fid = set_hdf5(conf, mpts)
+    printer = set_pb(conf)
+
+    return t_cur, t_tol, t_eld, Δt, dev, dev_grid, dev_mpts, fid, printer
+end
+
+function timestep(
+    conf::Config, 
+    mpts::DeviceParticle{T1, T2},
+    dev_mpts::DeviceParticle{T1, T2},
+    fid,
+    t_cur::T2,
+    t_tol::T2,
+) where {T1, T2}
+    # safty check for the simulation
+    # status_checker(grid, mpts)
+    if conf.adaptive
+        Δt_cfl = conf.αT * reduce(min, dev_mpts.cfl)
+        Δt = hdf5!(conf.h5, fid, t_cur, t_tol, Δt_cfl, conf.Δt, conf.αT, mpts, dev_mpts)
+    else
+        Δt = hdf5!(conf.h5, fid, t_cur, t_tol, conf.Δt, mpts, dev_mpts)
+    end
+    return Δt
 end

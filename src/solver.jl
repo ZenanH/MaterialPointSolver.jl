@@ -6,5 +6,6 @@ include(joinpath(@__DIR__, "solver/materials.jl"))
 include(joinpath(@__DIR__, "solver/calculator.jl"))
 include(joinpath(@__DIR__, "solver/randomfields.jl"))
 include(joinpath(@__DIR__, "solver/timestep.jl"))
+include(joinpath(@__DIR__, "solver/gridtopo.jl"))
 
 mpmsolver!(solver::Function, args...) = solver(args...)
