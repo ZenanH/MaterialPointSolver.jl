@@ -42,7 +42,8 @@ conf = init_conf(
     h5_int   = init_h5,
     varnames = init_var,
     prjpath  = joinpath(@__DIR__, ".output"),
-    prjname  = "Collapse"
+    prjname  = "Collapse",
+    adaptive = false,
 )
 
 # grid and boundary conditions setup
