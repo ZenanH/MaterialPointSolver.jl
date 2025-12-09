@@ -26,3 +26,6 @@ Manifest.toml
 .ipynb_checkpoints
 .DS_Store
 **/.output
+
+*node_modules
+package-lock.json
