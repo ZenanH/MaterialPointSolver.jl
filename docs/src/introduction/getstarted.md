@@ -6,7 +6,7 @@ Just type `]` in Julia's `REPL` to enter the built-in Pkg manager:
 
 ```julia-repl
 julia> ]
-(@1.11) Pkg> add MaterialPointSolver
+(@1.12) Pkg> add MaterialPointSolver
 ```
 
 ## Supported platforms
@@ -43,7 +43,7 @@ using oneAPI
 
 If you find ***MaterialPointSolver.jl*** useful or have used it in your research, please cite it as follows:
 
-```bib
+```latex
 @article{HUO2025107189,
 title = {A high-performance backend-agnostic Material Point Method solver in Julia},
 journal = {Computers and Geotechnics},

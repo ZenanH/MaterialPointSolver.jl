@@ -29,7 +29,7 @@ features:
     details: The explicit solver comes with various built-in MPM-related algorithms, ready to use out of the box.
 
   - icon: 😎
-    title: Custom
+    title: Plugin
     details: Your own algorithm? No problem, supports prototype design at any level, still fast and simple!
 ---
 ```

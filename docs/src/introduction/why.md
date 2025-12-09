@@ -8,10 +8,6 @@ However, MPM does not have as many available software/codes as FEM, and there is
 
 These software and code, due to being written a long time ago, are no longer compatible with the rapidly developing computing resources of today. Currently, we mainly utilize the powerful performance of GPUs, and it is important to note that GPU vendors are not limited to NVIDIA. In this case, whether as researchers or related professionals, it would be a fantastic experience if we could write just one set of code that can run on different backends.
 
-For these reasons, we have implemented ***MaterialPointSolver.jl***. I personally believe that its design coincidentally follows Victorinox's design principle: "design follows function." We develop new features driven by practical problems. Aside from its excellent performance, we try to choose simple implementation methods (a trade-off between performance and code readability), and it is very convenient to add custom features at any level, just like purchasing a Swiss Army Knife™, supporting personalization.
+For these reasons, we have implemented ***MaterialPointSolver.jl***. 
 
-```@raw html
-<div align="center">
-    <img src="./figures/knife.png" width="50%">
-</div>
-```
+> Since this is a personal project and maintainability is a priority, we only provide the core infrastructure and utilities for MPM. The governing equations and algorithms are implemented through a plugin system. If you want to develop your own methods, the plugin system allows full customization of computational details without handling mesh topology, data transfer, post-processing, etc. If you prefer not to modify anything, you can use the existing features in the lib folder. Your work can be open-sourced under the MIT license (PRs welcome) or kept as private code.
