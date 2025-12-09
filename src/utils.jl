@@ -1,6 +1,6 @@
 export format_seconds
 export set_pb, update_pb!, finish_pb!
-export set_hdf5, hdf5!
+export set_hdf5, hdf5, hdf5_finalizer
 export model_info
 export status_checker
 export exit_sim
@@ -22,7 +22,7 @@ end
     p = Progress(100; dt=conf.log_int,
         desc      = "\e[1;36m[ Info:\e[0m solving",
         barlen    = 20,
-        barglyphs = BarGlyphs(" ■■  "),
+        barglyphs = BarGlyphs(" ━━  "), # ■■
         output    = stderr,
         enabled   = true,
         color     = :cyan
@@ -56,7 +56,7 @@ function set_hdf5(conf::Config, mpts::DeviceParticle{T1, T2}) where {T1, T2}
     return fid
 end
 
-@inline function hdf5!(h5::H5_T, fid, t_cur, t_tol, Δti, mpts, dev_mpts)
+@inline function hdf5(h5::H5_T, fid, t_cur, t_tol, Δti, mpts, dev_mpts)
     # check whether the current time has reached or surpassed the next save point.
     if h5.k[] ≤ h5.tol_iters && t_cur ≥ h5.interval[h5.k[]] - 1e-12
         device2host!(mpts, dev_mpts, h5.varnames)
@@ -88,7 +88,7 @@ end
     return Δt
 end
 
-@inline function hdf5!(h5::H5_T, fid, t_cur, t_tol, Δt_cfl, Δti, αT, mpts, dev_mpts)
+@inline function hdf5(h5::H5_T, fid, t_cur, t_tol, Δt_cfl, Δti, αT, mpts, dev_mpts)
     # correct wrong Δt_cfl
     if 0 < Δt_cfl < Δti
         Δt = clamp(Δt_cfl, Δti*αT, Δti) # using the cfl condition to determine the time step
@@ -125,15 +125,27 @@ end
     return Δt
 end
 
-@inline function hdf5!(::H5_T, fid, grid)
+@inline function hdf5_finalizer(::H5_T, fid, grid)
     g = create_group(fid, "grid")
     @inbounds for vars in (:h, :x1, :x2, :y1, :y2, :z1, :z2)
         g[string(vars)] = getfield(grid, vars)
     end
 end
 
-@inline hdf5!(::H5_F, fid, t_cur, mpts::DeviceParticle{T1, T2}, dev_mpts::DeviceParticle{T1, T2}) where {T1, T2} = nothing
-@inline hdf5!(::H5_F, fid, grid::DeviceGrid{T1, T2}) where {T1, T2} = nothing
+@inline hdf5(::H5_F, fid, t_cur, mpts::DeviceParticle{T1, T2}, dev_mpts::DeviceParticle{T1, T2}) where {T1, T2} = nothing
+@inline hdf5_finalizer(::H5_F, fid, grid::DeviceGrid{T1, T2}) where {T1, T2} = nothing
+@inline hdf5(::H5_F, fid, t_cur, t_tol, Δti, mpts, dev_mpts) = Δti
+@inline function hdf5(::H5_F, fid, t_cur, t_tol, Δt_cfl, Δti, αT, mpts, dev_mpts)
+    # correct wrong Δt_cfl
+    if 0 < Δt_cfl < Δti
+        Δt = clamp(Δt_cfl, Δti*αT, Δti) # using the cfl condition to determine the time step
+    else
+        Δt = αT*Δti    # using a fixed time step (including exceptional cases)
+    end
+    
+    return Δt
+end
+
 
 function model_info(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle{T1, T2}) where {T1, T2}
     textplace1 = 5
@@ -144,7 +156,7 @@ function model_info(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle
     textplace2 = 9
     t_tol = rpad(string(@sprintf("%.2e", conf.t_tol))*" s", textplace2)
     t_eld = rpad(string(@sprintf("%.2e", conf.t_eld))*" s", textplace2)
-    Δt = conf.adaptive ? rpad("adaptive", textplace2) :
+    Δt = conf.adaptive ? rpad("adaptive  ", textplace2) :
         rpad(string(@sprintf("%.2e", conf.Δt))*" s", textplace2)
 
     textplace3 = 9
@@ -155,8 +167,8 @@ function model_info(conf::Config, grid::DeviceGrid{T1, T2}, mpts::DeviceParticle
     @info """\e[1;31mCommunity Edition\e[0m
     ────────────┬───────────────────┬────────────────
     FLIP: $(FLIP) │ t_tol: $(t_tol) │ mpts: $(npts)
-    ζs  : $(ζs) │ t_eld: $(t_eld) │ node: $(ngid)
-    HDF5: $(h5) │ Δt   : $(Δt) │ ϵ   : $(precision)
+      ζs: $(ζs) │ t_eld: $(t_eld) │ node: $(ngid)
+    HDF5: $(h5) │    Δt: $(Δt) │    ϵ: $(precision)
     ────────────┴───────────────────┴────────────────
     Project name: $(conf.prjname)
     """
@@ -208,7 +220,7 @@ function exit_sim(
     finish_pb!(conf, printer)
     KAsync(conf.dev)
     device2host!(mpts, dev_mpts)
-    hdf5!(conf.h5, fid, grid)
+    hdf5_finalizer(conf.h5, fid, grid)
     close(fid)
 
     @info """simulation completed:
@@ -247,9 +259,9 @@ function timestep(
     # status_checker(grid, mpts)
     if conf.adaptive
         Δt_cfl = conf.αT * reduce(min, dev_mpts.cfl)
-        Δt = hdf5!(conf.h5, fid, t_cur, t_tol, Δt_cfl, conf.Δt, conf.αT, mpts, dev_mpts)
+        Δt = hdf5(conf.h5, fid, t_cur, t_tol, Δt_cfl, conf.Δt, conf.αT, mpts, dev_mpts)
     else
-        Δt = hdf5!(conf.h5, fid, t_cur, t_tol, conf.Δt, mpts, dev_mpts)
+        Δt = hdf5(conf.h5, fid, t_cur, t_tol, conf.Δt, mpts, dev_mpts)
     end
     return Δt
 end
